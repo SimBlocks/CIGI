@@ -267,7 +267,6 @@ namespace sbio
         EIGMode m_eOperationMode = EIGMode::UNKNOWN;///< Current IG operating mode.
         std::list<std::unique_ptr<sbio::cigi::ig::CCigiPacketHandler>> m_pPacketHandlers;///< Owned host-to-IG packet handlers for all configured hosts.
         std::unique_ptr<sbio::cigi::ig::CCigiPacketSenders> m_pPacketSenders;///< Owned fan-out sender for IG-to-host responses.
-        std::unique_ptr<sbio::cigi::ig::CCigiMessageLogger> m_pCigiMessageLogger;///< Owned human-readable CIGI message logger when enabled.
         std::unique_ptr<sbio::engine::CDatabaseLoader> m_pDatabaseLoader;///< Owned database loader for scene loading and unloading.
         std::unique_ptr<sbio::utils::CStopWatch> m_PlayTimer;///< Owned session timer used for timestamps and elapsed-time queries.
         std::unique_ptr<sbio::cigi::ig::CIGResponseEventDispatcher> m_pExportedFunctionsEventDispatcher;///< Owned dispatcher for exported IG response events.

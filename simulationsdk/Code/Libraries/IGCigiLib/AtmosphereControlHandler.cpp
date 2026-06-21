@@ -4,6 +4,7 @@
 #include "EngineLib/EngineTypes.h"
 #include "EngineLib/IImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 
 using namespace sbio::engine;
@@ -15,6 +16,11 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 void CCigiAtmosphereControlHandler::Handle(bool bAtmosphereEnabled, const SAtmosphere& atmosphere)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(atmosphere);
+  }
+
   if (m_bAtmosphereEnabled != bAtmosphereEnabled)
   {
     SSetAtmosphereEnabledMessage data;

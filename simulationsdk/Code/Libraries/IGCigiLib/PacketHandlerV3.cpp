@@ -245,11 +245,6 @@ void CCigiPacketHandlerV3::ParseArticulatedPartControlPacket(uint8_t* pBuffer)
   articulatedPart.rotation.yaw = Degrees(articulatedPartControlV3.yaw);
   articulatedPart.rotation.pitch = Degrees(articulatedPartControlV3.pitch);
   articulatedPart.rotation.roll = Degrees(articulatedPartControlV3.roll);
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(articulatedPart);
-  }
   m_pArticulatedPartHandler->Handle(articulatedPart);
 }
 
@@ -271,11 +266,6 @@ void CCigiPacketHandlerV3::ParseAtmosphereControlPacket(uint8_t* pBuffer)
   atmosphere.fHumidity = atmosphereControlV3.globalHumidity;
   atmosphere.fVisibilityRange = atmosphereControlV3.globalVisibilityRange;
   atmosphere.fWindDirection = atmosphereControlV3.globalWindDirection;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(atmosphere);
-  }
   m_pAtmosphereControlHandler->Handle(atmosphereControlV3.atmosphericModelEnable, atmosphere);
 }
 
@@ -295,11 +285,6 @@ void CCigiPacketHandlerV3::ParseCelestialSphereControlPacket(uint8_t* pBuffer)
   celestialSphere.bMoonEnabled = celestialSphereControl.moonEnable;
   celestialSphere.bStarsEnabled = celestialSphereControl.starFieldEnable;
   celestialSphere.fStarIntensity = celestialSphereControl.starFieldIntensity;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(celestialSphere);
-  }
   m_pCelestialSphereHandler->Handle(celestialSphere);
 
   if (celestialSphereControl.dateTimeValid)
@@ -426,11 +411,6 @@ void CCigiPacketHandlerV3::ParseComponentControlPacket(uint8_t* pBuffer)
   componentControl.state.componentData[5] = componentControlV3.componentData[5];
 
   CComponentDataParser<CIGI::V33::ComponentCtrl> componentDataParser(componentControlV3);
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(componentControl);
-  }
   m_pComponentControlHandler->Handle(componentControl, &componentDataParser);
 }
 
@@ -470,11 +450,6 @@ void CCigiPacketHandlerV3::ParseEarthReferenceModelDefinitionPacket(uint8_t* pBu
     earthReferenceModel.eEarthReferenceModel = EEarthReferenceModel::HOST_DEFINED;
     earthReferenceModel.fEquatorialRadius = earthRefModelV3.equatorialRadius;
     earthReferenceModel.fFlattening = earthRefModelV3.flattening;
-
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(earthReferenceModel);
-    }
     m_pEarthReferenceModelHandler->Handle(earthReferenceModel);
   }
   else
@@ -485,11 +460,6 @@ void CCigiPacketHandlerV3::ParseEarthReferenceModelDefinitionPacket(uint8_t* pBu
     //and all other parameters in this packet shall be ignored.
     earthReferenceModel.fEquatorialRadius = 6378137.0;
     earthReferenceModel.fFlattening = 1.0 / 298.257223563;
-
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(earthReferenceModel);
-    }
     m_pEarthReferenceModelHandler->Handle(earthReferenceModel);
   }
 }
@@ -584,11 +554,6 @@ void CCigiPacketHandlerV3::ParseEnvironmentalConditionsRequestPacket(uint8_t* pB
   request.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(environmentalRegionConditionsRequestV3.altitude);
 
   request.nRequestID = environmentalRegionConditionsRequestV3.requestId;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(request);
-  }
   m_pEnvironmentalRegionHandler->Handle(request);
 }
 
@@ -648,11 +613,6 @@ void CCigiPacketHandlerV3::ParseEnvironmentalRegionControl(uint8_t* pBuffer)
   environmentalRegion.fCornerRadius = environmentalRegionControlV3.cornerRadius;
   environmentalRegion.fRotation = Degrees180(environmentalRegionControlV3.rotation);
   environmentalRegion.fTransition = environmentalRegionControlV3.transitionPerimeter;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(environmentalRegion);
-  }
   m_pEnvironmentalRegionHandler->Handle(environmentalRegion);
 }
 
@@ -706,10 +666,6 @@ void CCigiPacketHandlerV3::ParseHatHotRequestPacket(uint8_t* pBuffer)
     data.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(hatHotReqV3.altitudeZOffset);
     data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
     data.eRequestType = requestType;
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-    }
     m_pTerrainHandler->Handle(data);
   }
   else
@@ -723,10 +679,6 @@ void CCigiPacketHandlerV3::ParseHatHotRequestPacket(uint8_t* pBuffer)
     data.offset[2] = hatHotReqV3.altitudeZOffset;
     data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
     data.eRequestType = requestType;
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-    }
     m_pTerrainHandler->Handle(data);
   }
 }
@@ -766,11 +718,6 @@ void CCigiPacketHandlerV3::ParseIgControlPacket(uint8_t* pBuffer)
   igControl.hostFrameNumber = FrameNumber(igControlV3.hostFrameNumber);
   igControl.lastIgFrameNumber = FrameNumber(igControlV3.lastIGFrameNumber);
   igControl.timestamp = igControlV3.timestamp;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(igControl);
-  }
 
   Handle(igControl);
 }
@@ -818,10 +765,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.nMaterialMask = losRequest.materialMask;
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::ENTITY)
@@ -839,10 +782,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.destinationEntityID = EntityID(losRequest.destinationEntityId);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::ENTITY && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC)
@@ -860,10 +799,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.nMaterialMask = losRequest.materialMask;
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::ENTITY && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::ENTITY)
@@ -882,10 +817,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.destinationEntityID = EntityID(losRequest.destinationEntityId);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
   }
@@ -908,10 +839,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
       data.eResponseCoordinateSystem = eResponseCoordinateSystem;
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::ENTITY)
@@ -930,10 +857,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.destinationEntityID = EntityID(losRequest.destinationEntityId);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
       data.eResponseCoordinateSystem = eResponseCoordinateSystem;
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::ENTITY && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC)
@@ -952,10 +875,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
       data.eResponseCoordinateSystem = eResponseCoordinateSystem;
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::ENTITY && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::ENTITY)
@@ -975,10 +894,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
       data.destinationEntityID = EntityID(losRequest.destinationEntityId);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
       data.eResponseCoordinateSystem = eResponseCoordinateSystem;
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
   }
@@ -1028,10 +943,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
       data.nMaterialMask = losRequest.materialMask;
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourcePointCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC)
@@ -1049,10 +960,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
       data.nMaterialMask = losRequest.materialMask;
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
   }
@@ -1077,10 +984,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
       data.nMaterialMask = losRequest.materialMask;
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
     else if (eSourcePointCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC)
@@ -1099,10 +1002,6 @@ void CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
       data.updatePeriod = UpdatePeriod(losRequest.updatePeriod);
       data.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber();
       data.eResponseCoordinateSystem = eResponseCoordinateSystem;
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(data);
-      }
       m_pTerrainHandler->Handle(data);
     }
   }
@@ -1181,11 +1080,6 @@ void CCigiPacketHandlerV3::ParseMotionTrackerControlPacket(uint8_t* pBuffer)
     motionTrackerControl.bZEnable = motionTrackerV3.zEnable;
     motionTrackerControl.motionTrackerID = MotionTrackerID(motionTrackerV3.trackerId);
     motionTrackerControl.viewID = ViewID(static_cast<uint8_t>(motionTrackerV3.viewViewGroupId));
-
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(motionTrackerControl);
-    }
     m_pMotionTrackerControlHandler->Handle(motionTrackerControl);
   }
   else if (motionTrackerV3.viewViewGroupSelect == CIGI::V33::MotionTrackerCtrl::eAttachment_Group)
@@ -1201,11 +1095,6 @@ void CCigiPacketHandlerV3::ParseMotionTrackerControlPacket(uint8_t* pBuffer)
     motionTrackerControl.bZEnable = motionTrackerV3.zEnable;
     motionTrackerControl.motionTrackerID = MotionTrackerID(motionTrackerV3.trackerId);
     motionTrackerControl.viewGroupID = ViewGroupID(static_cast<uint8_t>(motionTrackerV3.viewViewGroupId));
-
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(motionTrackerControl);
-    }
     m_pMotionTrackerControlHandler->Handle(motionTrackerControl);
   }
 }
@@ -1356,10 +1245,6 @@ void CCigiPacketHandlerV3::ParseSensorControlPacket(uint8_t* pBuffer)
 
   if (sensorControl.gain.CheckValid())
   {
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(sensorControl);
-    }
     m_pSensorControlHandler->Handle(sensorControl);
   }
 }
@@ -1421,11 +1306,6 @@ void CCigiPacketHandlerV3::ParseShortArticulatedPartControlPacket(uint8_t* pBuff
   shortArticulatedPart.fDOF2 = shortArticulatedPartControlV3.dof2;
   shortArticulatedPart.bArticulatedPart1Enabled = shortArticulatedPartControlV3.articulatedPartEnable1;
   shortArticulatedPart.bArticulatedPart2Enabled = shortArticulatedPartControlV3.articulatedPartEnable2;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(shortArticulatedPart);
-  }
   m_pArticulatedPartHandler->Handle(shortArticulatedPart);
 }
 
@@ -1448,11 +1328,6 @@ void CCigiPacketHandlerV3::ParseShortComponentControlPacket(uint8_t* pBuffer)
   componentControl.state.componentData[1] = shortComponentControlV3.componentData[1];
 
   CShortComponentDataParser<CIGI::V33::ShortComponentCtrl> componentDataParser(shortComponentControlV3);
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(componentControl);
-  }
   m_pComponentControlHandler->Handle(componentControl, &componentDataParser);
 }
 
@@ -1596,11 +1471,6 @@ void CCigiPacketHandlerV3::ParseShortSymbolControlPacket(uint8_t* pBuffer)
 
   ParseAttributeValue(symbolControl, static_cast<CIGI::V33::ShortSymbolCtrl::AttributeSelect>(symbolControlV3.attributeSelect1), symbolControlV3.attributeValue1);
   ParseAttributeValue(symbolControl, static_cast<CIGI::V33::ShortSymbolCtrl::AttributeSelect>(symbolControlV3.attributeSelect2), symbolControlV3.attributeValue2);
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(symbolControl);
-  }
   m_pSymbolHandler->Handle(symbolControl);
 }
 
@@ -1651,11 +1521,6 @@ void CCigiPacketHandlerV3::ParseSymbolCircleDefinitionPacket(uint8_t* pBuffer)
     circleProperties.endAngle = Degrees(circle.endAngle);
     symbolCircle.circles.push_back(circleProperties);
   }
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(symbolCircle);
-  }
   m_pSymbolHandler->Handle(symbolCircle);
 }
 
@@ -1687,11 +1552,6 @@ void CCigiPacketHandlerV3::ParseSymbolClonePacket(uint8_t* pBuffer)
   symbolClone.eSymbolSourceType = ConvertSymbolSourceType33(static_cast<CIGI::V33::SymbolClone::SourceType>(symbolCloneV3.sourceType));
   symbolClone.sourceID = SymbolID(symbolCloneV3.sourceId);
   symbolClone.symbolID = SymbolID(symbolCloneV3.symbolId);
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(symbolClone);
-  }
   m_pSymbolHandler->Handle(symbolClone);
 }
 
@@ -1725,11 +1585,6 @@ void CCigiPacketHandlerV3::ParseSymbolControlPacket(uint8_t* pBuffer)
   symbolControl.color.g = symbolControlV3.green;
   symbolControl.color.b = symbolControlV3.blue;
   symbolControl.color.a = symbolControlV3.alpha;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(symbolControl);
-  }
   m_pSymbolHandler->Handle(symbolControl);
 }
 
@@ -1783,11 +1638,6 @@ void CCigiPacketHandlerV3::ParseSymbolLineDefinitonPacket(uint8_t* pBuffer)
 
     symbolPolygon.vertices.push_back(v);
   }
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(symbolPolygon);
-  }
   m_pSymbolHandler->Handle(symbolPolygon);
 }
 
@@ -1835,11 +1685,6 @@ void CCigiPacketHandlerV3::ParseSymbolSurfaceDefinitionPacket(uint8_t* pBuffer)
       entitySymbolSurfaceDefinition.roll = Degrees180(symbolSurfaceDefV3.roll);
       entitySymbolSurfaceDefinition.width = symbolSurfaceDefV3.width;
       entitySymbolSurfaceDefinition.height = symbolSurfaceDefV3.height;
-
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(entitySymbolSurfaceDefinition);
-      }
       m_pSymbolHandler->Handle(entitySymbolSurfaceDefinition);
     }
     else if (symbolSurfaceDefV3.billboard == CIGI::V33::SymbolSurfaceDefinition::Billboard::eBillboard_Billboard)
@@ -1858,11 +1703,6 @@ void CCigiPacketHandlerV3::ParseSymbolSurfaceDefinitionPacket(uint8_t* pBuffer)
       entityBillboardSurfaceDefinition.offsetToEntity[2] = symbolSurfaceDefV3.zOffsetTop;
       entityBillboardSurfaceDefinition.width = symbolSurfaceDefV3.width;
       entityBillboardSurfaceDefinition.height = symbolSurfaceDefV3.height;
-
-      if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-      {
-        m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(entityBillboardSurfaceDefinition);
-      }
       m_pSymbolHandler->Handle(entityBillboardSurfaceDefinition);
     }
   }
@@ -1880,11 +1720,6 @@ void CCigiPacketHandlerV3::ParseSymbolSurfaceDefinitionPacket(uint8_t* pBuffer)
     viewSymbolSurfaceDefinition.fRight = symbolSurfaceDefV3.yOffsetRight;
     viewSymbolSurfaceDefinition.fTop = symbolSurfaceDefV3.zOffsetTop;
     viewSymbolSurfaceDefinition.fBottom = symbolSurfaceDefV3.yawBottom;
-
-    if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-    {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(viewSymbolSurfaceDefinition);
-    }
     m_pSymbolHandler->Handle(viewSymbolSurfaceDefinition);
   }
 }
@@ -1989,11 +1824,6 @@ void CCigiPacketHandlerV3::ParseSymbolTextDefinitionPacket(uint8_t* pBuffer)
   symbolTextDefinition.fFontSize = symbolTextDefV3.fontSize;
   symbolTextDefinition.fontID = FontID(symbolTextDefV3.fontId);
   symbolTextDefinition.sText.assign(pTextBegin, pTextTerminator);
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(symbolTextDefinition);
-  }
   m_pSymbolHandler->Handle(symbolTextDefinition);
 }
 
@@ -2080,11 +1910,6 @@ void CCigiPacketHandlerV3::ParseViewControlPacket(uint8_t* pBuffer)
   viewControl.offset[0] = viewControlV3.xOffset;
   viewControl.offset[1] = viewControlV3.yOffset;
   viewControl.offset[2] = viewControlV3.zOffset;
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(viewControl);
-  }
   m_pViewHandler->Handle(viewControl);
 }
 
@@ -2127,11 +1952,6 @@ void CCigiPacketHandlerV3::ParseWaveControlPacket(uint8_t* pBuffer)
   condition.bWaveEnabled = waveControlV3.waveEnable;
 
   ECigiScope eScope = ConvertScope33(static_cast<CIGI::V33::WaveCtrl::Scope>(waveControlV3.scope));
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(condition);
-  }
   m_pWaveControlHandler->Handle(condition, eScope, nID);
 }
 
@@ -2200,11 +2020,6 @@ void CCigiPacketHandlerV3::ParseViewDefinitionPacket(uint8_t* pBuffer)
   viewDefinition.eProjectionMode = ConvertProjectionMode33(static_cast<CIGI::V33::ViewDefinition::ProjectionType>(viewDefinitionV3.projectionType));
   viewDefinition.eMirrorMode = ConvertMirrorMode33(static_cast<CIGI::V33::ViewDefinition::MirrorMode>(viewDefinitionV3.mirrorMode));
   viewDefinition.pixelReplicationMode = PixelReplicationMode(static_cast<uint8_t>(viewDefinitionV3.pixelReplicationMode));
-
-  if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
-  {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(viewDefinition);
-  }
   m_pViewHandler->Handle(viewDefinition);
 }
 
@@ -2425,7 +2240,7 @@ void CCigiPacketHandlerV3::ProcessPackets()
 
     if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
     {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromHostToIG(m_ImageGenerator.GetSetupOptions().eCigiVersion, m_pSocketHostToIG->GetAddress(), buffer, nMessageSize);
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(m_ImageGenerator.GetSetupOptions().eCigiVersion, m_pSocketHostToIG->GetAddress(), buffer, nMessageSize);
     }
 
     // reset IG Control received flag at the start of processing each message so that we can enforce that only one IG Control packet is processed per message

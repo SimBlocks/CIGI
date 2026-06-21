@@ -12,6 +12,7 @@
 #include "MathLib/Math.h"
 #include "MathLib/MathTypes.h"
 #include "UtilitiesLib/Logger.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 
 using namespace sbio;
@@ -35,6 +36,11 @@ CCigiArticulatedPartHandler::~CCigiArticulatedPartHandler()
 
 void CCigiArticulatedPartHandler::Handle(const SCigiArticulatedPart& articulatedPart)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(articulatedPart);
+  }
+
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(articulatedPart.entityID))
   {
     stringstream ss;
@@ -101,6 +107,11 @@ void CCigiArticulatedPartHandler::Handle(const SCigiArticulatedPart& articulated
 
 void CCigiArticulatedPartHandler::Handle(const SCigiShortArticulatedPart& shortArticulatedPart)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(shortArticulatedPart);
+  }
+
   // If the specified entity does not exist, do nothing
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(shortArticulatedPart.entityID))
   {

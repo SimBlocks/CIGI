@@ -11,6 +11,7 @@
 #include "EntityLib/ArticulatedPart.h"
 #include "GlobalHeaders/CommonTypes.h"
 #include "GlobalHeaders/Globals.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 #include "ImageGenerator.h"
 #include "MathLib/CoordinateConversions.h"
@@ -168,6 +169,10 @@ void CCigiEntityControlHandler::HandleCigiEntityPosition(EntityID entityID, Enti
     topLevelEntityPosition.geodeticCoordinates.longitude = Longitude(position[1]);
     topLevelEntityPosition.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(position[2]);
     topLevelEntityPosition.eClamp = eGrndClamp;
+    if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+    {
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(topLevelEntityPosition);
+    }
     HandleCigiTopLevelEntityPosition(pCigiEntity, topLevelEntityPosition);
   }
   else
@@ -187,6 +192,11 @@ void CCigiEntityControlHandler::HandleCigiEntityPosition(EntityID entityID, Enti
     childEntityPosition.rotation.roll = rotation.roll;
     childEntityPosition.offset = position;
     childEntityPosition.parentID = parentID;
+    childEntityPosition.bAttached = true;
+    if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+    {
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(childEntityPosition);
+    }
     HandleCigiChildEntityPosition(pCigiEntity, childEntityPosition);
   }
 

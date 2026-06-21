@@ -1,5 +1,6 @@
 //Copyright SimBlocks LLC 2016-2026
 #include "TerrainHandler.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/CigiProjectionConversions.h"
 #include "CigiLib/CigiTypesHostToIG.h"
 #include "IGCigiLib.h"
@@ -39,6 +40,18 @@ using namespace sbio::entity;
 using namespace sbio::ig::terrain;
 
 extern SIGCigiLibGlobals g_CigiLibGlobals;
+
+namespace
+{
+  template <typename T>
+  void LogHostTerrainRequest(const T& request, bool isFromHost)
+  {
+    if (isFromHost && g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+    {
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(request);
+    }
+  }
+}
 
 CCigiTerrainHandler::~CCigiTerrainHandler()
 {
@@ -430,6 +443,8 @@ void CCigiTerrainHandler::UpdateLineOfSightRequests(int lastHostFrameNumber)
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToGeodeticBasic& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -455,6 +470,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToGeode
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToGeodeticExtended& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -480,6 +497,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToGeode
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToEntityBasic& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -505,6 +524,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToEntit
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToEntityExtended& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -530,6 +551,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToEntit
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToGeodeticBasic& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -555,6 +578,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToGeodeti
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToGeodeticExtended& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -580,6 +605,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToGeodeti
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToEntityBasic& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -605,6 +632,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToEntityB
 
 bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToEntityExtended& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -630,6 +659,8 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToEntityE
 
 bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestGeodeticBasic& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -655,6 +686,8 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestGeod
 
 bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestGeodeticExtended& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -680,6 +713,8 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestGeod
 
 bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestEntityBasic& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -705,6 +740,8 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestEnti
 
 bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestEntityExtended& request, bool isFromHost)
 {
+  LogHostTerrainRequest(request, isFromHost);
+
   if (isFromHost)
   {
     if (request.updatePeriod.Value() != 0)
@@ -730,6 +767,8 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestEnti
 
 bool sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::SHATHOTGlobalRequest& req, bool isFromHost)
 {
+  LogHostTerrainRequest(req, isFromHost);
+
   bool result = CheckHost(req, HATHOTUpdateRequests, HATHOTRequests, isFromHost);
 
   CHATHOTGlobalRequestHandler requestHandler(req);
@@ -748,6 +787,8 @@ bool sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::SHATHOTGlobal
 
 bool sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::SHATHOTEntityRequest& req, bool isFromHost)
 {
+  LogHostTerrainRequest(req, isFromHost);
+
   bool result = CheckHost(req, HATHOTUpdateRequests, HATHOTRequests, isFromHost);
 
   CHATHOTEntityRequestHandler requestHandler(req);

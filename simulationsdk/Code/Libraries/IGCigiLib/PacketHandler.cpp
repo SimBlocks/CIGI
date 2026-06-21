@@ -10,6 +10,7 @@
 #include "ViewLib/ViewManager.h"
 #include "EntityControlHandler.h"
 #include "EntityLib/EntityManager.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "EnvironmentalRegionHandler.h"
 #include "IGCigiLib/IGCigiLib.h"
 #include "IGCigiLib/SensorControlHandler.h"
@@ -68,6 +69,7 @@ CCigiPacketHandler::CCigiPacketHandler(CCigiImageGenerator& imageGenerator, int 
   m_pCollisionControlHandler = make_unique<CCigiCollisionControlHandler>();
   m_pSensorControlHandler = make_unique<CCigiSensorControlHandler>();
   m_pMotionTrackerControlHandler = make_unique<CCigiMotionTrackerControlHandler>();
+  m_pEarthReferenceModelHandler = make_unique<CCigiEarthReferenceModelHandler>();
 
   m_pSocketHostToIG = make_unique<CUDPReceiveSocket>(nHostToIgPort);
 
@@ -93,6 +95,11 @@ CCigiEnvironmentalRegionHandler* CCigiPacketHandler::GetEnvironmentalRegionHandl
 
 void CCigiPacketHandler::Handle(const SCigiIgControl& igControl)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(igControl);
+  }
+
   bool bModeChanged = false;
   stringstream ss;
 

@@ -3,6 +3,7 @@
 #include "CigiLib/CigiTypesHostToIG.h"
 #include "EngineLib/IImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 
 using namespace sbio::cigi::ig;
@@ -12,6 +13,11 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 void CCigiSensorControlHandler::Handle(const sbio::cigi::SCigiSensorControl& sensorControl)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(sensorControl);
+  }
+
   SUpdateSensorMessage data;
   data.bAutomaticGain = sensorControl.bAutomaticGain;
   data.bExtendedResponse = sensorControl.bExtendedResponse;

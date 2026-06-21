@@ -1,10 +1,14 @@
 //Copyright SimBlocks LLC 2016-2026
 #include "WaveControlHandler.h"
 #include "CigiLib/CigiTypesHostToIG.h"
+#include "IGCigiLib/CigiMessageLogger.h"
+#include "IGCigiLib/IGCigiLib.h"
 #include "EnvironmentalRegionHandler.h"
 
 using namespace sbio::cigi;
 using namespace sbio::cigi::ig;
+
+extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 CCigiWaveControlHandler::CCigiWaveControlHandler(CCigiEnvironmentalRegionHandler* pEnvironmentalRegionHandler) : m_pEnvironmentalRegionHandler(pEnvironmentalRegionHandler)
 {
@@ -12,6 +16,11 @@ CCigiWaveControlHandler::CCigiWaveControlHandler(CCigiEnvironmentalRegionHandler
 
 void CCigiWaveControlHandler::Handle(const SCigiWaveCondition& waveCondition, ECigiScope eScope, int nID)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(waveCondition);
+  }
+
   // apply wave condition on an entity, regional, or global level
   switch (eScope)
   {

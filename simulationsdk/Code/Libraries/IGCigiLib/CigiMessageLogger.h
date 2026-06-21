@@ -17,6 +17,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace sbio
 {
@@ -36,6 +37,8 @@ namespace sbio
         void LogMessageFromHostToIG(sbio::cigi::ECigiVersion eCigiVersion, const std::string& endpoint, const uint8_t* pBuffer, int nMessageSize) const;
         void LogMessageFromIGToHost(sbio::cigi::ECigiVersion eCigiVersion, const uint8_t* pBuffer, int nMessageSize) const;
         void LogMessageFromHostToIG(const sbio::cigi::SCigiIgControl& igControl) const;
+        void LogMessageFromHostToIG(const sbio::cigi::STopLevelEntityPosition& message) const;
+        void LogMessageFromHostToIG(const sbio::cigi::SChildEntityPosition& message) const;
         void LogMessageFromHostToIG(const sbio::cigi::SAtmosphere& message) const;
         void LogMessageFromHostToIG(const sbio::cigi::SCelestialSphere& message) const;
         void LogMessageFromHostToIG(const sbio::cigi::SCigiArticulatedPart& message) const;
@@ -139,6 +142,7 @@ namespace sbio
         std::string ToHexString(const uint8_t* pBuffer, int nSize) const;
         void LogMessage(const std::string& direction, sbio::cigi::ECigiVersion eCigiVersion, const std::string& endpoint, const uint8_t* pBuffer, int nMessageSize) const;
         void LogExtractedFields(const std::string& messageName, std::initializer_list<std::pair<std::string, std::string>> fields) const;
+        void LogExtractedFields(const std::string& messageName, const std::vector<std::pair<std::string, std::string>>& fields) const;
         void LogPackets(std::ofstream& logFile, sbio::cigi::ECigiVersion eCigiVersion, const uint8_t* pBuffer, int nMessageSize) const;
 
         std::filesystem::path m_LogFilePath;

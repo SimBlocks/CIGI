@@ -4,6 +4,7 @@
 #include "CigiLib/CigiTypesHostToIG.h"
 #include "EngineLib/IImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 
 using namespace sbio::cigi::ig;
@@ -13,6 +14,11 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 void CCigiEarthReferenceModelHandler::Handle(const sbio::cigi::SCigiEarthReferenceModel& earthReferenceModel)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(earthReferenceModel);
+  }
+
   SSetEarthReferenceModelMessage data;
   data.EquatorialRadius = earthReferenceModel.fEquatorialRadius;
   data.Flattening = earthReferenceModel.fFlattening;

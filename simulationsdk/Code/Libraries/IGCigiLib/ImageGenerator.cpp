@@ -58,8 +58,12 @@ CCigiImageGenerator::CCigiImageGenerator(const sbio::cigi::ig::SIGSetupOptions& 
 
   if (setupOptions.bLogPacketText)
   {
-    m_pCigiMessageLogger = std::make_unique<CCigiMessageLogger>(g_CigiLibGlobals.applicationDataPath);
-    m_pCigiMessageLogger->ClearLog();
+    g_CigiLibGlobals.pCigiMessageLogger = std::make_unique<CCigiMessageLogger>(g_CigiLibGlobals.applicationDataPath);
+    g_CigiLibGlobals.pCigiMessageLogger->ClearLog();
+  }
+  else
+  {
+    g_CigiLibGlobals.pCigiMessageLogger.reset();
   }
 }
 
@@ -138,7 +142,7 @@ sbio::cigi::ig::CCigiPacketSenders* CCigiImageGenerator::GetPacketSenders() cons
 
 sbio::cigi::ig::CCigiMessageLogger* CCigiImageGenerator::GetCigiMessageLogger() const
 {
-  return m_pCigiMessageLogger.get();
+  return g_CigiLibGlobals.pCigiMessageLogger.get();
 }
 
 sbio::cigi::ig::CIGResponseEventDispatcher* CCigiImageGenerator::GetExportedFunctionsEventDispatcher() const
@@ -322,9 +326,9 @@ void CCigiImageGenerator::OnImageGeneratorErrorEvent(const SImageGeneratorErrorE
 
 void CCigiImageGenerator::ProcessPackets()
 {
-  if (m_pCigiMessageLogger != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_pCigiMessageLogger->SetFrameNumber(GetFrameNumber());
+    g_CigiLibGlobals.pCigiMessageLogger->SetFrameNumber(GetFrameNumber());
   }
 
   for (auto&& pPacketHandler : m_pPacketHandlers)
@@ -351,9 +355,9 @@ void CCigiImageGenerator::QueueLoadingDatabase(CigiDatabaseNumber databaseNumber
 
 void CCigiImageGenerator::SendPackets()
 {
-  if (m_pCigiMessageLogger != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_pCigiMessageLogger->SetFrameNumber(GetFrameNumber());
+    g_CigiLibGlobals.pCigiMessageLogger->SetFrameNumber(GetFrameNumber());
   }
 
   m_pPacketSenders->SendPackets();

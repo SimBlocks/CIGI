@@ -6,6 +6,7 @@
 #include "EnvironmentalRegion.h"
 #include "EntityLib/Entity.h"
 #include "EntityLib/EntityManager.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/ImageGenerator.h"
 #include "IGCigiLib/PacketSenders.h"
 #include "MathLib/CoordinateConversions.h"
@@ -72,6 +73,11 @@ std::vector<SCigiTerrestrialSurfaceCondition> CCigiEnvironmentalRegionHandler::B
 
 void CCigiEnvironmentalRegionHandler::Handle(const SCigiEnvironmentalRegion& environmentalRegion)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(environmentalRegion);
+  }
+
   // request to delete region, destroy old region and exit
   if (environmentalRegion.eRegionState == EActiveState::DESTROYED)
   {
@@ -119,6 +125,11 @@ void CCigiEnvironmentalRegionHandler::HandleRegionTerrestrialSurfaceCondition(sb
 
 void CCigiEnvironmentalRegionHandler::Handle(const SEnvironmentalConditionsRequest& environmentalConditionsRequest)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(environmentalConditionsRequest);
+  }
+
   if (g_CigiLibGlobals.pImageGenerator == nullptr || g_CigiLibGlobals.pImageGenerator->GetPacketSenders() == nullptr)
   {
     return;

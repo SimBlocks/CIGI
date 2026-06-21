@@ -3,6 +3,7 @@
 #include "CigiView.h"
 #include "ViewLib/ViewManager.h"
 #include "EntityLib/EntityManager.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 #include "IGCigiLib/CigiViewGroup.h"
 #include "ImageGenerator.h"
@@ -26,6 +27,10 @@ CCigiViewHandler::CCigiViewHandler(CCigiImageGenerator* pImageGenerator) : m_pIm
 
 void CCigiViewHandler::Handle(const SCigiViewControl& viewControl)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(viewControl);
+  }
 
   if (viewControl.viewGroupID == ViewGroupID(0))
   {
@@ -144,6 +149,11 @@ void CCigiViewHandler::Handle(const SCigiViewControl& viewControl)
 
 void CCigiViewHandler::Handle(const SCigiViewDefinition& viewDefinition)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(viewDefinition);
+  }
+
   CCigiView* pView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(viewDefinition.viewID));
   if (pView == nullptr)
   {

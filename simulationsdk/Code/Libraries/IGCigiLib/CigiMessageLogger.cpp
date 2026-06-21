@@ -7,6 +7,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 using namespace sbio;
 using namespace sbio::cigi;
@@ -26,6 +27,16 @@ namespace
   std::string ToLogString(bool value)
   {
     return value ? "true" : "false";
+  }
+
+  std::string ToLogString(uint8_t value)
+  {
+    return std::to_string(static_cast<unsigned int>(value));
+  }
+
+  std::string ToLogString(int8_t value)
+  {
+    return std::to_string(static_cast<int>(value));
   }
 
   template <typename T>
@@ -65,6 +76,27 @@ namespace
     return ss.str();
   }
 
+  std::string ToLogString(const sbio::math::Vec3& value)
+  {
+    std::ostringstream ss;
+    ss << "[" << value[0] << ", " << value[1] << ", " << value[2] << "]";
+    return ss.str();
+  }
+
+  std::string ToLogString(const sbio::math::Vec3f& value)
+  {
+    std::ostringstream ss;
+    ss << "[" << value[0] << ", " << value[1] << ", " << value[2] << "]";
+    return ss.str();
+  }
+
+  std::string ToLogString(const sbio::STextureCoordinateUV& value)
+  {
+    std::ostringstream ss;
+    ss << "U = " << value.U << ", V = " << value.V;
+    return ss.str();
+  }
+
   std::string ToLogString(const sbio::cigi::CigiBodyCoordinates& value)
   {
     std::ostringstream ss;
@@ -82,6 +114,131 @@ namespace
   std::initializer_list<std::pair<std::string, std::string>> BaseHatHotFields(const sbio::cigi::SBaseHATHOTResponse& message)
   {
     return {{"HATHOTID", ToLogString(message.HATHOTID)}, {"bValid", ToLogString(message.bValid)}, {"hostFrameLSN", std::to_string(message.hostFrameLSN)}};
+  }
+
+  typedef std::vector<std::pair<std::string, std::string>> TLogFields;
+
+  template <typename T>
+  void AddField(TLogFields& fields, const std::string& name, const T& value)
+  {
+    fields.push_back(std::make_pair(name, ToLogString(value)));
+  }
+
+  template <typename T>
+  void AddEnumField(TLogFields& fields, const std::string& name, T value)
+  {
+    fields.push_back(std::make_pair(name, EnumValueToLogString(value)));
+  }
+
+  void AddVec2Fields(TLogFields& fields, const std::string& name, const sbio::math::Vec2f& value)
+  {
+    AddField(fields, name + "[0]", value[0]);
+    AddField(fields, name + "[1]", value[1]);
+  }
+
+  void AddVec3Fields(TLogFields& fields, const std::string& name, const sbio::math::Vec3& value)
+  {
+    AddField(fields, name + "[0]", value[0]);
+    AddField(fields, name + "[1]", value[1]);
+    AddField(fields, name + "[2]", value[2]);
+  }
+
+  void AddVec3Fields(TLogFields& fields, const std::string& name, const sbio::math::Vec3f& value)
+  {
+    AddField(fields, name + "[0]", value[0]);
+    AddField(fields, name + "[1]", value[1]);
+    AddField(fields, name + "[2]", value[2]);
+  }
+
+  void AddCigiBodyCoordinateFields(TLogFields& fields, const std::string& name, const sbio::cigi::CigiBodyCoordinates& value)
+  {
+    AddField(fields, name + "[0]", value[0]);
+    AddField(fields, name + "[1]", value[1]);
+    AddField(fields, name + "[2]", value[2]);
+  }
+
+  void AddRotationFields(TLogFields& fields, const std::string& name, const sbio::cigi::TCigiBodyEulerRotation& value)
+  {
+    AddField(fields, name + ".yaw", value.yaw);
+    AddField(fields, name + ".pitch", value.pitch);
+    AddField(fields, name + ".roll", value.roll);
+  }
+
+  void AddRotationFields(TLogFields& fields, const std::string& name, const sbio::cigi::TCigiNEDEulerRotation& value)
+  {
+    AddField(fields, name + ".yaw", value.yaw);
+    AddField(fields, name + ".pitch", value.pitch);
+    AddField(fields, name + ".roll", value.roll);
+  }
+
+  void AddGeodeticFields(TLogFields& fields, const std::string& name, const sbio::math::SGeodeticCoordinates& value)
+  {
+    AddField(fields, name + ".latitude", value.latitude);
+    AddField(fields, name + ".longitude", value.longitude);
+    AddField(fields, name + ".altitude", value.altitude);
+  }
+
+  void AddTextureCoordinateFields(TLogFields& fields, const std::string& name, const sbio::STextureCoordinateUV& value)
+  {
+    AddField(fields, name + ".U", value.U);
+    AddField(fields, name + ".V", value.V);
+  }
+
+  void AddColorFields(TLogFields& fields, const std::string& name, const sbio::SColor32& value)
+  {
+    AddField(fields, name + ".r", static_cast<unsigned int>(value.r));
+    AddField(fields, name + ".g", static_cast<unsigned int>(value.g));
+    AddField(fields, name + ".b", static_cast<unsigned int>(value.b));
+    AddField(fields, name + ".a", static_cast<unsigned int>(value.a));
+  }
+
+  void AddHATHOTRequestFields(TLogFields& fields, const sbio::cigi::SBaseHATHOTRequest& message)
+  {
+    AddField(fields, "requestID", message.requestID);
+    AddField(fields, "updatePeriod", message.updatePeriod);
+    AddField(fields, "lastHostFrameNumber", message.lastHostFrameNumber);
+    AddEnumField(fields, "eRequestType", message.eRequestType);
+  }
+
+  void AddLineOfSightRequestFields(TLogFields& fields, const sbio::cigi::SLineOfSightRequest& message)
+  {
+    AddField(fields, "requestID", message.requestID);
+    AddField(fields, "updatePeriod", message.updatePeriod);
+    AddField(fields, "nAlphaThreshold", message.nAlphaThreshold);
+    AddField(fields, "nMaterialMask", message.nMaterialMask);
+    AddField(fields, "lastHostFrameNumber", message.lastHostFrameNumber);
+  }
+
+  void AddLineOfSightVectorRequestFields(TLogFields& fields, const sbio::cigi::SLineOfSightVectorRequest& message)
+  {
+    AddLineOfSightRequestFields(fields, message);
+    AddField(fields, "azimuth", message.azimuth);
+    AddField(fields, "elevation", message.elevation);
+    AddField(fields, "fMinimumRange", message.fMinimumRange);
+    AddField(fields, "fMaximumRange", message.fMaximumRange);
+  }
+
+  void AddMotionTrackerControlFields(TLogFields& fields, const sbio::cigi::SMotionTrackerControl& message)
+  {
+    AddField(fields, "motionTrackerID", message.motionTrackerID);
+    AddField(fields, "bEnable", message.bEnable);
+    AddField(fields, "bBoresightEnable", message.bBoresightEnable);
+    AddField(fields, "bXEnable", message.bXEnable);
+    AddField(fields, "bYEnable", message.bYEnable);
+    AddField(fields, "bZEnable", message.bZEnable);
+    AddField(fields, "bRollEnable", message.bRollEnable);
+    AddField(fields, "bPitchEnable", message.bPitchEnable);
+    AddField(fields, "bYawEnable", message.bYawEnable);
+  }
+
+  void AddSymbolSurfaceDefinitionFields(TLogFields& fields, const sbio::symbol::SSymbolSurfaceDefinition& message)
+  {
+    AddField(fields, "surfaceID", message.surfaceID);
+    AddEnumField(fields, "eSurfaceState", message.eSurfaceState);
+    AddField(fields, "width", message.width);
+    AddField(fields, "height", message.height);
+    AddVec2Fields(fields, "uvMin", message.uvMin);
+    AddVec2Fields(fields, "uvMax", message.uvMax);
   }
 }
 
@@ -154,6 +311,21 @@ void CCigiMessageLogger::LogExtractedFields(const std::string& messageName, std:
   }
 }
 
+void CCigiMessageLogger::LogExtractedFields(const std::string& messageName, const std::vector<std::pair<std::string, std::string>>& fields) const
+{
+  std::ofstream logFile(m_LogFilePath, std::ios::app);
+  if (!logFile.is_open())
+  {
+    return;
+  }
+
+  logFile << GetTimestampString() << " Host->IG frame = " << m_FrameNumber.Value() << " message = " << messageName << std::endl;
+  for (const auto& field : fields)
+  {
+    logFile << "    " << field.first << " = " << field.second << std::endl;
+  }
+}
+
 void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiIgControl& igControl) const
 {
   LogExtractedFields("IG_CONTROL", {{"databaseNumber", std::to_string(igControl.databaseNumber.Value())},
@@ -166,52 +338,506 @@ void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiIgControl& igControl)
                                     {"timestamp", std::to_string(igControl.timestamp)}});
 }
 
-#define DEFINE_EXTRACTED_MESSAGE_LOGGER(TYPE)                                                                                                                                                                                                                                                              \
-  void CCigiMessageLogger::LogMessageFromHostToIG(const TYPE& message) const                                                                                                                                                                                                                               \
-  {                                                                                                                                                                                                                                                                                                        \
-    LogExtractedMessageImpl(#TYPE, message);                                                                                                                                                                                                                                                               \
+void CCigiMessageLogger::LogMessageFromHostToIG(const STopLevelEntityPosition& message) const
+{
+  TLogFields fields;
+  AddField(fields, "entityID", message.entityID);
+  AddField(fields, "bAttached", message.bAttached);
+  AddEnumField(fields, "eClamp", message.eClamp);
+  AddGeodeticFields(fields, "geodeticCoordinates", message.geodeticCoordinates);
+  AddRotationFields(fields, "rotation", message.rotation);
+  LogExtractedFields("STopLevelEntityPosition", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SChildEntityPosition& message) const
+{
+  TLogFields fields;
+  AddField(fields, "entityID", message.entityID);
+  AddField(fields, "bAttached", message.bAttached);
+  AddField(fields, "parentID", message.parentID);
+  AddVec3Fields(fields, "offset", message.offset);
+  AddRotationFields(fields, "rotation", message.rotation);
+  LogExtractedFields("SChildEntityPosition", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SAtmosphere& message) const
+{
+  LogExtractedFields("SAtmosphere", {{"fHumidity", ToLogString(message.fHumidity)},
+                                     {"fAirTemperature", ToLogString(message.fAirTemperature)},
+                                     {"fVisibilityRange", ToLogString(message.fVisibilityRange)},
+                                     {"fHorizontalWindSpeed", ToLogString(message.fHorizontalWindSpeed)},
+                                     {"fVerticalWindSpeed", ToLogString(message.fVerticalWindSpeed)},
+                                     {"fWindDirection", ToLogString(message.fWindDirection)},
+                                     {"fBarometricPressure", ToLogString(message.fBarometricPressure)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCelestialSphere& message) const
+{
+  LogExtractedFields("SCelestialSphere", {{"bEphemerisEnabled", ToLogString(message.bEphemerisEnabled)},
+                                          {"bSunEnabled", ToLogString(message.bSunEnabled)},
+                                          {"bMoonEnabled", ToLogString(message.bMoonEnabled)},
+                                          {"bStarsEnabled", ToLogString(message.bStarsEnabled)},
+                                          {"fStarIntensity", ToLogString(message.fStarIntensity)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiArticulatedPart& message) const
+{
+  TLogFields fields;
+  AddField(fields, "entityID", message.entityID);
+  AddField(fields, "articulatedPartID", message.articulatedPartID);
+  AddField(fields, "bEnabled", message.bEnabled);
+  AddField(fields, "bOffsetEnabled[0]", message.bOffsetEnabled[0]);
+  AddField(fields, "bOffsetEnabled[1]", message.bOffsetEnabled[1]);
+  AddField(fields, "bOffsetEnabled[2]", message.bOffsetEnabled[2]);
+  AddField(fields, "bRollEnabled", message.bRollEnabled);
+  AddField(fields, "bPitchEnabled", message.bPitchEnabled);
+  AddField(fields, "bYawEnabled", message.bYawEnabled);
+  AddCigiBodyCoordinateFields(fields, "offset", message.offset);
+  AddRotationFields(fields, "rotation", message.rotation);
+  LogExtractedFields("SCigiArticulatedPart", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiComponentControl& message) const
+{
+  LogExtractedFields("SCigiComponentControl", {{"key.componentID", ToLogString(message.key.componentID)},
+                                               {"key.componentClassID", ToLogString(message.key.componentClassID)},
+                                               {"key.nInstanceID", ToLogString(message.key.nInstanceID)},
+                                               {"state.nComponentState", ToLogString(message.state.nComponentState)},
+                                               {"state.componentData[0]", ToLogString(message.state.componentData[0])},
+                                               {"state.componentData[1]", ToLogString(message.state.componentData[1])},
+                                               {"state.componentData[2]", ToLogString(message.state.componentData[2])},
+                                               {"state.componentData[3]", ToLogString(message.state.componentData[3])},
+                                               {"state.componentData[4]", ToLogString(message.state.componentData[4])},
+                                               {"state.componentData[5]", ToLogString(message.state.componentData[5])}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiEarthReferenceModel& message) const
+{
+  LogExtractedFields("SCigiEarthReferenceModel", {{"eEarthReferenceModel", EnumValueToLogString(message.eEarthReferenceModel)},
+                                                  {"fEquatorialRadius", ToLogString(message.fEquatorialRadius)},
+                                                  {"fFlattening", ToLogString(message.fFlattening)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiEnvironmentalRegion& message) const
+{
+  TLogFields fields;
+  AddEnumField(fields, "eRegionState", message.eRegionState);
+  AddEnumField(fields, "eMergeWeatherProperties", message.eMergeWeatherProperties);
+  AddEnumField(fields, "eMergeAerosolConcentrations", message.eMergeAerosolConcentrations);
+  AddEnumField(fields, "eMergeMaritimeSurfaceConditions", message.eMergeMaritimeSurfaceConditions);
+  AddEnumField(fields, "eMergeTerrestrialSurfaceConditions", message.eMergeTerrestrialSurfaceConditions);
+  AddField(fields, "regionID", message.regionID);
+  AddField(fields, "latitude", message.latitude);
+  AddField(fields, "longitude", message.longitude);
+  AddVec2Fields(fields, "size", message.size);
+  AddField(fields, "fCornerRadius", message.fCornerRadius);
+  AddField(fields, "fRotation", message.fRotation);
+  AddField(fields, "fTransition", message.fTransition);
+  LogExtractedFields("SCigiEnvironmentalRegion", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiSensorControl& message) const
+{
+  LogExtractedFields("SCigiSensorControl", {{"sensorID", ToLogString(message.sensorID)},
+                                            {"eTrackMode", EnumValueToLogString(message.eTrackMode)},
+                                            {"bSensorOn", ToLogString(message.bSensorOn)},
+                                            {"ePolarity", EnumValueToLogString(message.ePolarity)},
+                                            {"bLineByLineDropoutEnabled", ToLogString(message.bLineByLineDropoutEnabled)},
+                                            {"bAutomaticGain", ToLogString(message.bAutomaticGain)},
+                                            {"eSensorTrack", EnumValueToLogString(message.eSensorTrack)},
+                                            {"bExtendedResponse", ToLogString(message.bExtendedResponse)},
+                                            {"viewID", ToLogString(message.viewID)},
+                                            {"gain", ToLogString(message.gain)},
+                                            {"level", ToLogString(message.level)},
+                                            {"fACCoupling", ToLogString(message.fACCoupling)},
+                                            {"noise", ToLogString(message.noise)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiShortArticulatedPart& message) const
+{
+  LogExtractedFields("SCigiShortArticulatedPart", {{"entityID", ToLogString(message.entityID)},
+                                                   {"articulatedPartID1", ToLogString(message.articulatedPartID1)},
+                                                   {"articulatedPartID2", ToLogString(message.articulatedPartID2)},
+                                                   {"eDOF1", EnumValueToLogString(message.eDOF1)},
+                                                   {"eDOF2", EnumValueToLogString(message.eDOF2)},
+                                                   {"bArticulatedPart1Enabled", ToLogString(message.bArticulatedPart1Enabled)},
+                                                   {"bArticulatedPart2Enabled", ToLogString(message.bArticulatedPart2Enabled)},
+                                                   {"fDOF1", ToLogString(message.fDOF1)},
+                                                   {"fDOF2", ToLogString(message.fDOF2)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiViewControl& message) const
+{
+  TLogFields fields;
+  AddField(fields, "groupID", message.groupID);
+  AddField(fields, "viewGroupID", message.viewGroupID);
+  AddField(fields, "offsetEnabled[0]", message.offsetEnabled[0]);
+  AddField(fields, "offsetEnabled[1]", message.offsetEnabled[1]);
+  AddField(fields, "offsetEnabled[2]", message.offsetEnabled[2]);
+  AddField(fields, "bYawEnabled", message.bYawEnabled);
+  AddField(fields, "bPitchEnabled", message.bPitchEnabled);
+  AddField(fields, "bRollEnabled", message.bRollEnabled);
+  AddField(fields, "viewID", message.viewID);
+  AddField(fields, "entityID", message.entityID);
+  AddCigiBodyCoordinateFields(fields, "offset", message.offset);
+  AddRotationFields(fields, "rotation", message.rotation);
+  LogExtractedFields("SCigiViewControl", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiViewDefinition& message) const
+{
+  LogExtractedFields("SCigiViewDefinition", {{"viewID", ToLogString(message.viewID)},
+                                             {"viewGroupID", ToLogString(message.viewGroupID)},
+                                             {"bNearEnabled", ToLogString(message.bNearEnabled)},
+                                             {"bFarEnabled", ToLogString(message.bFarEnabled)},
+                                             {"bLeftEnabled", ToLogString(message.bLeftEnabled)},
+                                             {"bRightEnabled", ToLogString(message.bRightEnabled)},
+                                             {"bTopEnabled", ToLogString(message.bTopEnabled)},
+                                             {"bBottomEnabled", ToLogString(message.bBottomEnabled)},
+                                             {"eMirrorMode", EnumValueToLogString(message.eMirrorMode)},
+                                             {"pixelReplicationMode", ToLogString(message.pixelReplicationMode)},
+                                             {"eProjectionMode", EnumValueToLogString(message.eProjectionMode)},
+                                             {"bReorder", ToLogString(message.bReorder)},
+                                             {"viewType", ToLogString(message.viewType)},
+                                             {"fNear", ToLogString(message.fNear)},
+                                             {"fFar", ToLogString(message.fFar)},
+                                             {"fLeft", ToLogString(message.fLeft)},
+                                             {"fRight", ToLogString(message.fRight)},
+                                             {"fTop", ToLogString(message.fTop)},
+                                             {"fBottom", ToLogString(message.fBottom)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiWaveCondition& message) const
+{
+  LogExtractedFields("SCigiWaveCondition", {{"waveID", ToLogString(message.waveID)},
+                                            {"bWaveEnabled", ToLogString(message.bWaveEnabled)},
+                                            {"eBreakerType", EnumValueToLogString(message.eBreakerType)},
+                                            {"fWaveHeight", ToLogString(message.fWaveHeight)},
+                                            {"fWavelength", ToLogString(message.fWavelength)},
+                                            {"fPeriod", ToLogString(message.fPeriod)},
+                                            {"direction", ToLogString(message.direction)},
+                                            {"phaseOffset", ToLogString(message.phaseOffset)},
+                                            {"leading", ToLogString(message.leading)}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SEnvironmentalConditionsRequest& message) const
+{
+  TLogFields fields;
+  AddField(fields, "bMaritimeSurfaceConditionsRequest", message.bMaritimeSurfaceConditionsRequest);
+  AddField(fields, "bTerrestrialSurfaceConditionsRequest", message.bTerrestrialSurfaceConditionsRequest);
+  AddField(fields, "bWeatherConditionsRequest", message.bWeatherConditionsRequest);
+  AddField(fields, "bAerosolConcentrationsRequest", message.bAerosolConcentrationsRequest);
+  AddField(fields, "nRequestID", message.nRequestID);
+  AddGeodeticFields(fields, "geodeticCoordinates", message.geodeticCoordinates);
+  LogExtractedFields("SEnvironmentalConditionsRequest", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SHATHOTEntityRequest& message) const
+{
+  TLogFields fields;
+  AddHATHOTRequestFields(fields, message);
+  AddField(fields, "entityID", message.entityID);
+  AddVec3Fields(fields, "offset", message.offset);
+  LogExtractedFields("SHATHOTEntityRequest", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SHATHOTGlobalRequest& message) const
+{
+  TLogFields fields;
+  AddHATHOTRequestFields(fields, message);
+  AddGeodeticFields(fields, "geodeticCoordinates", message.geodeticCoordinates);
+  LogExtractedFields("SHATHOTGlobalRequest", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestEntityToEntityBasic& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddField(fields, "sourceEntityID", message.sourceEntityID);
+  AddCigiBodyCoordinateFields(fields, "sourceOffset", message.sourceOffset);
+  AddField(fields, "destinationEntityID", message.destinationEntityID);
+  AddCigiBodyCoordinateFields(fields, "destinationOffset", message.destinationOffset);
+  LogExtractedFields("SLineOfSightSegmentRequestEntityToEntityBasic", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestEntityToEntityExtended& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddField(fields, "sourceEntityID", message.sourceEntityID);
+  AddCigiBodyCoordinateFields(fields, "sourceOffset", message.sourceOffset);
+  AddField(fields, "destinationEntityID", message.destinationEntityID);
+  AddCigiBodyCoordinateFields(fields, "destinationOffset", message.destinationOffset);
+  AddEnumField(fields, "eResponseCoordinateSystem", message.eResponseCoordinateSystem);
+  LogExtractedFields("SLineOfSightSegmentRequestEntityToEntityExtended", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestEntityToGeodeticBasic& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddField(fields, "sourceEntityID", message.sourceEntityID);
+  AddCigiBodyCoordinateFields(fields, "sourceOffset", message.sourceOffset);
+  AddGeodeticFields(fields, "destinationGeodeticCoordinates", message.destinationGeodeticCoordinates);
+  LogExtractedFields("SLineOfSightSegmentRequestEntityToGeodeticBasic", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestEntityToGeodeticExtended& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddField(fields, "sourceEntityID", message.sourceEntityID);
+  AddCigiBodyCoordinateFields(fields, "sourceOffset", message.sourceOffset);
+  AddGeodeticFields(fields, "destinationGeodeticCoordinates", message.destinationGeodeticCoordinates);
+  AddEnumField(fields, "eResponseCoordinateSystem", message.eResponseCoordinateSystem);
+  LogExtractedFields("SLineOfSightSegmentRequestEntityToGeodeticExtended", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestGeodeticToEntityBasic& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddGeodeticFields(fields, "sourceGeodeticCoordinates", message.sourceGeodeticCoordinates);
+  AddField(fields, "destinationEntityID", message.destinationEntityID);
+  AddVec3Fields(fields, "destinationOffset", message.destinationOffset);
+  LogExtractedFields("SLineOfSightSegmentRequestGeodeticToEntityBasic", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestGeodeticToEntityExtended& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddGeodeticFields(fields, "sourceGeodeticCoordinates", message.sourceGeodeticCoordinates);
+  AddField(fields, "destinationEntityID", message.destinationEntityID);
+  AddVec3Fields(fields, "destinationOffset", message.destinationOffset);
+  AddEnumField(fields, "eResponseCoordinateSystem", message.eResponseCoordinateSystem);
+  LogExtractedFields("SLineOfSightSegmentRequestGeodeticToEntityExtended", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestGeodeticToGeodeticBasic& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddGeodeticFields(fields, "sourceGeodeticCoordinates", message.sourceGeodeticCoordinates);
+  AddGeodeticFields(fields, "destinationGeodeticCoordinates", message.destinationGeodeticCoordinates);
+  LogExtractedFields("SLineOfSightSegmentRequestGeodeticToGeodeticBasic", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightSegmentRequestGeodeticToGeodeticExtended& message) const
+{
+  TLogFields fields;
+  AddLineOfSightRequestFields(fields, message);
+  AddGeodeticFields(fields, "sourceGeodeticCoordinates", message.sourceGeodeticCoordinates);
+  AddGeodeticFields(fields, "destinationGeodeticCoordinates", message.destinationGeodeticCoordinates);
+  AddEnumField(fields, "eResponseCoordinateSystem", message.eResponseCoordinateSystem);
+  LogExtractedFields("SLineOfSightSegmentRequestGeodeticToGeodeticExtended", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightVectorRequestEntityBasic& message) const
+{
+  TLogFields fields;
+  AddLineOfSightVectorRequestFields(fields, message);
+  AddField(fields, "sourceEntityID", message.sourceEntityID);
+  AddCigiBodyCoordinateFields(fields, "sourceOffset", message.sourceOffset);
+  LogExtractedFields("SLineOfSightVectorRequestEntityBasic", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightVectorRequestEntityExtended& message) const
+{
+  TLogFields fields;
+  AddLineOfSightVectorRequestFields(fields, message);
+  AddField(fields, "sourceEntityID", message.sourceEntityID);
+  AddCigiBodyCoordinateFields(fields, "sourceOffset", message.sourceOffset);
+  AddEnumField(fields, "eResponseCoordinateSystem", message.eResponseCoordinateSystem);
+  LogExtractedFields("SLineOfSightVectorRequestEntityExtended", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightVectorRequestGeodeticBasic& message) const
+{
+  TLogFields fields;
+  AddLineOfSightVectorRequestFields(fields, message);
+  AddGeodeticFields(fields, "sourceGeodeticCoordinates", message.sourceGeodeticCoordinates);
+  LogExtractedFields("SLineOfSightVectorRequestGeodeticBasic", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SLineOfSightVectorRequestGeodeticExtended& message) const
+{
+  TLogFields fields;
+  AddLineOfSightVectorRequestFields(fields, message);
+  AddGeodeticFields(fields, "sourceGeodeticCoordinates", message.sourceGeodeticCoordinates);
+  AddEnumField(fields, "eResponseCoordinateSystem", message.eResponseCoordinateSystem);
+  LogExtractedFields("SLineOfSightVectorRequestGeodeticExtended", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SMotionTrackerViewControl& message) const
+{
+  TLogFields fields;
+  AddMotionTrackerControlFields(fields, message);
+  AddField(fields, "viewID", message.viewID);
+  LogExtractedFields("SMotionTrackerViewControl", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SMotionTrackerViewGroupControl& message) const
+{
+  TLogFields fields;
+  AddMotionTrackerControlFields(fields, message);
+  AddField(fields, "viewGroupID", message.viewGroupID);
+  LogExtractedFields("SMotionTrackerViewGroupControl", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SEntityBillboardSymbolSurfaceDefinition& message) const
+{
+  TLogFields fields;
+  AddSymbolSurfaceDefinitionFields(fields, message);
+  AddField(fields, "entityID", message.entityID);
+  AddField(fields, "bPerspectiveGrowthEnabled", message.bPerspectiveGrowthEnabled);
+  AddVec3Fields(fields, "offsetToEntity", message.offsetToEntity);
+  LogExtractedFields("SEntityBillboardSymbolSurfaceDefinition", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SEntitySymbolSurfaceDefinition& message) const
+{
+  TLogFields fields;
+  AddSymbolSurfaceDefinitionFields(fields, message);
+  AddField(fields, "entityID", message.entityID);
+  AddVec3Fields(fields, "offsetToSurface", message.offsetToSurface);
+  AddField(fields, "yaw", message.yaw);
+  AddField(fields, "pitch", message.pitch);
+  AddField(fields, "roll", message.roll);
+  LogExtractedFields("SEntitySymbolSurfaceDefinition", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolCircle& message) const
+{
+  TLogFields fields;
+  AddField(fields, "symbolID", message.symbolID);
+  AddField(fields, "stipplePattern", message.stipplePattern);
+  AddEnumField(fields, "eDrawingStyle", message.eDrawingStyle);
+  AddField(fields, "fLineWidth", message.fLineWidth);
+  AddField(fields, "fStipplePatternLength", message.fStipplePatternLength);
+  AddField(fields, "circles.size", message.circles.size());
+  for (size_t n = 0; n < message.circles.size(); ++n)
+  {
+    const std::string prefix = "circles[" + std::to_string(n) + "]";
+    AddTextureCoordinateFields(fields, prefix + ".centerUV", message.circles[n].centerUV);
+    AddField(fields, prefix + ".fRadius", message.circles[n].fRadius);
+    AddField(fields, prefix + ".fInnerRadius", message.circles[n].fInnerRadius);
+    AddField(fields, prefix + ".startAngle", message.circles[n].startAngle);
+    AddField(fields, prefix + ".endAngle", message.circles[n].endAngle);
   }
+  LogExtractedFields("SSymbolCircle", fields);
+}
 
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SAtmosphere)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCelestialSphere)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiArticulatedPart)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiComponentControl)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiEarthReferenceModel)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiEnvironmentalRegion)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiSensorControl)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiShortArticulatedPart)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiViewControl)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiViewDefinition)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SCigiWaveCondition)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SEnvironmentalConditionsRequest)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SHATHOTEntityRequest)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SHATHOTGlobalRequest)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestEntityToEntityBasic)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestEntityToEntityExtended)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestEntityToGeodeticBasic)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestEntityToGeodeticExtended)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestGeodeticToEntityBasic)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestGeodeticToEntityExtended)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestGeodeticToGeodeticBasic)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightSegmentRequestGeodeticToGeodeticExtended)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightVectorRequestEntityBasic)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightVectorRequestEntityExtended)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightVectorRequestGeodeticBasic)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SLineOfSightVectorRequestGeodeticExtended)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SMotionTrackerViewControl)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SMotionTrackerViewGroupControl)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SEntityBillboardSymbolSurfaceDefinition)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SEntitySymbolSurfaceDefinition)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolCircle)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolClone)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolControl)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolPolygon)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolTextDefinition)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolTexturedCircle)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SSymbolTexturedPolygon)
-DEFINE_EXTRACTED_MESSAGE_LOGGER(SViewSymbolSurfaceDefinition)
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolClone& message) const
+{
+  LogExtractedFields("SSymbolClone", {{"symbolID", ToLogString(message.symbolID)},
+                                      {"sourceID", ToLogString(message.sourceID)},
+                                      {"eSymbolSourceType", EnumValueToLogString(message.eSymbolSourceType)}});
+}
 
-#undef DEFINE_EXTRACTED_MESSAGE_LOGGER
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolControl& message) const
+{
+  TLogFields fields;
+  AddField(fields, "symbolID", message.symbolID);
+  AddEnumField(fields, "eSymbolState", message.eSymbolState);
+  AddField(fields, "parentSymbolID", message.parentSymbolID);
+  AddEnumField(fields, "eAttachState", message.eAttachState);
+  AddEnumField(fields, "eFlashControl", message.eFlashControl);
+  AddField(fields, "bInheritColor", message.bInheritColor);
+  AddField(fields, "surfaceID", message.surfaceID);
+  AddField(fields, "nLayerID", message.nLayerID);
+  AddField(fields, "flashDutyCyclePercentage", message.flashDutyCyclePercentage);
+  AddField(fields, "fFlashPeriod", message.fFlashPeriod);
+  AddField(fields, "fPositionU", message.fPositionU);
+  AddField(fields, "fPositionV", message.fPositionV);
+  AddField(fields, "fRotation", message.fRotation);
+  AddColorFields(fields, "color", message.color);
+  AddField(fields, "fScaleU", message.fScaleU);
+  AddField(fields, "fScaleV", message.fScaleV);
+  AddField(fields, "bPositionSet", message.bPositionSet);
+  AddField(fields, "bScaleSet", message.bScaleSet);
+  AddField(fields, "bSetColor", message.bSetColor);
+  LogExtractedFields("SSymbolControl", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolPolygon& message) const
+{
+  TLogFields fields;
+  AddField(fields, "symbolID", message.symbolID);
+  AddField(fields, "nStipplePattern", message.nStipplePattern);
+  AddEnumField(fields, "ePrimitiveType", message.ePrimitiveType);
+  AddField(fields, "fLineWidth", message.fLineWidth);
+  AddField(fields, "fStipplePatternLength", message.fStipplePatternLength);
+  AddField(fields, "vertices.size", message.vertices.size());
+  for (size_t n = 0; n < message.vertices.size(); ++n)
+  {
+    AddVec2Fields(fields, "vertices[" + std::to_string(n) + "]", message.vertices[n]);
+  }
+  LogExtractedFields("SSymbolPolygon", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolTextDefinition& message) const
+{
+  LogExtractedFields("SSymbolTextDefinition", {{"symbolID", ToLogString(message.symbolID)},
+                                               {"fontID", ToLogString(message.fontID)},
+                                               {"fFontSize", ToLogString(message.fFontSize)},
+                                               {"eTextAlignment", EnumValueToLogString(message.eTextAlignment)},
+                                               {"eTextOrientation", EnumValueToLogString(message.eTextOrientation)},
+                                               {"sText", message.sText}});
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolTexturedCircle& message) const
+{
+  TLogFields fields;
+  AddField(fields, "symbolID", message.symbolID);
+  AddField(fields, "textureID", message.textureID);
+  AddEnumField(fields, "eTextureFilter", message.eTextureFilter);
+  AddEnumField(fields, "eTextureWrap", message.eTextureWrap);
+  AddField(fields, "circles.size", message.circles.size());
+  for (size_t n = 0; n < message.circles.size(); ++n)
+  {
+    const std::string prefix = "circles[" + std::to_string(n) + "]";
+    AddVec2Fields(fields, prefix + ".centerUV", message.circles[n].centerUV);
+    AddField(fields, prefix + ".fRadius", message.circles[n].fRadius);
+    AddField(fields, prefix + ".fInnerRadius", message.circles[n].fInnerRadius);
+    AddField(fields, prefix + ".startAngle", message.circles[n].startAngle);
+    AddField(fields, prefix + ".endAngle", message.circles[n].endAngle);
+    AddVec2Fields(fields, prefix + ".centerTextureST", message.circles[n].centerTextureST);
+    AddField(fields, prefix + ".fTextureMapRadius", message.circles[n].fTextureMapRadius);
+    AddField(fields, prefix + ".fTextureMapRotation", message.circles[n].fTextureMapRotation);
+  }
+  LogExtractedFields("SSymbolTexturedCircle", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolTexturedPolygon& message) const
+{
+  TLogFields fields;
+  AddField(fields, "symbolID", message.symbolID);
+  AddField(fields, "textureID", message.textureID);
+  AddEnumField(fields, "ePrimitiveType", message.ePrimitiveType);
+  AddEnumField(fields, "eTextureFilterMode", message.eTextureFilterMode);
+  AddEnumField(fields, "eTextureWrapMode", message.eTextureWrapMode);
+  AddField(fields, "vertices.size", message.vertices.size());
+  for (size_t n = 0; n < message.vertices.size(); ++n)
+  {
+    const std::string prefix = "vertices[" + std::to_string(n) + "]";
+    AddVec2Fields(fields, prefix + ".uv", message.vertices[n].uv);
+    AddVec2Fields(fields, prefix + ".textureCoordinateST", message.vertices[n].textureCoordinateST);
+  }
+  LogExtractedFields("SSymbolTexturedPolygon", fields);
+}
+
+void CCigiMessageLogger::LogMessageFromHostToIG(const SViewSymbolSurfaceDefinition& message) const
+{
+  TLogFields fields;
+  AddSymbolSurfaceDefinitionFields(fields, message);
+  AddField(fields, "viewID", message.viewID);
+  AddField(fields, "fLeft", message.fLeft);
+  AddField(fields, "fRight", message.fRight);
+  AddField(fields, "fTop", message.fTop);
+  AddField(fields, "fBottom", message.fBottom);
+  LogExtractedFields("SViewSymbolSurfaceDefinition", fields);
+}
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SCigiStartOfFrame& message) const
 {

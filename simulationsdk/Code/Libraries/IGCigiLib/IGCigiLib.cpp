@@ -3,6 +3,7 @@
 #include "CigiLib/CigiLib.h"
 #include "GlobalHeaders/Globals.h"
 #include "CigiEvent.h"
+#include "CigiMessageLogger.h"
 #include "UtilitiesLib/EventDispatcher.h"
 #include "UtilitiesLib/Logger.h"
 #include "CigiLib/CigiEntityTypes.h"
@@ -62,6 +63,7 @@ void SetIGCigiLibImageGenerator(sbio::cigi::ig::CCigiImageGenerator* pImageGener
 void UninitIGCigiLib()
 {
   g_CigiLibGlobals.pProjection.reset();
+  g_CigiLibGlobals.pCigiMessageLogger.reset();
   g_CigiLibGlobals.pCigiEntityTypes.reset();
   g_CigiLibGlobals.pImageGenerator = nullptr;
   g_CigiLibGlobals.pEventDispatcher = nullptr;

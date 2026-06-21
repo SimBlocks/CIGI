@@ -6,6 +6,7 @@
 #include "EngineLib/ImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorMessages.h"
 #include "EntityLib/EntityManager.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 #include "UtilitiesLib/Logger.h"
 #include "libCIGI/Packets/4_0/ComponentCtrl.h"
@@ -55,6 +56,11 @@ CCigiComponentControlHandler::~CCigiComponentControlHandler()
 
 void CCigiComponentControlHandler::Handle(const SCigiComponentControl& componentControl, CBaseComponentDataParser* pComponentDataParser)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(componentControl);
+  }
+
   // find the handler function based on the component class ID
   TComponentHandlerFunctions::iterator itFunction = m_ComponentHandlerFunctions.find(componentControl.key.componentClassID);
 

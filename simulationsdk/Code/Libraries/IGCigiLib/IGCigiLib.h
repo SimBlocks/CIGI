@@ -61,6 +61,7 @@ namespace sbio
         sbio::ig::CImageGeneratorEventMessenger* pEventMessenger = nullptr;///< Non-owning event messenger.
         std::unique_ptr<sbio::math::CProjection> pProjection;///< Owned projection instance for the active database, if any.
         sbio::cigi::ig::CCigiImageGenerator* pImageGenerator = nullptr;///< Non-owning pointer to the active CIGI image generator.
+        std::unique_ptr<sbio::cigi::ig::CCigiMessageLogger> pCigiMessageLogger;///< Owned human-readable CIGI message logger when enabled.
         std::unique_ptr<CCigiEntityTypes> pCigiEntityTypes;///< Owned entity-type conversion helper.
       };
     }

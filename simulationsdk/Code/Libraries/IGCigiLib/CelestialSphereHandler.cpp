@@ -4,6 +4,7 @@
 #include "EngineLib/IImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorMessages.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 
 using namespace sbio;
@@ -16,6 +17,11 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 void CCigiCelestialSphereHandler::Handle(const SCelestialSphere& celestialSphere)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(celestialSphere);
+  }
+
   SUpdateCelestialSphereMessage data;
   data.MoonEnabled = celestialSphere.bMoonEnabled;
   data.StarFieldEnabled = celestialSphere.bStarsEnabled;

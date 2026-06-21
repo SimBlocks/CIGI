@@ -2,6 +2,7 @@
 #include "PacketSenderV4.h"
 #include "CigiLib/CigiConversions.h"
 #include "CigiLib/CigiTypes.h"
+#include "IGCigiLib/IGCigiLib.h"
 #include "IGCigiLib/ImageGenerator.h"
 #include "IGCigiLib/CigiMessageLogger.h"
 #include "UtilitiesLib/UDPSendSocket.h"
@@ -28,15 +29,17 @@ using namespace sbio::cigi;
 using namespace sbio::cigi::ig;
 using namespace std;
 
+extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
+
 CCigiPacketSenderV4::CCigiPacketSenderV4(CCigiImageGenerator& imageGenerator, std::string hostIPAddress, int igToHostPort) : CCigiPacketSender(imageGenerator, hostIPAddress, igToHostPort)
 {
 }
 
 void CCigiPacketSenderV4::SendLineOfSightResponse(const sbio::cigi::SLineOfSightResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::LineOfSightResponse losRespV4;
@@ -54,9 +57,9 @@ void CCigiPacketSenderV4::SendLineOfSightResponse(const sbio::cigi::SLineOfSight
 
 void CCigiPacketSenderV4::SendLineOfSightEntityResponse(const sbio::cigi::SLineOfSightEntityResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::LineOfSightResponse losRespV4;
@@ -74,19 +77,19 @@ void CCigiPacketSenderV4::SendLineOfSightEntityResponse(const sbio::cigi::SLineO
 
 void CCigiPacketSenderV4::SendPositionResponse(const SBasePositionResponse* response, sbio::cigi::EPositionResponseType type)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
     if (type == sbio::cigi::EPositionResponseType::GEODETIC)
     {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(*static_cast<const SPositionResponseGeodeticCoordinates*>(response));
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(*static_cast<const SPositionResponseGeodeticCoordinates*>(response));
     }
     else if (type == sbio::cigi::EPositionResponseType::PARENT)
     {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(*static_cast<const SPositionResponseParentEntityCoordinates*>(response));
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(*static_cast<const SPositionResponseParentEntityCoordinates*>(response));
     }
     else if (type == sbio::cigi::EPositionResponseType::ARTICULATED)
     {
-      m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(*static_cast<const SPositionResponseArticulatedPartCoordinates*>(response));
+      g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(*static_cast<const SPositionResponseArticulatedPartCoordinates*>(response));
     }
   }
 
@@ -129,9 +132,9 @@ void CCigiPacketSenderV4::SendPositionResponse(const SBasePositionResponse* resp
 
 void CCigiPacketSenderV4::SendWeatherConditionsResponse(const SWeatherConditionsResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::WeatherConditionsResponse data;
@@ -149,9 +152,9 @@ void CCigiPacketSenderV4::SendWeatherConditionsResponse(const SWeatherConditions
 
 void CCigiPacketSenderV4::SendAerosolConcentrationResponse(const SAerosolConcentrationResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::AerosolConcentrationResponse data;
@@ -164,9 +167,9 @@ void CCigiPacketSenderV4::SendAerosolConcentrationResponse(const SAerosolConcent
 
 void CCigiPacketSenderV4::SendMaritimeSurfaceConditionsResponse(const SMaritimeSurfaceConditionsResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::MaritimeSurfaceConditionsResponse data;
@@ -180,9 +183,9 @@ void CCigiPacketSenderV4::SendMaritimeSurfaceConditionsResponse(const SMaritimeS
 
 void CCigiPacketSenderV4::SendTerrestrialSurfaceConditionsResponse(const STerrestrialSurfaceConditionsResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::TerrestrialSurfaceConditionsResponse data;
@@ -194,9 +197,9 @@ void CCigiPacketSenderV4::SendTerrestrialSurfaceConditionsResponse(const STerres
 
 void CCigiPacketSenderV4::SendEventNotification(const sbio::cigi::SEventNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::EventNotification data;
@@ -210,9 +213,9 @@ void CCigiPacketSenderV4::SendEventNotification(const sbio::cigi::SEventNotifica
 
 void CCigiPacketSenderV4::SendImageGeneratorMessageNotification(const sbio::cigi::SImageGeneratorNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::IGMessage data;
@@ -225,9 +228,9 @@ void CCigiPacketSenderV4::SendImageGeneratorMessageNotification(const sbio::cigi
 
 void CCigiPacketSenderV4::SendLineOfSightExtendedGeodeticCoordinatesResponse(const sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::LineOfSightExtendedResponse data;
@@ -258,9 +261,9 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedGeodeticCoordinatesResponse(con
 
 void CCigiPacketSenderV4::SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(const sbio::cigi::SLineOfSightExtendedEntityGeodeticCoordinatesResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::LineOfSightExtendedResponse data;
@@ -291,9 +294,9 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedEntityGeodeticCoordinatesRespon
 
 void CCigiPacketSenderV4::SendLineOfSightExtendedEntityCoordinatesResponse(const sbio::cigi::SLineOfSightExtendedEntityCoordinatesResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::LineOfSightExtendedResponse data;
@@ -324,9 +327,9 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedEntityCoordinatesResponse(const
 
 void CCigiPacketSenderV4::SendHatResponse(const SHeightAboveTerrainResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::HATHOTResponse hatHotRespV4;
@@ -342,9 +345,9 @@ void CCigiPacketSenderV4::SendHatResponse(const SHeightAboveTerrainResponse& res
 
 void CCigiPacketSenderV4::SendHotResponse(const SHeightOfTerrainResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::HATHOTResponse hatHotRespV4;
@@ -360,9 +363,9 @@ void CCigiPacketSenderV4::SendHotResponse(const SHeightOfTerrainResponse& respon
 
 void CCigiPacketSenderV4::SendHatHotExtendedResponse(const sbio::cigi::SHATHOTExtendedResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::HATHOTExtendedResponse hatHotRespV4;
@@ -381,9 +384,9 @@ void CCigiPacketSenderV4::SendHatHotExtendedResponse(const sbio::cigi::SHATHOTEx
 
 void CCigiPacketSenderV4::SendSensorResponse(const sbio::cigi::SSensorResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::SensorResponse data;
@@ -418,9 +421,9 @@ void CCigiPacketSenderV4::SendSensorResponse(const sbio::cigi::SSensorResponse& 
 
 void CCigiPacketSenderV4::SendSensorExtendedResponse(const sbio::cigi::SSensorExtendedResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::SensorExtendedResponse data;
@@ -459,9 +462,9 @@ void CCigiPacketSenderV4::SendSensorExtendedResponse(const sbio::cigi::SSensorEx
 
 void CCigiPacketSenderV4::SendSensorExtendedEntityResponse(const sbio::cigi::SSensorExtendedEntityResponse& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::SensorExtendedResponse data;
@@ -500,9 +503,9 @@ void CCigiPacketSenderV4::SendSensorExtendedEntityResponse(const sbio::cigi::SSe
 
 void CCigiPacketSenderV4::SendAnimationFinishedNotification(const sbio::cigi::SAnimationStopNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::AnimationStopNotification animationStop;
@@ -513,9 +516,9 @@ void CCigiPacketSenderV4::SendAnimationFinishedNotification(const sbio::cigi::SA
 
 void CCigiPacketSenderV4::SendCollisionDetectionSegmentNotificationResponse(const sbio::cigi::SCollisionDetectionSegmentNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::CollisionDetectionSegmentNotification collisionSegmentResponse;
@@ -531,9 +534,9 @@ void CCigiPacketSenderV4::SendCollisionDetectionSegmentNotificationResponse(cons
 
 void CCigiPacketSenderV4::SendCollisionDetectionSegmentEntityNotificationResponse(const sbio::cigi::SCollisionDetectionSegmentEntityNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::CollisionDetectionSegmentNotification collisionSegmentResponse;
@@ -551,9 +554,9 @@ void CCigiPacketSenderV4::SendCollisionDetectionSegmentEntityNotificationRespons
 
 void CCigiPacketSenderV4::SendCollisionDetectionVolumeNotificationResponse(const sbio::cigi::SCollisionDetectionVolumeNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::CollisionDetectionVolumeNotification collisionVolumeResponse;
@@ -569,9 +572,9 @@ void CCigiPacketSenderV4::SendCollisionDetectionVolumeNotificationResponse(const
 
 void CCigiPacketSenderV4::SendCollisionDetectionVolumeEntityNotificationResponse(const sbio::cigi::SCollisionDetectionVolumeEntityNotification& response)
 {
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(response);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(response);
   }
 
   CIGI::V40::CollisionDetectionVolumeNotification collisionVolumeResponse;
@@ -649,7 +652,7 @@ void CCigiPacketSenderV4::SendStartOfFramePacket()
   startOfFramePacket.timestampValid = m_ImageGenerator.IsTimeStampValid();
   startOfFramePacket.lastHostFrameNumber = m_ImageGenerator.GetLastHostFrameNumber().Value();
 
-  if (m_ImageGenerator.GetCigiMessageLogger() != nullptr)
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
     SCigiStartOfFrame startOfFrame;
     startOfFrame.eVersion = ECigiVersion::VERSION_4_0;
@@ -663,7 +666,7 @@ void CCigiPacketSenderV4::SendStartOfFramePacket()
     startOfFrame.bOverframing = startOfFramePacket.overframing;
     startOfFrame.bPagingTerrain = startOfFramePacket.paging;
     startOfFrame.bExcessiveVariableLengthData = false;
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(startOfFrame);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(startOfFrame);
   }
 
   m_pBuffer->Write(startOfFramePacket);

@@ -31,7 +31,7 @@ void CCigiPacketSender::SendPackets()
   const int nMessageSize = static_cast<int>(m_pBuffer->GetInUseSize());
   if (m_ImageGenerator.GetSetupOptions().bLogPacketText)
   {
-    m_ImageGenerator.GetCigiMessageLogger()->LogMessageFromIGToHost(m_ImageGenerator.GetSetupOptions().eCigiVersion, reinterpret_cast<const uint8_t*>(m_pBuffer->GetBuffer()), nMessageSize);
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromIGToHost(m_ImageGenerator.GetSetupOptions().eCigiVersion, reinterpret_cast<const uint8_t*>(m_pBuffer->GetBuffer()), nMessageSize);
   }
 
   m_pSocketIGToHost->Send(m_pBuffer->GetBuffer(), static_cast<int>(m_pBuffer->GetInUseSize()));

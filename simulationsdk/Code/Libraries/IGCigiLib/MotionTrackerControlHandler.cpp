@@ -3,6 +3,7 @@
 #include "CigiLib/CigiTypesHostToIG.h"
 #include "EngineLib/IImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "IGCigiLib/IGCigiLib.h"
 
 using namespace sbio::cigi::ig;
@@ -12,6 +13,11 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 void CCigiMotionTrackerControlHandler::Handle(const sbio::cigi::SMotionTrackerViewControl& motionTrackerViewControl)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(motionTrackerViewControl);
+  }
+
   if (m_Trackers.find(motionTrackerViewControl.motionTrackerID) == m_Trackers.end())
   {
     SCreateMotionTrackerViewMessage createMotionTrackerViewMessage;
@@ -42,6 +48,11 @@ void CCigiMotionTrackerControlHandler::Handle(const sbio::cigi::SMotionTrackerVi
 
 void CCigiMotionTrackerControlHandler::Handle(const sbio::cigi::SMotionTrackerViewGroupControl& motionTrackerViewGroupControl)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(motionTrackerViewGroupControl);
+  }
+
   if (m_Trackers.find(motionTrackerViewGroupControl.motionTrackerID) == m_Trackers.end())
   {
     SCreateMotionTrackerViewGroupMessage createMotionTrackerViewGroupMessage;

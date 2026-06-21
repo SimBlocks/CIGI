@@ -18,6 +18,7 @@
 #include "ViewLib/ViewManager.h"
 #include "EntityLib/Entity.h"
 #include "EntityLib/EntityManager.h"
+#include "IGCigiLib/CigiMessageLogger.h"
 #include "SymbolLib/SymbolTypes.h"
 #include "IGCigiLib/IGCigiLib.h"
 #include "MathLib/CoordinateConversions.h"
@@ -129,6 +130,11 @@ void CCigiSymbolHandler::DestroySymbolTree(SymbolID symbolID)
 
 void CCigiSymbolHandler::Handle(const SEntitySymbolSurfaceDefinition& entitySymbolSurfaceDefinition)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(entitySymbolSurfaceDefinition);
+  }
+
   //if the entity does not exist, then the entity symbol surface definition is ignored
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(entitySymbolSurfaceDefinition.entityID))
   {
@@ -186,6 +192,11 @@ void CCigiSymbolHandler::Handle(const SEntitySymbolSurfaceDefinition& entitySymb
 
 void CCigiSymbolHandler::Handle(const SEntityBillboardSymbolSurfaceDefinition& entityBillboardSurfaceDefinition)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(entityBillboardSurfaceDefinition);
+  }
+
   //if the entity does not exist, then the entity billboard surface definition is ignored
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(entityBillboardSurfaceDefinition.entityID))
   {
@@ -241,6 +252,11 @@ void CCigiSymbolHandler::Handle(const SEntityBillboardSymbolSurfaceDefinition& e
 
 void CCigiSymbolHandler::Handle(const SViewSymbolSurfaceDefinition& viewSymbolSurfaceDefinition)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(viewSymbolSurfaceDefinition);
+  }
+
   //if the view does not exist, then the view symbol surface definition is ignored
   if (!g_CigiLibGlobals.pViewManager->HasView(viewSymbolSurfaceDefinition.viewID))
   {
@@ -289,6 +305,11 @@ void CCigiSymbolHandler::Handle(const SViewSymbolSurfaceDefinition& viewSymbolSu
 
 void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolControl);
+  }
+
   //ignore if symbol does not exist
   if (!g_CigiLibGlobals.pSymbolSurfaceManager->HasSymbol(symbolControl.symbolID))
   {
@@ -487,6 +508,11 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
 
 void CCigiSymbolHandler::Handle(const SSymbolTextDefinition& symbolTextDefinition)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolTextDefinition);
+  }
+
   CSymbol* pSymbol = nullptr;
   SymbolID symbolID = symbolTextDefinition.symbolID;
 
@@ -526,6 +552,11 @@ void CCigiSymbolHandler::Handle(const SSymbolTextDefinition& symbolTextDefinitio
 
 void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolTexturedCircle& symbolTexturedCricle)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolTexturedCricle);
+  }
+
   CSymbol* pSymbol = nullptr;
   SymbolID symbolID = symbolTexturedCricle.symbolID;
 
@@ -562,6 +593,11 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolTexturedCircle& symbo
 
 void CCigiSymbolHandler::Handle(const SSymbolCircle& symbolCircle)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolCircle);
+  }
+
   CSymbol* pSymbol = nullptr;
   SymbolID symbolID = symbolCircle.symbolID;
 
@@ -597,6 +633,11 @@ void CCigiSymbolHandler::Handle(const SSymbolCircle& symbolCircle)
 
 void CCigiSymbolHandler::Handle(const SSymbolPolygon& symbolPolygon)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolPolygon);
+  }
+
   CSymbol* pSymbol = nullptr;
   SymbolID symbolID = symbolPolygon.symbolID;
 
@@ -632,6 +673,11 @@ void CCigiSymbolHandler::Handle(const SSymbolPolygon& symbolPolygon)
 
 void CCigiSymbolHandler::Handle(const SSymbolTexturedPolygon& symbolPolygon)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolPolygon);
+  }
+
   CSymbol* pSymbol = nullptr;
   SymbolID symbolID = symbolPolygon.symbolID;
 
@@ -667,6 +713,11 @@ void CCigiSymbolHandler::Handle(const SSymbolTexturedPolygon& symbolPolygon)
 
 void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolClone& symbolClone)
 {
+  if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
+  {
+    g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolClone);
+  }
+
   CSymbol* pSymbol = nullptr;
   SymbolID symbolID = symbolClone.symbolID;
 
