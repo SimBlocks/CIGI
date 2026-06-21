@@ -1,0 +1,189 @@
+//
+// Sent Packets:
+//      IG Control
+//      Entity Control
+//      Entity Position 
+//      View Control
+//      View Definition
+// 
+// Creates a children entites and attaches them to the parent entity
+//
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 50;
+  sendTopLevelEntityPosition(entityPosition);
+
+// ----- View ----------
+
+  var viewControl = ViewControl();
+  viewControl.ViewID = 0;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = 1;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = -25;
+  viewControl.YOffset = 0;
+  viewControl.ZOffset = -7;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = 0;
+  viewControl.Pitch = 0;
+  viewControl.Roll = 0;
+  sendViewControl(viewControl);
+
+  var viewDefinition = ViewDefinition();
+  viewDefinition.ViewID = 0;
+  viewDefinition.NearEnable = true;
+  viewDefinition.FarEnable = true;
+  viewDefinition.Near = 1;
+  viewDefinition.Far = 100000;
+  viewDefinition.ProjectionMode = "Perspective";
+  sendViewDefinition(viewDefinition);
+
+  Wait(5, "Create9L");
+  Wait(15, "Create7M")
+}
+
+def Create9L()
+{
+  // ----- Sidewinder AIM-9L ----------
+  var entityControlChildL = EntityControl();
+  entityControlChildL.ExtendedEntityType = true;
+  entityControlChildL.EntityKind = 2;
+  entityControlChildL.EntityDomain = 1;
+  entityControlChildL.EntityCountry = 225;
+  entityControlChildL.EntityCategory = 1;
+  entityControlChildL.EntitySubCategory = 1;
+  entityControlChildL.EntitySpecific = 3;
+  entityControlChildL.EntityExtra = 1;
+  entityControlChildL.EntityID = 3;
+  entityControlChildL.State = "Active";
+  entityControlChildL.CollisionReportingEnable = true;
+  entityControlChildL.InheritAlpha = true;
+  entityControlChildL.SmoothingEnable = true;
+  entityControlChildL.Alpha = 255;
+  sendEntityControl(entityControlChildL);
+
+  global entityPositionChildL = ChildEntityPosition();
+  entityPositionChildL.EntityID = 3;
+  entityPositionChildL.AttachState = "Attach";
+  entityPositionChildL.Yaw = 0;
+  entityPositionChildL.Pitch = 0;
+  entityPositionChildL.Roll = 0;
+  entityPositionChildL.ParentID = 1;
+  entityPositionChildL.XOffset = -4.98;
+  entityPositionChildL.YOffset = -3.0;
+  entityPositionChildL.ZOffset = -0.015;
+  sendChildEntityPosition(entityPositionChildL);
+
+  // ----- View ----------
+  var viewControl = ViewControl();
+  viewControl.ViewID = 0;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = 3;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = 2;
+  viewControl.YOffset = -1.5;
+  viewControl.ZOffset = -1;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = 135;
+  viewControl.Pitch = -25;
+  viewControl.Roll = 0;
+  sendViewControl(viewControl);
+}
+
+def Create7M()
+{
+  // ----- Sparrow AIM-7M ----------
+  var entityControlChildR = EntityControl();
+  entityControlChildR.ExtendedEntityType = true;
+  entityControlChildR.EntityKind = 2;
+  entityControlChildR.EntityDomain = 1;
+  entityControlChildR.EntityCountry = 225;
+  entityControlChildR.EntityCategory = 1;
+  entityControlChildR.EntitySubCategory = 13;
+  entityControlChildR.EntitySpecific = 2;
+  entityControlChildR.EntityExtra = 0;
+  entityControlChildR.EntityID = 4;
+  entityControlChildR.State = "Active";
+  entityControlChildR.CollisionReportingEnable = true;
+  entityControlChildR.InheritAlpha = true;
+  entityControlChildR.SmoothingEnable = true;
+  entityControlChildR.Alpha = 255;
+  sendEntityControl(entityControlChildR);
+
+  global entityPositionChildR = ChildEntityPosition();
+  entityPositionChildR.EntityID = 4;
+  entityPositionChildR.AttachState = "Attach";
+  entityPositionChildR.Yaw = 2.5;
+  entityPositionChildR.Pitch = -1.5;
+  entityPositionChildR.Roll = 0;
+  entityPositionChildR.ParentID = 1;
+  entityPositionChildR.XOffset = -7.5;
+  entityPositionChildR.YOffset = 1.21;
+  entityPositionChildR.ZOffset = 0.55;
+  sendChildEntityPosition(entityPositionChildR);
+
+  // ----- View ----------
+  var viewControl = ViewControl();
+  viewControl.ViewID = 0;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = 4;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = 2.3;
+  viewControl.YOffset = 0.4;
+  viewControl.ZOffset = -0.4;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = 200;
+  viewControl.Pitch = -15;
+  viewControl.Roll = 0;
+  sendViewControl(viewControl);
+}

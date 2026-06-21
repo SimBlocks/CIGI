@@ -1,0 +1,65 @@
+{
+	"Views" :
+	[
+		{
+			"viewID" : "0",
+			"projectionMode" : "PERSPECTIVE",
+			"near" : "0.3",
+			"far" : "10000000",
+			"left" : "-55.0",
+			"right" : "55.0",
+			"top" : "37.5",
+			"bottom" : "-37.5"
+		},
+		{
+			"viewID" : "1",
+			"projectionMode" : "PERSPECTIVE",
+			"near" : "0.3",
+			"far" : "10000000",
+			"left": "-55.0",
+			"right": "55.0",
+			"top": "37.5",
+			"bottom": "-37.5"
+		},
+		{
+			"viewID" : "2",
+			"projectionMode" : "PERSPECTIVE",
+			"near" : "0.3",
+			"far" : "10000000",
+			"left": "-55.0",
+			"right": "55.0",
+			"top": "37.5",
+			"bottom": "-37.5"
+		},
+		{
+			"viewID" : "3",
+			"projectionMode" : "PERSPECTIVE",
+			"near" : "0.3",
+			"far" : "10000000",
+			"left": "-55.0",
+			"right": "55.0",
+			"top": "37.5",
+			"bottom": "-37.5"
+		},
+		{
+			"viewID" : "4",
+			"projectionMode" : "PERSPECTIVE",
+			"near" : "0.3",
+			"far" : "10000000",
+			"left": "-55.0",
+			"right": "55.0",
+			"top": "37.5",
+			"bottom": "-37.5"
+		},
+		{
+			"viewID" : "5",
+			"projectionMode" : "PERSPECTIVE",
+			"near" : "0.3",
+			"far" : "10000000",
+			"left": "-55.0",
+			"right": "55.0",
+			"top": "37.5",
+			"bottom": "-37.5"
+		}
+	]
+}

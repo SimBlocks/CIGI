@@ -1,0 +1,20 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var terrestrialSurface = GlobalTerrestrialSurfaceConditionsControl();
+  terrestrialSurface.SurfaceConditionsEnable = true;
+  terrestrialSurface.SurfaceConditionID = 1;
+  terrestrialSurface.Severity = 8;
+  terrestrialSurface.Coverage = 50;
+  sendGlobalTerrestrialSurfaceConditionsControl(terrestrialSurface);
+}

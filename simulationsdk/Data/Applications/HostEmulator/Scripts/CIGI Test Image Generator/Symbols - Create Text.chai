@@ -1,0 +1,26 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var symbolText = SymbolTextDefinition();
+  symbolText.Alignment = "Top Left";
+  symbolText.Orientation = "Left to Right";
+  symbolText.FontCategory = "";
+  symbolText.FontName = "IG default";
+  symbolText.SymbolID = 100;
+  symbolText.FontSize = 14;
+  symbolText.Octet = "CIGI Test Symbol";
+  sendSymbolTextDefinition(symbolText);
+}
+
+
+

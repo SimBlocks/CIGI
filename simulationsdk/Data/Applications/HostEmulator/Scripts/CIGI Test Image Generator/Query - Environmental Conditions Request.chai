@@ -1,0 +1,44 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var environmentalConditionsRequest = EnvironmentalConditionsRequest();
+  environmentalConditionsRequest.RequestID = 1;
+  environmentalConditionsRequest.Latitude = 0;
+  environmentalConditionsRequest.Longitude = 0;
+  environmentalConditionsRequest.Altitude = 100;
+  environmentalConditionsRequest.MaritimeSurfaceConditionsRequest = true;
+  environmentalConditionsRequest.TerrestrialSurfaceConditionsRequest = true;
+  environmentalConditionsRequest.WeatherConditionsRequest = true;
+  environmentalConditionsRequest.AerosolConcentrationsRequest = true;
+  sendEnvironmentalConditionsRequest(environmentalConditionsRequest);
+}
+
+def OnWeatherConditionsResponse(data)
+{
+  logMessage("OnWeatherConditionsResponse");
+}
+
+def OnAerosolConcentrationResponse(data)
+{
+  logMessage("OnAerosolConcentrationResponse");
+}
+
+def OnMaritimeSurfaceConditionsResponse(data)
+{
+  logMessage("OnMaritimeSurfaceConditionsResponse");
+}
+
+def OnTerrestrialSurfaceConditionsResponse(data)
+{
+  logMessage("OnTerrestrialSurfaceConditionsResponse");
+}

@@ -1,0 +1,28 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var celestialSphereControl = CelestialSphereControl();
+  celestialSphereControl.ContinuousTimeOfDayEnable = true;
+  celestialSphereControl.SunEnable = true;
+  celestialSphereControl.MoonEnable = true;
+  celestialSphereControl.StarFieldEnable = true;
+  celestialSphereControl.DateTimeValid = true;
+  celestialSphereControl.Hour = 14;
+  celestialSphereControl.Minute = 30;
+  celestialSphereControl.Seconds = 15;
+  celestialSphereControl.Year = 2026;
+  celestialSphereControl.Month = 3;
+  celestialSphereControl.Day = 31;
+  celestialSphereControl.StarFieldIntensity = 25;
+  sendCelestialSphereControl(celestialSphereControl);
+}

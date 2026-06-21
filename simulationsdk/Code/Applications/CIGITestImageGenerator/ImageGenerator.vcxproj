@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="vs2022_Debug|x64">
+      <Configuration>vs2022_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="vs2022_Release|x64">
+      <Configuration>vs2022_Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3BD0BA68-5908-4E24-A43F-2D9FBE17C3F2}</ProjectGuid>
+    <RootNamespace>ImageGenerator</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>CIGITestImageGenerator</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\PropertySheet_Debug.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\PropertySheet_Release.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include;$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include\Version3;$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include\Version4;$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include\BaseClasses;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;_MBCS;D_SCL_SECURE_NO_WARNINGS;DIS_VERSION=6;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>GeographicLib_d-i.lib;tinyxml2.lib;PocoFoundationd.lib;PocoNetd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>LIBCMTD;PocoFoundationd.lib;PocoNetd.lib</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include;$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include\Version3;$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include\Version4;$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\include\BaseClasses;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>GeographicLib-i.lib;tinyxml2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="CIGITestImageGeneratorOptions.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="TestCigiEventHandler.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CIGITestImageGeneratorOptions.h" />
+    <ClInclude Include="main.h" />
+    <ClInclude Include="TestCigiEventHandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\CigiLib\CigiLib.vcxproj">
+      <Project>{34e86eec-e212-492b-947a-6e2637cd8d77}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\GlobalHeaders\GlobalHeaders.vcxproj">
+      <Project>{5a1ba375-0a01-4e74-9160-f5051a977e6c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\IGCigiLib\IGCigiLib.vcxproj">
+      <Project>{f211dc06-88f2-4935-8b60-1a4f0b896084}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\MathLib\MathLib.vcxproj">
+      <Project>{14c349ce-40fb-4385-a32d-9c577d9ebe31}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SymbolLib\SymbolLib.vcxproj">
+      <Project>{bb4e0419-573f-4596-97da-1179a96cc6dd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\UtilitiesLib\UtilitiesLib.vcxproj">
+      <Project>{a2a5dcba-4f61-4d11-9579-2f7f0da3ddae}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\EngineLib\EngineLib.vcxproj">
+      <Project>{3502cca4-4ff8-465b-abb9-89bfd4c15529}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\EntityLib\EntityLib.vcxproj">
+      <Project>{8fbd6df5-7659-4984-91c7-9beac2a3753f}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

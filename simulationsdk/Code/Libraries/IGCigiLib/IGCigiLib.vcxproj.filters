@@ -1,0 +1,473 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Entities">
+      <UniqueIdentifier>{d4050bbd-6f8e-495f-9166-992aefd67483}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Animations">
+      <UniqueIdentifier>{d26396aa-ab5e-4c5f-bc67-86aa394e40fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Atmosphere">
+      <UniqueIdentifier>{ea0a0fa9-b6ec-4bbc-98ef-3ae956c6359c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Events">
+      <UniqueIdentifier>{22b31b5c-60aa-4c5f-8efa-9fd072c11977}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Symbols">
+      <UniqueIdentifier>{cb0f6a77-994b-4f9c-bf38-effe1532a3b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Views">
+      <UniqueIdentifier>{30bfef3c-5684-4e3d-b19c-d73cdd2cd06e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Collisions">
+      <UniqueIdentifier>{4c2237be-5c9c-4f4f-9848-2d89204611b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Components">
+      <UniqueIdentifier>{999ad69d-d4cd-4be7-84fb-cae267bf5785}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Environment">
+      <UniqueIdentifier>{d165e728-c54f-4bb5-894a-061e4b964831}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ImageGenerator">
+      <UniqueIdentifier>{8a31fecd-24c1-44d4-af4d-7d810ec172c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Maritime">
+      <UniqueIdentifier>{4ea98fcd-af82-4483-9465-ffe2d639baaf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Terrestrial Surface">
+      <UniqueIdentifier>{3b3afdab-2d11-41af-8617-3d3dd93880a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Weather">
+      <UniqueIdentifier>{5bb55ea7-2e85-4b7e-987a-3ec4fe4ceddd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Sensors">
+      <UniqueIdentifier>{600b0f18-0143-4501-9924-d6f5a8385b6f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Terrain">
+      <UniqueIdentifier>{5fb933fc-1941-471a-aa43-8144d1174c61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MotionTracker">
+      <UniqueIdentifier>{9737d88d-cdf4-4715-b8e8-332f189715bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\EarthReferenceModel">
+      <UniqueIdentifier>{2c4bc302-e050-44d0-9a8e-cf338ececf36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\PacketHandlers">
+      <UniqueIdentifier>{752afd79-313d-451f-ab24-901b87b09449}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="IGCigiLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AccelerationControlHandler.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationControlHandler.cpp">
+      <Filter>Source Files\Animations</Filter>
+    </ClCompile>
+    <ClCompile Include="ArticulatedPartHandler.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="AtmosphereControlHandler.cpp">
+      <Filter>Source Files\Atmosphere</Filter>
+    </ClCompile>
+    <ClCompile Include="CelestialSphereHandler.cpp">
+      <Filter>Source Files\Atmosphere</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiArticulatedPart.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiEntity.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiEvent.cpp">
+      <Filter>Source Files\Events</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbol.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiView.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="CollisionControlHandler.cpp">
+      <Filter>Source Files\Collisions</Filter>
+    </ClCompile>
+    <ClCompile Include="EntityControlHandler.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentControlHandler.cpp">
+      <Filter>Source Files\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="EnvironmentalRegion.cpp">
+      <Filter>Source Files\Environment</Filter>
+    </ClCompile>
+    <ClCompile Include="EnvironmentalRegionHandler.cpp">
+      <Filter>Source Files\Environment</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageGenerator.cpp">
+      <Filter>Source Files\ImageGenerator</Filter>
+    </ClCompile>
+    <ClCompile Include="MaritimeSurfaceCondition.cpp">
+      <Filter>Source Files\Maritime</Filter>
+    </ClCompile>
+    <ClCompile Include="MaritimeSurfaceConditionPacketHandler.cpp">
+      <Filter>Source Files\Maritime</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolHandler.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="RegionTree.cpp">
+      <Filter>Source Files\Environment</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrestrialSurfaceCondition.cpp">
+      <Filter>Source Files\Terrestrial Surface</Filter>
+    </ClCompile>
+    <ClCompile Include="VelocityControlHandler.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="WaveControlHandler.cpp">
+      <Filter>Source Files\Maritime</Filter>
+    </ClCompile>
+    <ClCompile Include="WaveLayer.cpp">
+      <Filter>Source Files\Maritime</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewHandler.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="WeatherLayer.cpp">
+      <Filter>Source Files\Weather</Filter>
+    </ClCompile>
+    <ClCompile Include="SensorControlHandler.cpp">
+      <Filter>Source Files\Sensors</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainCigiEvent.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionTrackerControlHandler.cpp">
+      <Filter>Source Files\MotionTracker</Filter>
+    </ClCompile>
+    <ClCompile Include="EarthReferenceModelHandler.cpp">
+      <Filter>Source Files\EarthReferenceModel</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbolCircle.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbolPolygon.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbolText.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbolTexturedCircle.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbolTexturedPolygon.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiSymbolGeometryFactory.cpp">
+      <Filter>Source Files\Symbols</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiViewGroup.cpp">
+      <Filter>Source Files\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiEntityAnimation.cpp">
+      <Filter>Source Files\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketHandler.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketHandlerV3.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketHandlerV4.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketSender.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketSenderV3.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketSenderV4.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="IGResponseEventDispatcher.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketSenders.cpp">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestEntityToEntityBasicHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestEntityToEntityExtendedHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestEntityToGeodeticBasicHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestEntityToGeodeticExtendedHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToEntityBasicHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToEntityExtendedHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToGeodeticBasicHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToGeodeticExtendedHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightRequestHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightVectorRequestEntityBasicHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightVectorRequestEntityExtendedHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightVectorRequestGeodeticBasicHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightVectorRequestGeodeticExtendedHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="HATHOTRequestHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="HATHOTEntityRequestHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="HATHOTGlobalRequestHandler.cpp">
+      <Filter>Source Files\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiProjectionConversion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CigiMessageLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="IGCigiTypeDeclarations.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IGCigiLib.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AccelerationControlHandler.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationControlHandler.h">
+      <Filter>Source Files\Animations</Filter>
+    </ClInclude>
+    <ClInclude Include="ArticulatedPartHandler.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="AtmosphereControlHandler.h">
+      <Filter>Source Files\Atmosphere</Filter>
+    </ClInclude>
+    <ClInclude Include="CelestialSphereHandler.h">
+      <Filter>Source Files\Atmosphere</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiArticulatedPart.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiEntity.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiEvent.h">
+      <Filter>Source Files\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbol.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiView.h">
+      <Filter>Source Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionControlHandler.h">
+      <Filter>Source Files\Collisions</Filter>
+    </ClInclude>
+    <ClInclude Include="EntityControlHandler.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentControlHandler.h">
+      <Filter>Source Files\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="EnvironmentalRegionHandler.h">
+      <Filter>Source Files\Environment</Filter>
+    </ClInclude>
+    <ClInclude Include="EnvironmentalRegion.h">
+      <Filter>Source Files\Environment</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageGenerator.h">
+      <Filter>Source Files\ImageGenerator</Filter>
+    </ClInclude>
+    <ClInclude Include="MaritimeSurfaceCondition.h">
+      <Filter>Source Files\Maritime</Filter>
+    </ClInclude>
+    <ClInclude Include="MaritimeSurfaceConditionPacketHandler.h">
+      <Filter>Source Files\Maritime</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolHandler.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="RegionTree.h">
+      <Filter>Source Files\Environment</Filter>
+    </ClInclude>
+    <ClInclude Include="TerrestrialSurfaceCondition.h">
+      <Filter>Source Files\Terrestrial Surface</Filter>
+    </ClInclude>
+    <ClInclude Include="VelocityControlHandler.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="WaveControlHandler.h">
+      <Filter>Source Files\Maritime</Filter>
+    </ClInclude>
+    <ClInclude Include="WaveLayer.h">
+      <Filter>Source Files\Maritime</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewHandler.h">
+      <Filter>Source Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="WeatherLayer.h">
+      <Filter>Source Files\Weather</Filter>
+    </ClInclude>
+    <ClInclude Include="SensorControlHandler.h">
+      <Filter>Source Files\Sensors</Filter>
+    </ClInclude>
+    <ClInclude Include="TerrainHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="TerrainCigiEvent.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="IGCIGILibTypes.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionTrackerControlHandler.h">
+      <Filter>Source Files\MotionTracker</Filter>
+    </ClInclude>
+    <ClInclude Include="EarthReferenceModelHandler.h">
+      <Filter>Source Files\EarthReferenceModel</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbolCircle.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbolPolygon.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbolText.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbolTexturedCircle.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbolTexturedPolygon.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiSymbolGeometryFactory.h">
+      <Filter>Source Files\Symbols</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiViewGroup.h">
+      <Filter>Source Files\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiEntityAnimation.h">
+      <Filter>Source Files\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketHandler.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketHandlerV3.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketHandlerV4.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketSender.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketSenderV3.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketSenderV4.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="IGResponseEventDispatcher.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketSenders.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="IPacketSender.h">
+      <Filter>Source Files\PacketHandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestEntityToEntityBasicHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestEntityToEntityExtendedHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestEntityToGeodeticBasicHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestEntityToGeodeticExtendedHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToEntityBasicHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToEntityExtendedHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToGeodeticBasicHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToGeodeticExtendedHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightRequestHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightVectorRequestEntityBasicHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightVectorRequestEntityExtendedHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightVectorRequestGeodeticBasicHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightVectorRequestGeodeticExtendedHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="HATHOTEntityRequestHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="HATHOTGlobalRequestHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="HATHOTRequestHandler.h">
+      <Filter>Source Files\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiProjectionConversions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CigiMessageLogger.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CigiMessageLogger.cpp.tmp" />
+  </ItemGroup>
+</Project>

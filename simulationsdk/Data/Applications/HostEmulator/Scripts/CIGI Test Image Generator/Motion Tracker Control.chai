@@ -1,0 +1,27 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var motionTrackerControl = MotionTrackerControl();
+  motionTrackerControl.TrackerID = 1;
+  motionTrackerControl.TrackerEnable = true;
+  motionTrackerControl.BoresightEnable = true;
+  motionTrackerControl.XEnable = true;
+  motionTrackerControl.YEnable = true;
+  motionTrackerControl.ZEnable = true;
+  motionTrackerControl.RollEnable = true;
+  motionTrackerControl.PitchEnable = true;
+  motionTrackerControl.YawEnable = true;
+  motionTrackerControl.ViewViewGroupSelect = "View";
+  motionTrackerControl.ViewViewGroupID = 0;
+  sendMotionTrackerControl(motionTrackerControl);
+}

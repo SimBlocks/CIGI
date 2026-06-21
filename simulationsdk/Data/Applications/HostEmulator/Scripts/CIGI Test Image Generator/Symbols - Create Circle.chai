@@ -1,0 +1,36 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var circleDefinition = SymbolCircleDefinition();
+  var circles = CircleList();
+
+  var circle = SymbolCircle();
+  circle.CenterU = 0;
+  circle.CenterV = 0;
+  circle.Radius = 20;
+  circle.InnerRadius = 0;
+  circle.StartAngle = 0;
+  circle.EndAngle = 360;
+  circles.push_back(circle);
+
+  circleDefinition.SymbolID = 100;
+  circleDefinition.StipplePattern = 0;
+  circleDefinition.DrawingStyle = "Line";
+  circleDefinition.LineWidth = 2;
+  circleDefinition.StipplePatternLength = 0;
+  circleDefinition.Circles = circles;
+  sendSymbolCircleDefinition(circleDefinition);
+}
+
+
+

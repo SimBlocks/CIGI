@@ -1,0 +1,112 @@
+//
+// Sent Packets:
+//      IG Control
+//      EntityControl
+//      TopLevelEntityPosition
+//      LineOfSightVectorRequestEntityExtended
+//
+// Purpose: Test line of sight request and response communication when running while running with the CIGI Test Image Generator.
+// Expected Results: The CIGI Test Image Generator will alternate between responding with an entity intersection and a non-entity intersection.
+// For both entity and non-entity intersections, the responses will both be in the requested geodetic coordinates.
+
+
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Entity 1 ----------
+  var entityControl1 = EntityControl();
+  entityControl1.ExtendedEntityType = true;
+  entityControl1.EntityKind = 1;
+  entityControl1.EntityDomain = 2;
+  entityControl1.EntityCountry = 225;
+  entityControl1.EntityCategory = 1;
+  entityControl1.EntitySubCategory = 5;
+  entityControl1.EntitySpecific = 3;
+  entityControl1.EntityExtra = 0;
+  entityControl1.EntityID = 1;
+  entityControl1.State = "Active";
+  entityControl1.CollisionReportingEnable = true;
+  entityControl1.InheritAlpha = true;
+  entityControl1.SmoothingEnable = true;
+  entityControl1.Alpha = 255;
+  sendEntityControl(entityControl1);
+  
+  global entityPosition1 = TopLevelEntityPosition();
+  entityPosition1.EntityID = 1;
+  entityPosition1.AttachState = "Unattach";
+  entityPosition1.Yaw = 0;
+  entityPosition1.Pitch = 0;
+  entityPosition1.Roll = 0;
+  entityPosition1.Clamp = "No Clamp";
+  entityPosition1.Latitude = 0;
+  entityPosition1.Longitude = 0;
+  entityPosition1.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition1);
+  
+  // ----- Entity 2 ----------
+  var entityControl2 = EntityControl();
+  entityControl2.ExtendedEntityType = true;
+  entityControl2.EntityKind = 1;
+  entityControl2.EntityDomain = 2;
+  entityControl2.EntityCountry = 225;
+  entityControl2.EntityCategory = 1;
+  entityControl2.EntitySubCategory = 5;
+  entityControl2.EntitySpecific = 3;
+  entityControl2.EntityExtra = 0;
+  entityControl2.EntityID = 2;
+  entityControl2.State = "Active";
+  entityControl2.CollisionReportingEnable = true;
+  entityControl2.InheritAlpha = true;
+  entityControl2.SmoothingEnable = true;
+  entityControl2.Alpha = 255;
+  sendEntityControl(entityControl2);
+  
+  global entityPosition2 = TopLevelEntityPosition();
+  entityPosition2.EntityID = 2;
+  entityPosition2.AttachState = "Unattach";
+  entityPosition2.Yaw = 0;
+  entityPosition2.Pitch = 0;
+  entityPosition2.Roll = 0;
+  entityPosition2.Clamp = "No Clamp";
+  entityPosition2.Latitude = 0;
+  entityPosition2.Longitude = .001;
+  entityPosition2.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition2);
+
+  // line of sight vector request   
+  var lineOfSightVectorRequest = LineOfSightVectorRequestEntityExtended();
+  lineOfSightVectorRequest.LOSID = 2;
+  lineOfSightVectorRequest.EntityID = 1;
+  lineOfSightVectorRequest.ResponseCoordinateSystem = "Geodetic";
+  lineOfSightVectorRequest.AlphaThreshold = 1;
+  lineOfSightVectorRequest.UpdatePeriod = 0;
+  lineOfSightVectorRequest.Azimuth = 0;
+  lineOfSightVectorRequest.Elevation = 0;
+  lineOfSightVectorRequest.MinimumRange = 0;
+  lineOfSightVectorRequest.MaximumRange = 10000;
+  lineOfSightVectorRequest.SourceXOffset = 0;
+  lineOfSightVectorRequest.SourceYOffset = 0;
+  lineOfSightVectorRequest.SourceZOffset = 0;
+  lineOfSightVectorRequest.MaterialMask = 255;
+  sendLineOfSightVectorRequestEntityExtended(lineOfSightVectorRequest);
+}
+
+def OnLineOfSightExtendedGeodeticCoordinatesResponse(data)
+{
+  logMessage("OnLineOfSightExtendedGeodeticCoordinatesResponse");
+}
+
+def OnLineOfSightExtendedEntityGeodeticCoordinatesResponse(data)
+{
+  logMessage("OnLineOfSightExtendedEntityGeodeticCoordinatesResponse");
+}

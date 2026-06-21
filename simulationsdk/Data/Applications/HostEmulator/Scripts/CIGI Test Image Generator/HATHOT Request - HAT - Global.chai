@@ -1,0 +1,62 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Entity 1 ----------
+  var entityControl1 = EntityControl();
+  entityControl1.ExtendedEntityType = true;
+  entityControl1.EntityKind = 1;
+  entityControl1.EntityDomain = 2;
+  entityControl1.EntityCountry = 225;
+  entityControl1.EntityCategory = 1;
+  entityControl1.EntitySubCategory = 5;
+  entityControl1.EntitySpecific = 3;
+  entityControl1.EntityExtra = 0;
+  entityControl1.EntityID = 1;
+  entityControl1.State = "Active";
+  entityControl1.CollisionReportingEnable = true;
+  entityControl1.InheritAlpha = true;
+  entityControl1.SmoothingEnable = true;
+  entityControl1.Alpha = 255;
+  sendEntityControl(entityControl1);
+  
+  global entityPosition1 = TopLevelEntityPosition();
+  entityPosition1.EntityID = 1;
+  entityPosition1.AttachState = "Unattach";
+  entityPosition1.Yaw = 0;
+  entityPosition1.Pitch = 0;
+  entityPosition1.Roll = 0;
+  entityPosition1.Clamp = "No Clamp";
+  entityPosition1.Latitude = 0;
+  entityPosition1.Longitude = 0;
+  entityPosition1.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition1);
+
+  var hatHotRequest = HATHOTGlobalRequest();
+  hatHotRequest.HATHOTID = 1;
+  hatHotRequest.UpdatePeriod = 0;
+  hatHotRequest.Latitude = 0;
+  hatHotRequest.Longitude = 0;
+  hatHotRequest.Altitude = 0;
+  hatHotRequest.RequestType = "HAT";
+  sendHATHOTGlobalRequest(hatHotRequest);
+}
+
+def OnHATResponse(data)
+{
+  logMessage("OnHATResponse");
+}
+
+def OnHOTReponse(data)
+{
+  logMessage("OnHOTReponse");
+}

@@ -1,0 +1,87 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition);
+  
+  // ----- Child entity ----------
+  var entityControlChild = EntityControl();
+  entityControlChild.ExtendedEntityType = true;
+  entityControlChild.EntityKind = 2;
+  entityControlChild.EntityDomain = 1;
+  entityControlChild.EntityCountry = 225;
+  entityControlChild.EntityCategory = 1;
+  entityControlChild.EntitySubCategory = 1;
+  entityControlChild.EntitySpecific = 3;
+  entityControlChild.EntityExtra = 1;
+  entityControlChild.EntityID = 2;
+  entityControlChild.State = "Active";
+  entityControlChild.CollisionReportingEnable = true;
+  entityControlChild.InheritAlpha = true;
+  entityControlChild.SmoothingEnable = true;
+  entityControlChild.Alpha = 255;
+  sendEntityControl(entityControlChild);
+
+  global entityPositionChild = ChildEntityPosition();
+  entityPositionChild.EntityID = 2;
+  entityPositionChild.AttachState = "Attach";
+  entityPositionChild.Yaw = 0;
+  entityPositionChild.Pitch = 0;
+  entityPositionChild.Roll = 0;
+  entityPositionChild.ParentID = 1;
+  entityPositionChild.XOffset = -4.98;
+  entityPositionChild.YOffset = -3.0;
+  entityPositionChild.ZOffset = -0.015;
+  sendChildEntityPosition(entityPositionChild);
+
+  // position request
+  var positionRequest = PositionRequest();
+  positionRequest.ArticulatedPartID = 0;
+  positionRequest.UpdateMode = "One-Shot";
+  positionRequest.ObjectClass = "Entity";
+  positionRequest.CoordinateSystem = "Parent";
+  positionRequest.ObjectID = 2;
+  sendPositionRequest(positionRequest);
+}
+
+def OnPositionResponseParentEntity(data)
+{
+  logMessage("OnPositionResponseParentEntity");
+}

@@ -1,0 +1,345 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8f1129ee-611a-472a-9b36-b8b1306c3da5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages">
+      <UniqueIdentifier>{744a4ed5-4937-4785-b89a-ed2298cbc8c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dialogs">
+      <UniqueIdentifier>{4af69969-0837-4a44-bb2a-ac9d6503419d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Overview Page">
+      <UniqueIdentifier>{d98e6119-bbaf-470b-8f41-0a56c752617e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Packets Page">
+      <UniqueIdentifier>{0fd0674e-f368-4652-8c01-7fcf1000b18d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Packets Page\Packet Panels">
+      <UniqueIdentifier>{18e72277-722c-4bad-8666-776625bd3974}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Error Log Page">
+      <UniqueIdentifier>{f722745d-d405-4063-ac50-df3b1d858789}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Message Log Page">
+      <UniqueIdentifier>{470964be-d1e6-4399-ab69-a74b829038b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Scripts Page">
+      <UniqueIdentifier>{2dd3d7e4-86bc-488e-9ea2-24c4482bfefc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="HostEmulatorGuiFrame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HostEmulatorGuiApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MenuBar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IGControlPacketPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ArticulatedPartControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ShortComponentControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="EnvironmentalRegionControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="MaritimeSurfaceControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="AccelerationControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="EntityPositionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="WeatherControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="EarthReferenceModelDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="VelocityControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="WaveControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ConformalClampedEntityPositionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ShortArticulatedPartControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrestrialSurfaceConditionsPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="CelestialSphereControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="AtmosphereControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="EntityControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SensorControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionTrackerControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="PositionRequestPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="EnvironmentalConditionsRequestPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="CollisionDetectionSegmentDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="CollisionDetectionVolumeDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="HATHOTRequestPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightSegmentRequestPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="LineOfSightVectorRequestPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolCircleDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolClonePanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolPolygonDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolSurfaceDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolTextDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolTexturedCircleDefinitionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolTexturedPolygonDefinition.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ShortSymbolControlPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketsPage.cpp">
+      <Filter>Source Files\Pages\Packets Page</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketSelectionPanel.cpp">
+      <Filter>Source Files\Pages\Packets Page</Filter>
+    </ClCompile>
+    <ClCompile Include="SetupDialog.cpp">
+      <Filter>Source Files\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="OverviewPage.cpp">
+      <Filter>Source Files\Pages\Overview Page</Filter>
+    </ClCompile>
+    <ClCompile Include="HostEmulatorUtilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HostEmulatorOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrorLogPage.cpp">
+      <Filter>Source Files\Pages\Error Log Page</Filter>
+    </ClCompile>
+    <ClCompile Include="MessageLogPage.cpp">
+      <Filter>Source Files\Pages\Message Log Page</Filter>
+    </ClCompile>
+    <ClCompile Include="ScriptsPage.cpp">
+      <Filter>Source Files\Pages\Scripts Page</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HostEmulatorGuiFrame.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HostEmulatorGuiApp.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HostEmulatorDefinitions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuBar.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IGControlPacketPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ArticulatedPartControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ShortComponentControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="EnvironmentalRegionControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="EarthReferenceModelDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="MaritimeSurfaceControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="WeatherControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="AccelerationControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="EntityPositionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="VelocityControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="WaveControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ConformalClampedEntityPositionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ShortArticulatedPartControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="TerrestrialSurfaceConditionsPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="AtmosphereControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="CelestialSphereControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="EntityControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SensorControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionTrackerControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="PositionRequestPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="EnvironmentalConditionsRequestPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionDetectionSegmentDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionDetectionVolumeDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="HATHOTRequestPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightSegmentRequestPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="LineOfSightVectorRequestPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolCircleDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolClonePanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolPolygonDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolSurfaceDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolTextDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolTexturedCircleDefinitionPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolTexturedPolygonDefinition.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ShortSymbolControlPanel.h">
+      <Filter>Source Files\Pages\Packets Page\Packet Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketsPage.h">
+      <Filter>Source Files\Pages\Packets Page</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketSelectionPanel.h">
+      <Filter>Source Files\Pages\Packets Page</Filter>
+    </ClInclude>
+    <ClInclude Include="SetupDialog.h">
+      <Filter>Source Files\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="OverviewPage.h">
+      <Filter>Source Files\Pages\Overview Page</Filter>
+    </ClInclude>
+    <ClInclude Include="HostEmulatorUtilities.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HostEmulatorOptions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ErrorLogPage.h">
+      <Filter>Source Files\Pages\Error Log Page</Filter>
+    </ClInclude>
+    <ClInclude Include="MessageLogPage.h">
+      <Filter>Source Files\Pages\Message Log Page</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptsPage.h">
+      <Filter>Source Files\Pages\Scripts Page</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

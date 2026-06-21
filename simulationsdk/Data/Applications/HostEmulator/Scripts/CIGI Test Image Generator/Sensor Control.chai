@@ -1,0 +1,29 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var sensorControl = SensorControl();
+  sensorControl.SensorID = 1;
+  sensorControl.TrackMode = "Scene";
+  sensorControl.SensorOnOff = "On";
+  sensorControl.Polarity = "White Hot";
+  sensorControl.LineByLineDropoutEnable = false;
+  sensorControl.AutomaticGain = "Enable";
+  sensorControl.TrackWhiteBlack = "White";
+  sensorControl.ResponseType = "Normal";
+  sensorControl.ViewID = 0;
+  sensorControl.Gain = 0.25;
+  sensorControl.Level = 0.50;
+  sensorControl.ACCoupling = 3.0;
+  sensorControl.Noise = 0.10;
+  sendSensorControl(sensorControl);
+}

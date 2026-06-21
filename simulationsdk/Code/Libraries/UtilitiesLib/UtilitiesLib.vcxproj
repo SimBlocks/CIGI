@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="vs2022_Debug|x64">
+      <Configuration>vs2022_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="vs2022_Release|x64">
+      <Configuration>vs2022_Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Buffer.cpp" />
+    <ClCompile Include="BufferWriter.cpp" />
+    <ClCompile Include="Endian.cpp" />
+    <ClCompile Include="Event.cpp" />
+    <ClCompile Include="EventDispatcher.cpp" />
+    <ClCompile Include="EventHandler.cpp" />
+    <ClCompile Include="FileSystemUtilities.cpp" />
+    <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="PacketLoggerWriter.cpp" />
+    <ClCompile Include="PacketLoggerReader.cpp" />
+    <ClCompile Include="StopWatch.cpp" />
+    <ClCompile Include="StringUtilities.cpp" />
+    <ClCompile Include="Task.cpp" />
+    <ClCompile Include="UDPReceiveMulticastSocket.cpp" />
+    <ClCompile Include="UDPReceiveSocket.cpp" />
+    <ClCompile Include="UDPSendSocket.cpp" />
+    <ClCompile Include="UDPSocket.cpp" />
+    <ClCompile Include="UtilitiesLib.cpp" />
+    <ClCompile Include="WindowsUtilities.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="BufferWriter.h" />
+    <ClInclude Include="Endian.h" />
+    <ClInclude Include="Event.h" />
+    <ClInclude Include="EventDispatcher.h" />
+    <ClInclude Include="EventHandler.h" />
+    <ClInclude Include="FileSystemUtilities.h" />
+    <ClInclude Include="IEventListener.h" />
+    <ClInclude Include="Logger.h" />
+    <ClInclude Include="PacketLoggerTypes.h" />
+    <ClInclude Include="PacketLoggerWriter.h" />
+    <ClInclude Include="PacketLoggerReader.h" />
+    <ClInclude Include="StopWatch.h" />
+    <ClInclude Include="StringUtilities.h" />
+    <ClInclude Include="Task.h" />
+    <ClInclude Include="UDPReceiveMulticastSocket.h" />
+    <ClInclude Include="UDPReceiveSocket.h" />
+    <ClInclude Include="UDPSendSocket.h" />
+    <ClInclude Include="UDPSocket.h" />
+    <ClInclude Include="UtilitiesDeclarations.h" />
+    <ClInclude Include="UtilitiesLib.h" />
+    <ClInclude Include="WindowsUtilities.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A2A5DCBA-4F61-4D11-9579-2F7F0DA3DDAE}</ProjectGuid>
+    <RootNamespace>UtilitiesLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="PropertySheets">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="PropertySheets">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <Import Project="..\..\PropertySheet_Debug.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <Import Project="..\..\PropertySheet_Release.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <IntDir>$(ProjectName).dir\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>sbio$(ProjectName)d</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <IntDir>$(ProjectName).dir\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;SIMBLOCKS_UTILITIES_LIBRARY_EXPORTS;BOOST_ALL_NO_LIB;WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;_MBCS;D_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Lib>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>PocoNetd.lib</IgnoreSpecificDefaultLibraries>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;SIMBLOCKS_UTILITIES_LIBRARY_EXPORTS;BOOST_ALL_NO_LIB;WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;_MBCS;D_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;%(AdditionalIncludeDirectories);$(SBIO_THIRD_PARTY)\$(LIBZIP_DIR)/lib;$(SBIO_THIRD_PARTY)\$(LIBZIP_DIR)/msvc</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

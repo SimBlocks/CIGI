@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="vs2022_Debug|x64">
+      <Configuration>vs2022_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="vs2022_Release|x64">
+      <Configuration>vs2022_Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{751730AE-BDD0-4636-AD53-90D6238FD3CB}</ProjectGuid>
+    <RootNamespace>HostCigiLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\PropertySheet_Debug.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\PropertySheet_Release.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Libraries\;$(SolutionDir)\ThirdParty\;$(SolutionDir)\ThirdParty\poco-1.10.1\Net\include;$(SolutionDir)\ThirdParty\poco-1.10.1\Foundation\include;$(SolutionDir)ThirdParty\poco-1.10.1\Util\include;$(SolutionDir)ThirdParty\poco-1.10.1\XML\include;$(SolutionDir)ThirdParty\poco-1.10.1\JSON\include;$(SolutionDir)\ThirdParty\tinyxml_2_6_2;$(SolutionDir)\ThirdParty\Eigen_3_2_8;$(SolutionDir)\ThirdParty\GeographicLib-1.46\include;$(SolutionDir)\ThirdParty\rapidxml-1.13;$(SolutionDir)\ThirdParty\KDIS_v2_9_0;$(SolutionDIr)\ThirdParty\boost_1_67_0;$(SolutionDir)\Thirdparty\ChaiScript-6.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4100;4127;</DisableSpecificWarnings>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Host.cpp" />
+    <ClCompile Include="HostCigiEvent.cpp" />
+    <ClCompile Include="HostCigiLib.cpp" />
+    <ClCompile Include="HostSession.cpp" />
+    <ClCompile Include="HostSessionV3_3.cpp" />
+    <ClCompile Include="HostSessionV4.cpp" />
+    <ClCompile Include="HostViewManager.cpp" />
+    <ClCompile Include="ScriptRuntime.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Host.h" />
+    <ClInclude Include="HostCigiEvent.h" />
+    <ClInclude Include="HostCigiLib.h" />
+    <ClInclude Include="HostCigiLibDeclarations.h" />
+    <ClInclude Include="HostCigiLibTypes.h" />
+    <ClInclude Include="HostSession.h" />
+    <ClInclude Include="HostSessionV3_3.h" />
+    <ClInclude Include="HostSessionV4.h" />
+    <ClInclude Include="HostViewManager.h" />
+    <ClInclude Include="ScriptRuntime.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CigiLib\CigiLib.vcxproj">
+      <Project>{34e86eec-e212-492b-947a-6e2637cd8d77}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\EntityLib\EntityLib.vcxproj">
+      <Project>{8fbd6df5-7659-4984-91c7-9beac2a3753f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ViewLib\ViewLib.vcxproj">
+      <Project>{635adef6-cf6b-42ed-b38e-1e92eba9318d}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,16 @@
+//
+// Sent Packets:
+//      IG Control
+//
+// Set IG to operational and load a database.
+//
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}

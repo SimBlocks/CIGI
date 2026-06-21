@@ -1,0 +1,42 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var weatherControl = WeatherControl();
+  weatherControl.LayerID = "Cloud Layer 1";
+  weatherControl.Humidity = 60;
+  weatherControl.WeatherEnable = true;
+  weatherControl.BottomScudEnable = false;
+  weatherControl.RandomWindsEnable = true;
+  weatherControl.RandomLightningEnable = false;
+  weatherControl.CloudType = "Cumulus";
+  weatherControl.Scope = "Global";
+  weatherControl.Severity = 5;
+  weatherControl.TopScudEnable = false;
+  weatherControl.EntityID = 0;
+  weatherControl.RegionID = 0;
+  weatherControl.AirTemperature = 20;
+  weatherControl.VisibilityRange = 10000;
+  weatherControl.BottomScudFrequency = 0;
+  weatherControl.Coverage = 45;
+  weatherControl.BaseElevation = 1000;
+  weatherControl.Thickness = 2500;
+  weatherControl.BottomTransitionBandThickness = 150;
+  weatherControl.HorizontalWindSpeed = 20;
+  weatherControl.VerticalWindSpeed = 1;
+  weatherControl.WindDirection = 270;
+  weatherControl.BarometricPressure = 1008;
+  weatherControl.AerosolConcentration = 5;
+  weatherControl.TopScudFrequency = 0;
+  weatherControl.TopTransitionBandThickness = 150;
+  sendWeatherControl(weatherControl);
+}

@@ -1,0 +1,65 @@
+//
+// Sent Packets:
+//      IG Control
+//      Component Control
+
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition);
+
+  var componentData = ComponentControl();
+  componentData.InstanceID = 1;
+  componentData.ComponentID = 0;
+  componentData.ComponentClass = "Entity";
+  componentData.ComponentState = 0;
+  componentData.ComponentData[0] = 0;
+  componentData.ComponentData[1] = 0;
+  componentData.ComponentData[2] = 0;
+  componentData.ComponentData[3] = 0;
+  componentData.ComponentData[4] = 0;
+  componentData.ComponentData[5] = 0;
+  
+  for(var n = 0; n < 10; ++n)
+  {
+    sendComponentControl(componentData);
+  }
+}

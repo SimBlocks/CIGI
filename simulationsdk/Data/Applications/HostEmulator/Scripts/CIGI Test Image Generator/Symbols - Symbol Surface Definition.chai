@@ -1,0 +1,65 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition);
+  
+  // symbol surface definition
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 1;
+  surfaceDefinition.EntityViewID = 1;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "Entity";
+  surfaceDefinition.Billboard = "Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = true;
+  surfaceDefinition.XOffsetLeft = 0;
+  surfaceDefinition.YOffsetRight = 0;
+  surfaceDefinition.ZOffsetTop = -2;
+  surfaceDefinition.YawBottom = 0;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 10;
+  surfaceDefinition.Height = 5;
+  surfaceDefinition.MinU = -1;
+  surfaceDefinition.MaxU = 1;
+  surfaceDefinition.MinV = -1;
+  surfaceDefinition.MaxV = 1;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+}

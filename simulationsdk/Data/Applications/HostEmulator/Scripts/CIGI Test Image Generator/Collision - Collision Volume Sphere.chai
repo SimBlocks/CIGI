@@ -1,0 +1,70 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition);
+  
+  // Collision Detection Volume
+  var collisionVolume = CollisionDetectionVolumeDefinition();
+  collisionVolume.VolumeID = 1;
+  collisionVolume.VolumeEnable = true;
+  collisionVolume.VolumeType = "Sphere";
+  collisionVolume.EntityID = 1;
+  collisionVolume.X = 0;
+  collisionVolume.Y = 0;
+  collisionVolume.Z = 0;
+  collisionVolume.RadiusHeight = 10;
+  collisionVolume.Width = 0;
+  collisionVolume.Depth = 0;
+  collisionVolume.Roll = 0;
+  collisionVolume.Pitch = 0;
+  collisionVolume.Yaw = 0;
+  sendCollisionDetectionVolumeDefinition(collisionVolume);
+}
+
+def OnCollisionVolumeResponse(data)
+{
+  logMessage("Received OnCollisionVolumeResponse in script.");
+}
+
+def OnCollisionVolumeEntityResponse(data)
+{
+  logMessage("Received OnCollisionVolumeEntityResponse in script.");
+}

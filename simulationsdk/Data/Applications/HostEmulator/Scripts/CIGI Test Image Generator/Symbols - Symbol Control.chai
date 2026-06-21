@@ -1,0 +1,38 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var symbolControl = SymbolControl();
+  symbolControl.SymbolID = 100;
+  symbolControl.ParentSymbolID = 0;
+  symbolControl.SymbolState = "Visible";
+  symbolControl.AttachState = "Detach";
+  symbolControl.FlashControl = "Continue";
+  symbolControl.InheritColor = false;
+  symbolControl.Layer = 0;
+  symbolControl.FlashDutyCyclePercentage = 0;
+  symbolControl.SurfaceID = 1;
+  symbolControl.FlashPeriod = 0;
+  symbolControl.PositionU = 0;
+  symbolControl.PositionV = 0;
+  symbolControl.Rotation = 0;
+  symbolControl.Red = 255;
+  symbolControl.Green = 255;
+  symbolControl.Blue = 0;
+  symbolControl.Alpha = 255;
+  symbolControl.ScaleU = 1;
+  symbolControl.ScaleV = 1;
+  sendSymbolControl(symbolControl);
+}
+
+
+

@@ -1,0 +1,47 @@
+//
+// Sent Packets:
+//      IG Control
+//      EntityControl
+//      TopLevelEntityPosition
+//      LineOfSightSegmentRequestGeodeticToGeodeticBasic
+//
+// Purpose: Test line of sight request and response communication when running while running with the CIGI Test Image Generator.
+// Expected Results: The CIGI Test Image Generator will alternate between responding with an entity intersection and a non-entity intersection.
+
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // Line of Sight Segment Request
+  var lineOfSightSegmentRequest = LineOfSightSegmentRequestGeodeticToGeodeticBasic();
+  lineOfSightSegmentRequest.LOSID = 1;
+  lineOfSightSegmentRequest.AlphaThreshold = 1;
+  lineOfSightSegmentRequest.MaterialMask = 255;
+  lineOfSightSegmentRequest.UpdatePeriod = 0;
+  lineOfSightSegmentRequest.SourceLatitude = 0;
+  lineOfSightSegmentRequest.SourceLongitude = 0;
+  lineOfSightSegmentRequest.SourceAltitude = 100;
+  lineOfSightSegmentRequest.DestinationLatitude = .001;
+  lineOfSightSegmentRequest.DestinationLongitude = 0;
+  lineOfSightSegmentRequest.DestinationAltitude = 100;
+  sendLineOfSightSegmentRequestGeodeticToGeodeticBasic(lineOfSightSegmentRequest);
+}
+
+def OnLineOfSightResponse(data)
+{
+  logMessage("OnLineOfSightResponse");
+}
+
+def OnLineOfSightEntityResponse(data)
+{
+  logMessage("OnLineOfSightEntityResponse");
+}

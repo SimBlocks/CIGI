@@ -1,0 +1,37 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var region = EnvironmentalRegionControl();
+  region.RegionID = 1;
+  region.RegionState = "Active";
+  region.MergeWeatherProperties = "Merge";
+  region.MergeAerosolConcentrations = "Merge";
+  region.MergeMaritimeSurfaceConditions = "Merge";
+  region.MergeTerrestrialSurfaceConditions = "Merge";
+  region.Latitude = 0;
+  region.Longitude = 0;
+  region.SizeX = 1000;
+  region.SizeY = 1000;
+  region.CornerRadius = 10;
+  region.Rotation = 0;
+  region.TransitionPerimeter = 5;
+  sendEnvironmentalRegionControl(region);
+
+  var terrestrialSurface = RegionTerrestrialSurfaceConditionsControl();
+  terrestrialSurface.SurfaceConditionsEnable = true;
+  terrestrialSurface.SurfaceConditionID = 0;
+  terrestrialSurface.Severity = 8;
+  terrestrialSurface.Coverage = 50;
+  terrestrialSurface.RegionID = 1;
+  sendRegionTerrestrialSurfaceConditionsControl(terrestrialSurface);
+}

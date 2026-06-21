@@ -1,0 +1,74 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // set weather
+  var weatherControl = WeatherControl();
+  weatherControl.LayerID = "Cloud Layer 1";
+  weatherControl.Humidity = 60;
+  weatherControl.WeatherEnable = true;
+  weatherControl.BottomScudEnable = false;
+  weatherControl.RandomWindsEnable = true;
+  weatherControl.RandomLightningEnable = false;
+  weatherControl.CloudType = "Cumulus";
+  weatherControl.Scope = "Global";
+  weatherControl.Severity = 5;
+  weatherControl.TopScudEnable = false;
+  weatherControl.EntityID = 0;
+  weatherControl.RegionID = 0;
+  weatherControl.AirTemperature = 20;
+  weatherControl.VisibilityRange = 10000;
+  weatherControl.BottomScudFrequency = 0;
+  weatherControl.Coverage = 45;
+  weatherControl.BaseElevation = 1000;
+  weatherControl.Thickness = 2500;
+  weatherControl.BottomTransitionBandThickness = 150;
+  weatherControl.HorizontalWindSpeed = 20;
+  weatherControl.VerticalWindSpeed = 1;
+  weatherControl.WindDirection = 270;
+  weatherControl.BarometricPressure = 1008;
+  weatherControl.AerosolConcentration = 5;
+  weatherControl.TopScudFrequency = 0;
+  weatherControl.TopTransitionBandThickness = 150;
+  sendWeatherControl(weatherControl);
+
+  // terrestrial surface conditions control
+  var terrestrialSurface = GlobalTerrestrialSurfaceConditionsControl();
+  terrestrialSurface.SurfaceConditionsEnable = true;
+  terrestrialSurface.SurfaceConditionID = 1;
+  terrestrialSurface.Severity = 8;
+  terrestrialSurface.Coverage = 50;
+  sendGlobalTerrestrialSurfaceConditionsControl(terrestrialSurface);
+  
+  // maritime surface conditions control
+  var maritimeSurfaceConditionsControl = GlobalMaritimeSurfaceConditionsControl();
+  
+  maritimeSurfaceConditionsControl.SurfaceConditionsEnable;
+  maritimeSurfaceConditionsControl.WhitecapEnable;
+  maritimeSurfaceConditionsControl.SeaSurfaceHeight;
+  maritimeSurfaceConditionsControl.SurfaceWaterTemperature;
+  maritimeSurfaceConditionsControl.SurfaceClarity;
+  sendGlobalMaritimeSurfaceConditionsControl(maritimeSurfaceConditionsControl);
+  
+  var environmentalConditionsRequest = EnvironmentalConditionsRequest();
+  
+  environmentalConditionsRequest.RequestID = 1;
+  environmentalConditionsRequest.Latitude = 0;
+  environmentalConditionsRequest.Longitude = 0;
+  environmentalConditionsRequest.Altitude = 100;
+  environmentalConditionsRequest.MaritimeSurfaceConditionsRequest = true;
+  environmentalConditionsRequest.TerrestrialSurfaceConditionsRequest = true;
+  environmentalConditionsRequest.WeatherConditionsRequest = true;
+  environmentalConditionsRequest.AerosolConcentrationsRequest = true;
+  sendEnvironmentalConditionsRequest(environmentalConditionsRequest);
+  
+}

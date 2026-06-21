@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="vs2022_Debug|x64">
+      <Configuration>vs2022_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="vs2022_Release|x64">
+      <Configuration>vs2022_Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AccelerationControlPanel.cpp" />
+    <ClCompile Include="AnimationControlPanel.cpp" />
+    <ClCompile Include="ArticulatedPartControlPanel.cpp" />
+    <ClCompile Include="AtmosphereControlPanel.cpp" />
+    <ClCompile Include="CelestialSphereControlPanel.cpp" />
+    <ClCompile Include="CollisionDetectionSegmentDefinitionPanel.cpp" />
+    <ClCompile Include="CollisionDetectionVolumeDefinitionPanel.cpp" />
+    <ClCompile Include="ComponentControlPanel.cpp" />
+    <ClCompile Include="ConformalClampedEntityPositionPanel.cpp" />
+    <ClCompile Include="EarthReferenceModelDefinitionPanel.cpp" />
+    <ClCompile Include="EntityControlPanel.cpp" />
+    <ClCompile Include="EntityPositionPanel.cpp" />
+    <ClCompile Include="EnvironmentalConditionsRequestPanel.cpp" />
+    <ClCompile Include="EnvironmentalRegionControlPanel.cpp" />
+    <ClCompile Include="ErrorLogPage.cpp" />
+    <ClCompile Include="HATHOTRequestPanel.cpp" />
+    <ClCompile Include="HostEmulatorGuiApp.cpp" />
+    <ClCompile Include="HostEmulatorGuiFrame.cpp" />
+    <ClCompile Include="HostEmulatorOptions.cpp" />
+    <ClCompile Include="HostEmulatorUtilities.cpp" />
+    <ClCompile Include="IGControlPacketPanel.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestPanel.cpp" />
+    <ClCompile Include="LineOfSightVectorRequestPanel.cpp" />
+    <ClCompile Include="MaritimeSurfaceControlPanel.cpp" />
+    <ClCompile Include="MenuBar.cpp" />
+    <ClCompile Include="MessageLogPage.cpp" />
+    <ClCompile Include="MotionTrackerControlPanel.cpp" />
+    <ClCompile Include="OverviewPage.cpp" />
+    <ClCompile Include="PacketSelectionPanel.cpp" />
+    <ClCompile Include="PacketsPage.cpp" />
+    <ClCompile Include="PositionRequestPanel.cpp" />
+    <ClCompile Include="ScriptsPage.cpp" />
+    <ClCompile Include="SensorControlPanel.cpp" />
+    <ClCompile Include="SetupDialog.cpp" />
+    <ClCompile Include="ShortArticulatedPartControlPanel.cpp" />
+    <ClCompile Include="ShortComponentControlPanel.cpp" />
+    <ClCompile Include="ShortSymbolControlPanel.cpp" />
+    <ClCompile Include="SymbolCircleDefinitionPanel.cpp" />
+    <ClCompile Include="SymbolClonePanel.cpp" />
+    <ClCompile Include="SymbolControlPanel.cpp" />
+    <ClCompile Include="SymbolPolygonDefinitionPanel.cpp" />
+    <ClCompile Include="SymbolSurfaceDefinitionPanel.cpp" />
+    <ClCompile Include="SymbolTextDefinitionPanel.cpp" />
+    <ClCompile Include="SymbolTexturedCircleDefinitionPanel.cpp" />
+    <ClCompile Include="SymbolTexturedPolygonDefinition.cpp" />
+    <ClCompile Include="TerrestrialSurfaceConditionsPanel.cpp" />
+    <ClCompile Include="VelocityControlPanel.cpp" />
+    <ClCompile Include="ViewControlPanel.cpp" />
+    <ClCompile Include="ViewDefinitionPanel.cpp" />
+    <ClCompile Include="WaveControlPanel.cpp" />
+    <ClCompile Include="WeatherControlPanel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AccelerationControlPanel.h" />
+    <ClInclude Include="AnimationControlPanel.h" />
+    <ClInclude Include="ArticulatedPartControlPanel.h" />
+    <ClInclude Include="AtmosphereControlPanel.h" />
+    <ClInclude Include="CelestialSphereControlPanel.h" />
+    <ClInclude Include="CollisionDetectionSegmentDefinitionPanel.h" />
+    <ClInclude Include="CollisionDetectionVolumeDefinitionPanel.h" />
+    <ClInclude Include="ComponentControlPanel.h" />
+    <ClInclude Include="ConformalClampedEntityPositionPanel.h" />
+    <ClInclude Include="EarthReferenceModelDefinitionPanel.h" />
+    <ClInclude Include="EntityControlPanel.h" />
+    <ClInclude Include="EntityPositionPanel.h" />
+    <ClInclude Include="EnvironmentalConditionsRequestPanel.h" />
+    <ClInclude Include="EnvironmentalRegionControlPanel.h" />
+    <ClInclude Include="ErrorLogPage.h" />
+    <ClInclude Include="HATHOTRequestPanel.h" />
+    <ClInclude Include="HostEmulatorDefinitions.h" />
+    <ClInclude Include="HostEmulatorGuiApp.h" />
+    <ClInclude Include="HostEmulatorGuiFrame.h" />
+    <ClInclude Include="HostEmulatorOptions.h" />
+    <ClInclude Include="HostEmulatorUtilities.h" />
+    <ClInclude Include="IGControlPacketPanel.h" />
+    <ClInclude Include="LineOfSightSegmentRequestPanel.h" />
+    <ClInclude Include="LineOfSightVectorRequestPanel.h" />
+    <ClInclude Include="MaritimeSurfaceControlPanel.h" />
+    <ClInclude Include="MenuBar.h" />
+    <ClInclude Include="MessageLogPage.h" />
+    <ClInclude Include="MotionTrackerControlPanel.h" />
+    <ClInclude Include="OverviewPage.h" />
+    <ClInclude Include="PacketSelectionPanel.h" />
+    <ClInclude Include="PacketsPage.h" />
+    <ClInclude Include="PositionRequestPanel.h" />
+    <ClInclude Include="ScriptsPage.h" />
+    <ClInclude Include="SensorControlPanel.h" />
+    <ClInclude Include="SetupDialog.h" />
+    <ClInclude Include="ShortArticulatedPartControlPanel.h" />
+    <ClInclude Include="ShortComponentControlPanel.h" />
+    <ClInclude Include="ShortSymbolControlPanel.h" />
+    <ClInclude Include="SymbolCircleDefinitionPanel.h" />
+    <ClInclude Include="SymbolClonePanel.h" />
+    <ClInclude Include="SymbolControlPanel.h" />
+    <ClInclude Include="SymbolPolygonDefinitionPanel.h" />
+    <ClInclude Include="SymbolSurfaceDefinitionPanel.h" />
+    <ClInclude Include="SymbolTextDefinitionPanel.h" />
+    <ClInclude Include="SymbolTexturedCircleDefinitionPanel.h" />
+    <ClInclude Include="SymbolTexturedPolygonDefinition.h" />
+    <ClInclude Include="TerrestrialSurfaceConditionsPanel.h" />
+    <ClInclude Include="VelocityControlPanel.h" />
+    <ClInclude Include="ViewControlPanel.h" />
+    <ClInclude Include="ViewDefinitionPanel.h" />
+    <ClInclude Include="WaveControlPanel.h" />
+    <ClInclude Include="WeatherControlPanel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\CigiLib\CigiLib.vcxproj">
+      <Project>{34e86eec-e212-492b-947a-6e2637cd8d77}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\GlobalHeaders\GlobalHeaders.vcxproj">
+      <Project>{5a1ba375-0a01-4e74-9160-f5051a977e6c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\MathLib\MathLib.vcxproj">
+      <Project>{14c349ce-40fb-4385-a32d-9c577d9ebe31}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\ViewLib\ViewLib.vcxproj">
+      <Project>{635adef6-cf6b-42ed-b38e-1e92eba9318d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\wxWidgetsUtilities\wxWidgetsUtilities.vcxproj">
+      <Project>{2cb1232d-5fb4-48f3-8fa3-d1e42be0fb2b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\HostCigiLib\HostCigiLib.vcxproj">
+      <Project>{751730ae-bdd0-4636-ad53-90d6238fd3cb}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\UtilitiesLib\UtilitiesLib.vcxproj">
+      <Project>{a2a5dcba-4f61-4d11-9579-2f7f0da3ddae}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{853D1FD7-20AB-586C-9699-9680F84AC985}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="wx_config.props" />
+    <Import Project="wx_setup.props" />
+    <Import Project="..\..\PropertySheet_Release.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="wx_config.props" />
+    <Import Project="wx_setup.props" />
+    <Import Project="..\..\PropertySheet_Debug.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <GenerateManifest>true</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <Midl>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\..\..\lib\$(wxOutDirName)\$(wxIncSubDir);.\..\..\include;.;.\..\..\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;_WINSOCK_DEPRECATED_NO_WARNINGS;_WIN32_WINDOWS;WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ShowIncludes>false</ShowIncludes>
+      <DisableSpecificWarnings>4100;;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>.\..\..\lib\$(wxOutDirName)\$(wxIncSubDir);.\..\..\include;.;.\..\..\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>boost_filesystem-vc$(PlatformToolsetVersion)-mt-gd-x64-$(BOOST_VER).lib;boost_thread-vc$(PlatformToolsetVersion)-mt-gd-x64-$(BOOST_VER).lib;GeographicLib_d-i.lib;tinyxml2.lib;kernel32.lib;user32.lib;gdi32.lib;comdlg32.lib;winspool.lib;winmm.lib;shell32.lib;shlwapi.lib;comctl32.lib;ole32.lib;oleaut32.lib;uuid.lib;rpcrt4.lib;advapi32.lib;version.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <Midl>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\..\..\lib\$(wxOutDirName)\$(wxIncSubDir);.\..\..\include;.;.\..\..\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <DisableSpecificWarnings>;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>.\..\..\lib\$(wxOutDirName)\$(wxIncSubDir);.\..\..\include;.;.\..\..\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>boost_filesystem-vc$(PlatformToolsetVersion)-mt-x64-$(BOOST_VER).lib;boost_thread-vc$(PlatformToolsetVersion)-mt-x64-$(BOOST_VER).lib;GeographicLib-i.lib;tinyxml2.lib;wxmsw$(wxShortVersionString)u_core.lib;wxbase$(wxShortVersionString)u.lib;wxregexu.lib;kernel32.lib;user32.lib;gdi32.lib;comdlg32.lib;winspool.lib;winmm.lib;shell32.lib;shlwapi.lib;comctl32.lib;ole32.lib;oleaut32.lib;uuid.lib;rpcrt4.lib;advapi32.lib;version.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX64</TargetMachine>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

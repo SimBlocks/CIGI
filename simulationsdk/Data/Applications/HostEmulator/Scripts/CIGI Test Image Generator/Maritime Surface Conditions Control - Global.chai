@@ -1,0 +1,24 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var maritimeSurface = MaritimeSurfaceConditionsControl();
+  maritimeSurface.SurfaceConditionsEnable = true;
+  maritimeSurface.WhitecapEnable = true;
+  maritimeSurface.Scope = "Global";
+  maritimeSurface.EntityID = 0;
+  maritimeSurface.RegionID = 0;
+  maritimeSurface.SeaSurfaceHeight = 1.5;
+  maritimeSurface.SurfaceWaterTemperature = 12;
+  maritimeSurface.SurfaceClarity = 80;
+  sendMaritimeSurfaceConditionsControl(maritimeSurface);
+}

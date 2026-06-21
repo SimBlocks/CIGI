@@ -1,0 +1,48 @@
+
+// Full Test: Symbol Text
+// Also uses: 
+//  IG Control, 
+//  Symbol Definition
+//  Component Control
+
+
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var symbolText = SymbolTextDefinition();
+  symbolText.Alignment = "Left";
+  symbolText.Orientation = "Left to Right";
+  symbolText.FontCategory = "";
+  symbolText.FontName = "IG Default";
+  symbolText.SymbolID = 1;
+  symbolText.FontSize = 31;
+  symbolText.Octet = "Hello World";
+  sendSymbolTextDefinition(symbolText);
+  
+  var componentData = ComponentControl();
+  componentData.InstanceID = 1;
+  componentData.ComponentID = 0;
+  componentData.ComponentClass = "Symbol";
+  componentData.ComponentState = 0;
+  componentData.ComponentData[0] = 0;
+  componentData.ComponentData[1] = 0;
+  componentData.ComponentData[2] = 0;
+  componentData.ComponentData[3] = 0;
+  componentData.ComponentData[4] = 0;
+  componentData.ComponentData[5] = 0;
+  
+  for(var n = 0; n < 10; ++n)
+  {
+    sendComponentControl(componentData);
+  }
+}

@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="vs2022_Debug|x64">
+      <Configuration>vs2022_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="vs2022_Release|x64">
+      <Configuration>vs2022_Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F211DC06-88F2-4935-8B60-1A4F0B896084}</ProjectGuid>
+    <RootNamespace>IGCigiLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\PropertySheet_Debug.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\PropertySheet_Release.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <OutDir>$(SolutionDir)\Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>sbio$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>..\..\sbio.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version1;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version2;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version3;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version4;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\BaseClasses;$(SolutionDir)\Libraries\;$(SolutionDir)\ThirdParty\;$(SolutionDir)\ThirdParty\poco-1.10.1\Net\include;$(SolutionDir)\ThirdParty\poco-1.10.1\Foundation\include;$(SolutionDir)ThirdParty\poco-1.10.1\Util\include;$(SolutionDir)ThirdParty\poco-1.10.1\XML\include;$(SolutionDir)ThirdParty\poco-1.10.1\JSON\include;$(SolutionDir)\ThirdParty\tinyxml_2_6_2;$(SolutionDir)\ThirdParty\Eigen_3_2_8;$(SolutionDir)\ThirdParty\GeographicLib-1.50.1\include;$(SolutionDir)\ThirdParty\rapidxml-1.13;$(SolutionDir)\ThirdParty\KDIS_v2_9_0;$(SolutionDIr)\ThirdParty\boost_1_67_0;$(SolutionDir)\Thirdparty\ChaiScript-6.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4100;4127;</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;BOOST_ALL_NO_LIB;_MBCS;D_SCL_SECURE_NO_WARNINGS;DIS_VERSION=6;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='vs2022_Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\ThirdParty\ccl_4_0 rev6a\;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version1;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version2;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version3;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\Version4;D:\Repositories\simulationsdk\Code\\ThirdParty\ccl_4_0 rev6a\include\BaseClasses;$(SolutionDir)\Libraries\;$(SolutionDir)\ThirdParty\;$(SolutionDir)\ThirdParty\poco-1.10.1\Net\include;$(SolutionDir)\ThirdParty\poco-1.10.1\Foundation\include;$(SolutionDir)ThirdParty\poco-1.10.1\Util\include;$(SolutionDir)ThirdParty\poco-1.10.1\XML\include;$(SolutionDir)ThirdParty\poco-1.10.1\JSON\include;$(SolutionDir)\ThirdParty\tinyxml_2_6_2;$(SolutionDir)\ThirdParty\Eigen_3_2_8;$(SolutionDir)\ThirdParty\GeographicLib-1.50.1\include;$(SolutionDir)\ThirdParty\rapidxml-1.13;$(SolutionDir)\ThirdParty\KDIS_v2_9_0;$(SolutionDir)\Thirdparty\ChaiScript-6.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;BOOST_ALL_NO_LIB;_MBCS;D_SCL_SECURE_NO_WARNINGS;DIS_VERSION=6;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="AccelerationControlHandler.cpp" />
+    <ClCompile Include="AnimationControlHandler.cpp" />
+    <ClCompile Include="ArticulatedPartHandler.cpp" />
+    <ClCompile Include="AtmosphereControlHandler.cpp" />
+    <ClCompile Include="CelestialSphereHandler.cpp" />
+    <ClCompile Include="CigiArticulatedPart.cpp" />
+    <ClCompile Include="CigiEntity.cpp" />
+    <ClCompile Include="CigiEntityAnimation.cpp" />
+    <ClCompile Include="CigiEvent.cpp" />
+    <ClCompile Include="CigiMessageLogger.cpp" />
+    <ClCompile Include="CigiProjectionConversion.cpp" />
+    <ClCompile Include="CigiSymbol.cpp" />
+    <ClCompile Include="CigiSymbolCircle.cpp" />
+    <ClCompile Include="CigiSymbolGeometryFactory.cpp" />
+    <ClCompile Include="CigiSymbolPolygon.cpp" />
+    <ClCompile Include="CigiSymbolText.cpp" />
+    <ClCompile Include="CigiSymbolTexturedCircle.cpp" />
+    <ClCompile Include="CigiSymbolTexturedPolygon.cpp" />
+    <ClCompile Include="CigiView.cpp" />
+    <ClCompile Include="CigiViewGroup.cpp" />
+    <ClCompile Include="CollisionControlHandler.cpp" />
+    <ClCompile Include="ComponentControlHandler.cpp" />
+    <ClCompile Include="EarthReferenceModelHandler.cpp" />
+    <ClCompile Include="EntityControlHandler.cpp" />
+    <ClCompile Include="EnvironmentalRegion.cpp" />
+    <ClCompile Include="EnvironmentalRegionHandler.cpp" />
+    <ClCompile Include="HATHOTEntityRequestHandler.cpp" />
+    <ClCompile Include="HATHOTGlobalRequestHandler.cpp" />
+    <ClCompile Include="HATHOTRequestHandler.cpp" />
+    <ClCompile Include="IGCigiLib.cpp" />
+    <ClCompile Include="IGResponseEventDispatcher.cpp" />
+    <ClCompile Include="ImageGenerator.cpp" />
+    <ClCompile Include="LineOfSightRequestHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestEntityToEntityBasicHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestEntityToEntityExtendedHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestEntityToGeodeticBasicHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestEntityToGeodeticExtendedHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToEntityBasicHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToEntityExtendedHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToGeodeticBasicHandler.cpp" />
+    <ClCompile Include="LineOfSightSegmentRequestGeodeticToGeodeticExtendedHandler.cpp" />
+    <ClCompile Include="LineOfSightVectorRequestEntityBasicHandler.cpp" />
+    <ClCompile Include="LineOfSightVectorRequestEntityExtendedHandler.cpp" />
+    <ClCompile Include="LineOfSightVectorRequestGeodeticBasicHandler.cpp" />
+    <ClCompile Include="LineOfSightVectorRequestGeodeticExtendedHandler.cpp" />
+    <ClCompile Include="MaritimeSurfaceCondition.cpp" />
+    <ClCompile Include="MaritimeSurfaceConditionPacketHandler.cpp" />
+    <ClCompile Include="MotionTrackerControlHandler.cpp" />
+    <ClCompile Include="PacketHandler.cpp" />
+    <ClCompile Include="PacketHandlerV3.cpp" />
+    <ClCompile Include="PacketHandlerV4.cpp" />
+    <ClCompile Include="PacketSender.cpp" />
+    <ClCompile Include="PacketSenders.cpp" />
+    <ClCompile Include="PacketSenderV3.cpp" />
+    <ClCompile Include="PacketSenderV4.cpp" />
+    <ClCompile Include="RegionTree.cpp" />
+    <ClCompile Include="SensorControlHandler.cpp" />
+    <ClCompile Include="SymbolHandler.cpp" />
+    <ClCompile Include="TerrainCigiEvent.cpp" />
+    <ClCompile Include="TerrainHandler.cpp" />
+    <ClCompile Include="TerrestrialSurfaceCondition.cpp" />
+    <ClCompile Include="VelocityControlHandler.cpp" />
+    <ClCompile Include="ViewHandler.cpp" />
+    <ClCompile Include="WaveControlHandler.cpp" />
+    <ClCompile Include="WaveLayer.cpp" />
+    <ClCompile Include="WeatherLayer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AccelerationControlHandler.h" />
+    <ClInclude Include="AnimationControlHandler.h" />
+    <ClInclude Include="ArticulatedPartHandler.h" />
+    <ClInclude Include="AtmosphereControlHandler.h" />
+    <ClInclude Include="CelestialSphereHandler.h" />
+    <ClInclude Include="CigiArticulatedPart.h" />
+    <ClInclude Include="CigiEntity.h" />
+    <ClInclude Include="CigiEntityAnimation.h" />
+    <ClInclude Include="CigiEvent.h" />
+    <ClInclude Include="CigiMessageLogger.h" />
+    <ClInclude Include="CigiProjectionConversions.h" />
+    <ClInclude Include="CigiViewGroup.h" />
+    <ClInclude Include="CigiSymbol.h" />
+    <ClInclude Include="CigiSymbolCircle.h" />
+    <ClInclude Include="CigiSymbolGeometryFactory.h" />
+    <ClInclude Include="CigiSymbolPolygon.h" />
+    <ClInclude Include="CigiSymbolText.h" />
+    <ClInclude Include="CigiSymbolTexturedCircle.h" />
+    <ClInclude Include="CigiSymbolTexturedPolygon.h" />
+    <ClInclude Include="CigiView.h" />
+    <ClInclude Include="CollisionControlHandler.h" />
+    <ClInclude Include="ComponentControlHandler.h" />
+    <ClInclude Include="EarthReferenceModelHandler.h" />
+    <ClInclude Include="EntityControlHandler.h" />
+    <ClInclude Include="EnvironmentalRegion.h" />
+    <ClInclude Include="EnvironmentalRegionHandler.h" />
+    <ClInclude Include="HATHOTEntityRequestHandler.h" />
+    <ClInclude Include="HATHOTGlobalRequestHandler.h" />
+    <ClInclude Include="HATHOTRequestHandler.h" />
+    <ClInclude Include="IGCigiLib.h" />
+    <ClInclude Include="IGCIGILibTypes.h" />
+    <ClInclude Include="IGCigiTypeDeclarations.h" />
+    <ClInclude Include="IGResponseEventDispatcher.h" />
+    <ClInclude Include="ImageGenerator.h" />
+    <ClInclude Include="IPacketSender.h" />
+    <ClInclude Include="LineOfSightRequestHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestEntityToEntityBasicHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestEntityToEntityExtendedHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestEntityToGeodeticBasicHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestEntityToGeodeticExtendedHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToEntityBasicHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToEntityExtendedHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToGeodeticBasicHandler.h" />
+    <ClInclude Include="LineOfSightSegmentRequestGeodeticToGeodeticExtendedHandler.h" />
+    <ClInclude Include="LineOfSightVectorRequestEntityBasicHandler.h" />
+    <ClInclude Include="LineOfSightVectorRequestEntityExtendedHandler.h" />
+    <ClInclude Include="LineOfSightVectorRequestGeodeticBasicHandler.h" />
+    <ClInclude Include="LineOfSightVectorRequestGeodeticExtendedHandler.h" />
+    <ClInclude Include="MaritimeSurfaceCondition.h" />
+    <ClInclude Include="MaritimeSurfaceConditionPacketHandler.h" />
+    <ClInclude Include="MotionTrackerControlHandler.h" />
+    <ClInclude Include="PacketHandler.h" />
+    <ClInclude Include="PacketHandlerV3.h" />
+    <ClInclude Include="PacketHandlerV4.h" />
+    <ClInclude Include="PacketSender.h" />
+    <ClInclude Include="PacketSenders.h" />
+    <ClInclude Include="PacketSenderV3.h" />
+    <ClInclude Include="PacketSenderV4.h" />
+    <ClInclude Include="RegionTree.h" />
+    <ClInclude Include="SensorControlHandler.h" />
+    <ClInclude Include="SymbolHandler.h" />
+    <ClInclude Include="TerrainCigiEvent.h" />
+    <ClInclude Include="TerrainHandler.h" />
+    <ClInclude Include="TerrestrialSurfaceCondition.h" />
+    <ClInclude Include="VelocityControlHandler.h" />
+    <ClInclude Include="ViewHandler.h" />
+    <ClInclude Include="WaveControlHandler.h" />
+    <ClInclude Include="WaveLayer.h" />
+    <ClInclude Include="WeatherLayer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EntityLib\EntityLib.vcxproj">
+      <Project>{8fbd6df5-7659-4984-91c7-9beac2a3753f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ViewLib\ViewLib.vcxproj">
+      <Project>{635adef6-cf6b-42ed-b38e-1e92eba9318d}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CigiMessageLogger.cpp.tmp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

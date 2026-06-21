@@ -1,0 +1,67 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition);
+  
+  // Collision Detection Segment
+  var collisionSegment = CollisionDetectionSegmentDefinition();
+  collisionSegment.SegmentID = 1;
+  collisionSegment.SegmentEnable = true;
+  collisionSegment.EntityID = 1;
+  collisionSegment.X1 = 0;
+  collisionSegment.Y1 = 0;
+  collisionSegment.Z1 = 0;
+  collisionSegment.X2 = 100;
+  collisionSegment.Y2 = 0;
+  collisionSegment.Z2 = 0;
+  collisionSegment.MaterialMask = 255;
+  sendCollisionDetectionSegmentDefinition(collisionSegment);
+}
+
+def OnCollisionSegmentResponse(data)
+{
+  logMessage("Received OnCollisionSegmentResponse in script.");
+}
+
+def OnCollisionSegmentEntityResponse(data)
+{
+  logMessage("Received OnCollisionSegmentEntityResponse in script.");
+}

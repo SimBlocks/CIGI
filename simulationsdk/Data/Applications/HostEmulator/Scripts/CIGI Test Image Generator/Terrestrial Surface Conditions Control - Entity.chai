@@ -1,0 +1,51 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // Environmental entity
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 4;
+  entityControl.EntityDomain = 0;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 0;
+  entityControl.EntitySubCategory = 0;
+  entityControl.EntitySpecific = 30;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 10;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 10;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 100;
+  sendTopLevelEntityPosition(entityPosition);
+
+  var terrestrialSurface = EntityTerrestrialSurfaceConditionsControl();
+  terrestrialSurface.SurfaceConditionsEnable = true;
+  terrestrialSurface.SurfaceConditionID = 1;
+  terrestrialSurface.Severity = 8;
+  terrestrialSurface.Coverage = 50;
+  terrestrialSurface.EntityID = 10;
+  sendEntityTerrestrialSurfaceConditionsControl(terrestrialSurface);
+}

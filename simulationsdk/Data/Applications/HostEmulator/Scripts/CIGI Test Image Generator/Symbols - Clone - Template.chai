@@ -1,0 +1,22 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var symbolClone = SymbolClone();
+  symbolClone.SymbolID = 103;
+  symbolClone.SourceID = 1;
+  symbolClone.SourceType = "Symbol Template";
+  sendSymbolClone(symbolClone);
+}
+
+
+

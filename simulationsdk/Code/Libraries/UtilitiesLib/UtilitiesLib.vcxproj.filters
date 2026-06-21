@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Tasks">
+      <UniqueIdentifier>{e300dace-4c1f-481f-a786-f000af0a1a60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{0dd50784-9001-442d-bef1-1d6cc17771ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Time">
+      <UniqueIdentifier>{200aaafb-8d03-4fe5-b846-d48a6cde2e69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Events">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Networking">
+      <UniqueIdentifier>{81fe96e4-7d6b-4655-8485-5e4015f0e6e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Filesystem">
+      <UniqueIdentifier>{4259f571-c8a9-48c0-923c-a1235304f548}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Strings">
+      <UniqueIdentifier>{d8f90270-01c8-463c-bc50-001211d4ded1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buffers">
+      <UniqueIdentifier>{7216f324-485f-4ac9-8557-5ebd02547855}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Event.cpp">
+      <Filter>Events</Filter>
+    </ClCompile>
+    <ClCompile Include="EventDispatcher.cpp">
+      <Filter>Events</Filter>
+    </ClCompile>
+    <ClCompile Include="EventHandler.cpp">
+      <Filter>Events</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="StopWatch.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="Task.cpp">
+      <Filter>Tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPReceiveMulticastSocket.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPReceiveSocket.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPSendSocket.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPSocket.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="UtilitiesLib.cpp" />
+    <ClCompile Include="Buffer.cpp">
+      <Filter>Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketLoggerWriter.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="PacketLoggerReader.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="Endian.cpp">
+      <Filter>Filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="BufferWriter.cpp">
+      <Filter>Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="FileSystemUtilities.cpp">
+      <Filter>Filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="StringUtilities.cpp">
+      <Filter>Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsUtilities.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="UtilitiesDeclarations.h" />
+    <ClInclude Include="UtilitiesLib.h" />
+    <ClInclude Include="Logger.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="Event.h">
+      <Filter>Events</Filter>
+    </ClInclude>
+    <ClInclude Include="EventDispatcher.h">
+      <Filter>Events</Filter>
+    </ClInclude>
+    <ClInclude Include="EventHandler.h">
+      <Filter>Events</Filter>
+    </ClInclude>
+    <ClInclude Include="IEventListener.h">
+      <Filter>Events</Filter>
+    </ClInclude>
+    <ClInclude Include="Task.h">
+      <Filter>Tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="StopWatch.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="UDPReceiveMulticastSocket.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="UDPReceiveSocket.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="UDPSendSocket.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="UDPSocket.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketLoggerWriter.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketLoggerReader.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketLoggerTypes.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="Endian.h">
+      <Filter>Filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferWriter.h">
+      <Filter>Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSystemUtilities.h">
+      <Filter>Filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="StringUtilities.h">
+      <Filter>Strings</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsUtilities.h" />
+  </ItemGroup>
+</Project>

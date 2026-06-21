@@ -1,0 +1,9 @@
+﻿Section,Name,Version,License summary,Authoritative license files / notes
+Native third-party components,Boost,boost_1_88_0,Boost Software License 1.0,LICENSE_1_0.txt; retain Boost copyright and license notices.
+Native third-party components,ChaiScript,ChaiScript-6.1.0,BSD-3-Clause,"LICENSE, license.txt."
+Native third-party components,Eigen,eigen-3.4.0,"Primarily MPL-2.0; selected files/modules may be BSD, LGPL, GPL, Apache, or MINPACK terms","COPYING.README, COPYING.MPL2, COPYING.BSD, COPYING.APACHE, COPYING.LGPL, COPYING.GPL, COPYING.MINPACK."
+Native third-party components,GeographicLib,geographiclib-2.7,MIT,LICENSE.txt.
+Native third-party components,libCIGI,libcigi,MIT,"LICENSE.txt, REFERENCED_LICENSES.txt."
+Native third-party components,POCO C++ Libraries,poco-1.14.2,Boost Software License 1.0,LICENSE.
+Native third-party components,TinyXML2,tinyxml2-11.0.0,zlib license,LICENSE.txt.
+Native third-party components,wxWidgets,wxWidgets-3.3.3,"wxWindows Library Licence 3.1, LGPL-2.0-or-later with exception",README.md and upstream wxWidgets license files;

@@ -1,0 +1,67 @@
+registerCloudType(0, "None");
+registerCloudType(1, "Altocumulus");
+registerCloudType(2, "Altostratus");
+registerCloudType(3, "Cirrocumulus");
+registerCloudType(4, "Cirrostratus");
+registerCloudType(5, "Cirrus");
+registerCloudType(6, "Cumulonimbus");
+registerCloudType(7, "Cumulus");
+registerCloudType(8, "Nimbostratus");
+registerCloudType(9, "Stratocumulus");
+registerCloudType(10, "Stratus");
+
+registerComponentClass(0, "Entity");
+registerComponentClass(1, "View");
+registerComponentClass(2, "View Group");
+registerComponentClass(3, "Sensor");
+registerComponentClass(4, "Regional Sea Surface");
+registerComponentClass(5, "Regional Terrain Surface");
+registerComponentClass(6, "Regional Layered Weather");
+registerComponentClass(7, "Global Sea Surface");
+registerComponentClass(8, "Global Terrain Surface");
+registerComponentClass(9, "Global Layered Weather");
+registerComponentClass(10, "Atmosphere");
+registerComponentClass(11, "Celestial Sphere");
+registerComponentClass(12, "Event");
+registerComponentClass(13, "System");
+registerComponentClass(14, "Symbol Surface");
+registerComponentClass(15, "Symbol");
+
+registerLayerID(0, "Ground Fog");
+registerLayerID(1, "Cloud Layer 1");
+registerLayerID(2, "Cloud Layer 2");
+registerLayerID(3, "Cloud Layer 3");
+registerLayerID(4, "Rain");
+registerLayerID(5, "Snow");
+registerLayerID(6, "Sleet");
+registerLayerID(7, "Hail");
+registerLayerID(8, "Sand");
+registerLayerID(9, "Dust");
+
+registerSurfaceConditionID(0, "Dry");
+
+registerPixelReplicationMode(0, "None");
+registerPixelReplicationMode(1, "1x2");
+registerPixelReplicationMode(2, "2x1");
+registerPixelReplicationMode(3, "2x2");
+
+registerFontID(0, "", "IG default");
+registerFontID(1, "Proportional", "Sans Serif");
+registerFontID(2, "Proportional", "Sans Serif Bold");
+registerFontID(3, "Proportional", "Sans Serif Italic");
+registerFontID(4, "Proportional", "Sans Serif Bold Italic");
+registerFontID(5, "Proportional", "Serif");
+registerFontID(6, "Proportional", "Serif Bold");
+registerFontID(7, "Proportional", "Serif Italic");
+registerFontID(8, "Proportional", "Serif Bold Italic");
+registerFontID(9, "Monospace", "Sans Serif");
+registerFontID(10, "Monospace", "Sans Serif Bold");
+registerFontID(11, "Monospace", "Sans Serif Italic");
+registerFontID(12, "Monospace", "Sans Serif Bold Italic");
+registerFontID(13, "Monospace", "Serif");
+registerFontID(14, "Monospace", "Serif Bold");
+registerFontID(15, "Monospace", "Serif Italic");
+registerFontID(16, "Monospace", "Serif Bold Italic");
+
+registerImageGeneratorMessage(0, "Test Message 0");
+registerImageGeneratorMessage(1, "Test Message 1");

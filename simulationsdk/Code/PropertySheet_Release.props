@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup>
+    <POCO_LIB_DIR Condition="'$(POCO_LIB_DIR)'==''">build\poco\vs2022-x64\lib</POCO_LIB_DIR>
+    <wxShortVersionString Condition="'$(wxShortVersionString)'=='' Or '$(wxShortVersionString)'=='31'">33</wxShortVersionString>
+  </PropertyGroup>
+  <PropertyGroup Label="UserMacros">
+    <SBIO_THIRD_PARTY>$(MSBuildThisFileDirectory)\..\..\thirdparty</SBIO_THIRD_PARTY>
+    <BOOST_DIR>boost</BOOST_DIR>
+    <BOOST_VER>1_88</BOOST_VER>
+    <CHAISCRIPT_DIR>chaiscript</CHAISCRIPT_DIR>
+    <CIGI_DIR>libcigi</CIGI_DIR>
+    <EIGEN3_DIR>eigen</EIGEN3_DIR>
+    <GEOGRAPHIC_DIR>geographiclib</GEOGRAPHIC_DIR>
+    <POCO_DIR>poco</POCO_DIR>
+    <TINYXML_DIR>tinyxml2</TINYXML_DIR>
+    <WXWIDGETS_DIR>wxwidgets</WXWIDGETS_DIR>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IntDir>$(SolutionDir)\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SBIO_THIRD_PARTY);..\;$(SolutionDir)\Libraries\;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\Net\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\Foundation\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\Util\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\XML\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\JSON\include;$(SBIO_THIRD_PARTY)\$(TINYXML_DIR);$(SBIO_THIRD_PARTY)\$(EIGEN3_DIR);$(SBIO_THIRD_PARTY)\build\$(GEOGRAPHIC_DIR)\vs2022-x64\include;$(SBIO_THIRD_PARTY)\$(GEOGRAPHIC_DIR)\include;$(SBIO_THIRD_PARTY)\$(BOOST_DIR);$(SBIO_THIRD_PARTY)\$(CHAISCRIPT_DIR)\include;$(SBIO_THIRD_PARTY)\$(CIGI_DIR);$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\include\msvc;$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;BOOST_ALL_NO_LIB;_MBCS;D_SCL_SECURE_NO_WARNINGS;DIS_VERSION=6;TIXML_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <WarningLevel>Level2</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(SBIO_THIRD_PARTY)\build\$(POCO_DIR)\vs2022-x64\lib;$(SolutionDir)Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration);$(SBIO_THIRD_PARTY)\$(BOOST_DIR)\stage\$(Platform)\lib;$(SBIO_THIRD_PARTY)\build\$(GEOGRAPHIC_DIR)\vs2022-x64\lib\Release;$(SBIO_THIRD_PARTY)\build\$(TINYXML_DIR)\vs2022-x64\Release;$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\lib\vc_x64_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(SBIO_THIRD_PARTY)\$(LIBZIP_DIR)\msvc\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="SBIO_THIRD_PARTY">
+      <Value>$(SBIO_THIRD_PARTY)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="BOOST_DIR">
+      <Value>$(BOOST_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="BOOST_VER">
+      <Value>$(BOOST_VER)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CHAISCRIPT_DIR">
+      <Value>$(CHAISCRIPT_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="CIGI_DIR">
+      <Value>$(CIGI_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="EIGEN3_DIR">
+      <Value>$(EIGEN3_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="GEOGRAPHIC_DIR">
+      <Value>$(GEOGRAPHIC_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="POCO_DIR">
+      <Value>$(POCO_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="TINYXML_DIR">
+      <Value>$(TINYXML_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="WXWIDGETS_DIR">
+      <Value>$(WXWIDGETS_DIR)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

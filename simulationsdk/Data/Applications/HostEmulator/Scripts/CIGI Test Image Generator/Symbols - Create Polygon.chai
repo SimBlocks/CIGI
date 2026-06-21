@@ -1,0 +1,42 @@
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  var vertices = VertexList();
+
+  var v = VertexUV();
+  v.U = -20;
+  v.V = -20;
+  vertices.push_back(v);
+
+  v = VertexUV();
+  v.U = 20;
+  v.V = -20;
+  vertices.push_back(v);
+
+  v = VertexUV();
+  v.U = 0;
+  v.V = 20;
+  vertices.push_back(v);
+
+  var polygon = SymbolPolygonDefinition();
+  polygon.SymbolID = 101;
+  polygon.StipplePattern = 0;
+  polygon.PrimitiveType = "Triangle";
+  polygon.LineWidth = 1;
+  polygon.StipplePatternLength = 0;
+  polygon.Vertices = vertices;
+  sendSymbolPolygonDefinition(polygon);
+}
+
+
+

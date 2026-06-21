@@ -1,0 +1,94 @@
+//
+// Sent Packets:
+//      IG Control
+//      Entity Control
+//      Entity Position 
+//      View Control
+//      View Definition
+//      Velocity Control
+//
+// Translates an entity using velocity control
+//
+def Start()
+{
+  // ----- IG Control ----------
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+  // ----- Eagle F-15C ----------
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = -0.009;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 50;
+  sendTopLevelEntityPosition(entityPosition);
+  
+  // ----- View ----------
+  var viewControl = ViewControl();
+  viewControl.ViewID = 0;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = 1;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = -25;
+  viewControl.YOffset = 0;
+  viewControl.ZOffset = -7;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = 0;
+  viewControl.Pitch = 0;
+  viewControl.Roll = 0;
+  sendViewControl(viewControl);
+
+  var viewDefinition = ViewDefinition();
+  viewDefinition.ViewID = 0;
+  viewDefinition.NearEnable = true;
+  viewDefinition.FarEnable = true;
+  viewDefinition.Near = 1;
+  viewDefinition.Far = 100000;
+  viewDefinition.ProjectionMode = "Perspective";
+  sendViewDefinition(viewDefinition);
+
+  // ----- Velocity ----------
+  global velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 1;
+  velocityControl.XLinearVelocity = 50;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "Local";
+  sendEntityVelocityControl(velocityControl);
+}
