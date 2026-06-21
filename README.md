@@ -8,13 +8,13 @@ Common Image Generator Library Middleware and Tools
 - c. type **git submodule update --init --recursive**
 - d. Wait for the submodules to finish downloading
 
-2. Follow instructions in [thirdparty/README.md](thirdparty/README.md)
-3. Follow instructions in [simulationsdk/REAMDE.md](simulationsdk/README.md)
+2. Follow instructions in [thirdparty/README.md]([thirdparty/README.md](https://github.com/SimBlocks/thirdparty/blob/main/README.md))
+3. Follow instructions in [simulationsdk/README.md](simulationsdk/README.md)
 
 
 #License
-- See [thirdparty/LICENSE.md](thirdparty/LICENSE.md)
-- See [simulationsdk/LICIENSE.md](simulationsdk/LICENSE.md)
+- See [thirdparty/LICENSE.md](https://github.com/SimBlocks/thirdparty/blob/main/LICENSE)
+- See [LICENSE](LICENSE)
 
 ## Support
 For feature requests and to report issues for this product, please utilize the **GitHub Issues** page.
