@@ -16,6 +16,9 @@ Version 4.0 has been approved by the Simulation Interoperability Standards Organ
 - Microsoft Visual Studio Professional 2022
 
 # Setup
+Copy thirdparty DLLs
+- Run **copy_DLLs_to_SimulationSDK_Release.bat**
+
 SISO Enumerations
 1. Go to https://www.sisostandards.org/page/ReferenceDocuments
 2. Download the latest **SISO-REF-010 zip**
