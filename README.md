@@ -1,5 +1,20 @@
 # Overview
-Common Image Generator Library Middleware and Tools
+Common Image Generator Interface (CIGI) Middleware and Tools
+
+## SimBlocks CIGI Host Emulator
+Individual CIGI packets may be sent.
+![simulationsdk/screenshots/Host Emulator - IG Control.png](https://github.com/SimBlocks/CIGI/blob/main/screenshots/Host%20Emulator%20-%20IG%20Control.png))
+
+Scripts may be created to send sequences of CIGI packets.
+![Host Emulator - Scripts - Entity Position Translate](https://github.com/SimBlocks/CIGI/blob/main/screenshots/Host%20Emulator%20-%20Scripts%20-%20Entity%20Position%20-%20Translate.png)
+
+## CIGI Test Image Generator
+
+The test IG displays middleware message content. 
+![CIGI Test Image Generator](https://github.com/SimBlocks/CIGI/blob/main/screenshots/Test%20Image%20Generator.png)
+
+All CIGI message content is logged to **simulationsdk\Data\Applications\CIGI ImageGenerator\IGMessageLog.log**
+![CIGITestImageGenerator - Messagee Log](https://github.com/SimBlocks/CIGI/blob/main/screenshots/IGMessageLog.log.png)
 
 # Setup 
 1. Initialize Submodules
@@ -12,11 +27,11 @@ Common Image Generator Library Middleware and Tools
 3. Follow instructions in [simulationsdk/README.md](simulationsdk/README.md)
 
 
-#License
+# License
 - See [thirdparty/LICENSE.md](https://github.com/SimBlocks/thirdparty/blob/main/LICENSE)
 - See [LICENSE](LICENSE)
 
-## Support
+# Support
 For feature requests and to report issues for this product, please utilize the **GitHub Issues** page.
 
 For more custimized software development support, please reach out to our team at **sales@simblocks.io**
