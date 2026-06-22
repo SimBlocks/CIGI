@@ -17,14 +17,17 @@ All CIGI message content is logged to **simulationsdk\Data\Applications\CIGI Ima
 ![CIGITestImageGenerator - Messagee Log](https://github.com/SimBlocks/CIGI/blob/main/screenshots/IGMessageLog.log.png)
 
 # Setup 
-1. Initialize Submodules
+1. Clone the repo  
+*Prefer cloning the repo rather than downloading the zip in order for submodule initialization to work.*
+
+2. Initialize Submodules
 - a. Open a command prompt
 - b. Navigate to the cloned **CIGI** folder
 - c. type **git submodule update --init --recursive**
 - d. Wait for the submodules to finish downloading
-
-2. Follow instructions in [thirdparty/README.md](https://github.com/SimBlocks/thirdparty/blob/main/README.md)
-3. Follow instructions in [simulationsdk/README.md](simulationsdk/README.md)
+  
+3. Follow instructions in [thirdparty/README.md](https://github.com/SimBlocks/thirdparty/blob/main/README.md)
+4. Follow instructions in [simulationsdk/README.md](simulationsdk/README.md)
 
 
 # License
