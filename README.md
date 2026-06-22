@@ -16,6 +16,13 @@ The test IG displays middleware message content.
 All CIGI message content is logged to **simulationsdk\Data\Applications\CIGI ImageGenerator\IGMessageLog.log**
 ![CIGITestImageGenerator - Messagee Log](https://github.com/SimBlocks/CIGI/blob/main/screenshots/IGMessageLog.log.png)
 
+# Prerequisites  
+- Windows 11
+- Install CMake from https://cmake.org/download/
+- Microsoft Visual Studio Professional 2022
+- Visual Studio Installer - Individual Components:  
+ MSVC v143 - vs 2022 C++ x64/x86 build tools (v14.44-17.14)
+
 # Setup 
 1. Clone the repo  
 *Prefer cloning the repo rather than downloading the zip in order for submodule initialization to work.*
