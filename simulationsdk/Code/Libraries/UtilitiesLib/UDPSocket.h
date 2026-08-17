@@ -74,6 +74,12 @@ namespace sbio
       int GetPort() const;
 
       /**
+       * @brief Reports whether the underlying datagram socket was created successfully.
+       * @return `true` when an active socket is available; otherwise `false`.
+       */
+      bool IsOpen() const;
+
+      /**
        * @brief Changes the blocking mode of the underlying datagram socket.
        * @param bBlocking `true` for blocking mode, `false` for non-blocking mode.
        *

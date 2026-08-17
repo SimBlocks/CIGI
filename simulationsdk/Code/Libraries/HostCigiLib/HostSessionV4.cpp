@@ -183,7 +183,7 @@ void CHostSessionV4::ParseStartOfFramePacket(uint8_t* buffer)
       }
       else if (startOfFramePacket.dbNumber >= -127 && startOfFramePacket.dbNumber < 0)
       {
-        //IG is loading database
+        // IG is loading database
         m_eDatabaseState = EHostSessionDatabaseState::LOADING_ACKNOWLEDGED;
       }
       else if (startOfFramePacket.dbNumber > 0)
@@ -1149,9 +1149,9 @@ void CHostSessionV4::SendArticulatedPartControl(const sbio::cigi::SCigiArticulat
     artPartCtrl.xOffset = static_cast<float>(articulatedPartControl.offset[0]);
     artPartCtrl.yOffset = static_cast<float>(articulatedPartControl.offset[1]);
     artPartCtrl.zOffset = static_cast<float>(articulatedPartControl.offset[2]);
-    artPartCtrl.roll = articulatedPartControl.rotation.roll.Value();
-    artPartCtrl.pitch = articulatedPartControl.rotation.pitch.Value();
-    artPartCtrl.yaw = articulatedPartControl.rotation.yaw.Value();
+    artPartCtrl.roll = static_cast<float>(articulatedPartControl.rotation.roll.Value());
+    artPartCtrl.pitch = static_cast<float>(articulatedPartControl.rotation.pitch.Value());
+    artPartCtrl.yaw = static_cast<float>(articulatedPartControl.rotation.yaw.Value());
 
     if (GetLoggingEnabled())
     {
@@ -1214,9 +1214,9 @@ void CHostSessionV4::SendEntityAccelerationControl(const sbio::cigi::SCigiEntity
     accelerationCtrl.xLinearAcceleration = static_cast<float>(accelerationControl.linearAcceleration[0]);
     accelerationCtrl.yLinearAcceleration = static_cast<float>(accelerationControl.linearAcceleration[1]);
     accelerationCtrl.zLinearAcceleration = static_cast<float>(accelerationControl.linearAcceleration[2]);
-    accelerationCtrl.rollAngularAcceleration = accelerationControl.angularAcceleration.roll.Value();
-    accelerationCtrl.pitchAngularAcceleration = accelerationControl.angularAcceleration.pitch.Value();
-    accelerationCtrl.yawAngularAcceleration = accelerationControl.angularAcceleration.yaw.Value();
+    accelerationCtrl.rollAngularAcceleration = static_cast<float>(accelerationControl.angularAcceleration.roll.Value());
+    accelerationCtrl.pitchAngularAcceleration = static_cast<float>(accelerationControl.angularAcceleration.pitch.Value());
+    accelerationCtrl.yawAngularAcceleration = static_cast<float>(accelerationControl.angularAcceleration.yaw.Value());
 
     if (GetLoggingEnabled())
     {
@@ -1278,9 +1278,9 @@ void CHostSessionV4::SendArticulatedPartAccelerationControl(const sbio::cigi::SC
     accelerationCtrl.xLinearAcceleration = static_cast<float>(accelerationControl.linearAcceleration[0]);
     accelerationCtrl.yLinearAcceleration = static_cast<float>(accelerationControl.linearAcceleration[1]);
     accelerationCtrl.zLinearAcceleration = static_cast<float>(accelerationControl.linearAcceleration[2]);
-    accelerationCtrl.rollAngularAcceleration = accelerationControl.angularAcceleration.roll.Value();
-    accelerationCtrl.pitchAngularAcceleration = accelerationControl.angularAcceleration.pitch.Value();
-    accelerationCtrl.yawAngularAcceleration = accelerationControl.angularAcceleration.yaw.Value();
+    accelerationCtrl.rollAngularAcceleration = static_cast<float>(accelerationControl.angularAcceleration.roll.Value());
+    accelerationCtrl.pitchAngularAcceleration = static_cast<float>(accelerationControl.angularAcceleration.pitch.Value());
+    accelerationCtrl.yawAngularAcceleration = static_cast<float>(accelerationControl.angularAcceleration.yaw.Value());
 
     if (GetLoggingEnabled())
     {
@@ -1428,10 +1428,10 @@ void CHostSessionV4::SendAtmosphereControl(const sbio::cigi::SCigiAtmosphereCont
     atmosphereCtrl.globalHumidity = ConvertToCigiIntPercentage(atmosphereControl.globalHumidity).Value();
     atmosphereCtrl.globalAirTemperature = atmosphereControl.fGlobalAirTemp;
     atmosphereCtrl.globalVisibilityRange = atmosphereControl.fGlobalVisibility;
-    atmosphereCtrl.globalHorizontalWindSpeed = atmosphereControl.fGlobalHorizontalWindSpeed;
-    atmosphereCtrl.globalVerticalWindSpeed = atmosphereControl.fGlobalVerticalWindSpeed;
-    atmosphereCtrl.globalWindDirection = atmosphereControl.globalWindDirection.Value();
-    atmosphereCtrl.globalBarometricPressure = atmosphereControl.fGlobalBarometricPressure;
+    atmosphereCtrl.globalHorizontalWindSpeed = static_cast<float>(atmosphereControl.fGlobalHorizontalWindSpeed);
+    atmosphereCtrl.globalVerticalWindSpeed = static_cast<float>(atmosphereControl.fGlobalVerticalWindSpeed);
+    atmosphereCtrl.globalWindDirection = static_cast<float>(atmosphereControl.globalWindDirection.Value());
+    atmosphereCtrl.globalBarometricPressure = static_cast<float>(atmosphereControl.fGlobalBarometricPressure);
 
     if (GetLoggingEnabled())
     {
@@ -1514,9 +1514,9 @@ void CHostSessionV4::SendTopLevelEntityPosition(const STopLevelEntityPosition& t
     entityPos.attachState = (topLevelEntityPosition.bAttached) ? CIGI::V40::EntityPosition::AttachState::eAttachState_Attach : CIGI::V40::EntityPosition::AttachState::eAttachState_Detach;
     entityPos.groundOceanClamp = ConvertToClamp(topLevelEntityPosition.eClamp);
     entityPos.entityId = topLevelEntityPosition.entityID.Value();
-    entityPos.roll = topLevelEntityPosition.rotation.roll.Value();
-    entityPos.pitch = topLevelEntityPosition.rotation.pitch.Value();
-    entityPos.yaw = topLevelEntityPosition.rotation.yaw.Value();
+    entityPos.roll = static_cast<float>(topLevelEntityPosition.rotation.roll.Value());
+    entityPos.pitch = static_cast<float>(topLevelEntityPosition.rotation.pitch.Value());
+    entityPos.yaw = static_cast<float>(topLevelEntityPosition.rotation.yaw.Value());
     entityPos.latitudeXOffset = topLevelEntityPosition.geodeticCoordinates.latitude.Value();
     entityPos.longitudeYOffset = topLevelEntityPosition.geodeticCoordinates.longitude.Value();
     entityPos.altitudeZOffset = topLevelEntityPosition.geodeticCoordinates.altitude.Value();
@@ -1555,9 +1555,9 @@ void CHostSessionV4::SendChildEntityPosition(const SChildEntityPosition& childEn
     entityPos.attachState = (childEntityPosition.bAttached) ? CIGI::V40::EntityPosition::AttachState::eAttachState_Attach : CIGI::V40::EntityPosition::AttachState::eAttachState_Detach;
     entityPos.entityId = childEntityPosition.entityID.Value();
     entityPos.parentId = childEntityPosition.parentID.Value();
-    entityPos.roll = childEntityPosition.rotation.roll.Value();
-    entityPos.pitch = childEntityPosition.rotation.pitch.Value();
-    entityPos.yaw = childEntityPosition.rotation.yaw.Value();
+    entityPos.roll = static_cast<float>(childEntityPosition.rotation.roll.Value());
+    entityPos.pitch = static_cast<float>(childEntityPosition.rotation.pitch.Value());
+    entityPos.yaw = static_cast<float>(childEntityPosition.rotation.yaw.Value());
     entityPos.latitudeXOffset = childEntityPosition.offset[0];
     entityPos.longitudeYOffset = childEntityPosition.offset[1];
     entityPos.altitudeZOffset = childEntityPosition.offset[2];
@@ -1646,11 +1646,11 @@ void CHostSessionV4::SendCollisionDetectionCuboidVolume(const sbio::cigi::SColli
 
     collDetVol.heightRadius = collVolCuboid.fHeight;
 
-    collDetVol.width = collVolCuboid.fWidth;
-    collDetVol.depth = collVolCuboid.fDepth;
-    collDetVol.roll = collVolCuboid.rotation.roll.Value();
-    collDetVol.pitch = collVolCuboid.rotation.pitch.Value();
-    collDetVol.yaw = collVolCuboid.rotation.yaw.Value();
+    collDetVol.width = static_cast<float>(collVolCuboid.fWidth);
+    collDetVol.depth = static_cast<float>(collVolCuboid.fDepth);
+    collDetVol.roll = static_cast<float>(collVolCuboid.rotation.roll.Value());
+    collDetVol.pitch = static_cast<float>(collVolCuboid.rotation.pitch.Value());
+    collDetVol.yaw = static_cast<float>(collVolCuboid.rotation.yaw.Value());
 
     if (GetLoggingEnabled())
     {
@@ -1849,9 +1849,9 @@ void CHostSessionV4::SendConformalClampedEntityPosition(const sbio::cigi::SCigiC
   {
     CIGI::V40::ConformalClampedEntityPosition confClampEntity;
     confClampEntity.entityId = conformalClampedEntityPos.entityID.Value();
-    confClampEntity.yaw = conformalClampedEntityPos.fYaw.Value();
-    confClampEntity.latitude = conformalClampedEntityPos.latitude.Value();
-    confClampEntity.longitude = conformalClampedEntityPos.longitude.Value();
+    confClampEntity.yaw = static_cast<float>(conformalClampedEntityPos.fYaw.Value());
+    confClampEntity.latitude = static_cast<float>(conformalClampedEntityPos.latitude.Value());
+    confClampEntity.longitude = static_cast<float>(conformalClampedEntityPos.longitude.Value());
 
     if (GetLoggingEnabled())
     {
@@ -1971,9 +1971,9 @@ void CHostSessionV4::SendEnvironmentalRegionControl(const SCigiEnvironmentalRegi
     envRegion.longitude = environmentalRegion.longitude.Value();
     envRegion.sizeX = environmentalRegion.size[0];
     envRegion.sizeY = environmentalRegion.size[1];
-    envRegion.cornerRadius = environmentalRegion.fCornerRadius;
-    envRegion.rotation = environmentalRegion.fRotation.Value();
-    envRegion.transitionPerimeter = environmentalRegion.fTransition;
+    envRegion.cornerRadius = static_cast<float>(environmentalRegion.fCornerRadius);
+    envRegion.rotation = static_cast<float>(environmentalRegion.fRotation.Value());
+    envRegion.transitionPerimeter = static_cast<float>(environmentalRegion.fTransition);
 
     if (GetLoggingEnabled())
     {
@@ -2094,11 +2094,11 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToGeodeticBasic(const 
   {
     CIGI::V40::LineOfSightSegmentRequest losSegmentRequest;
     losSegmentRequest.LOSId = losRequest.requestID.Value();
-    losSegmentRequest.sourceEntityId = 0;//no source entity associated with geodetic source request
+    losSegmentRequest.sourceEntityId = 0;// no source entity associated with geodetic source request
     losSegmentRequest.requestType = CIGI::V40::LineOfSightSegmentRequest::RequestType::eRequestType_Basic;
     losSegmentRequest.sourcePointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
     losSegmentRequest.destinationPointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
-    losSegmentRequest.responseCoordinateSystem = 0;//basic does not have response coordinate system field, so set to 0.
+    losSegmentRequest.responseCoordinateSystem = 0;// basic does not have response coordinate system field, so set to 0.
     losSegmentRequest.destinationEntityIdValid = false;
     losSegmentRequest.alphaThreshold = losRequest.nAlphaThreshold;
     losSegmentRequest.updatePeriod = losRequest.updatePeriod.Value();
@@ -2176,11 +2176,11 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToGeodeticExtended(con
   {
     CIGI::V40::LineOfSightSegmentRequest losSegmentRequest;
     losSegmentRequest.LOSId = losRequest.requestID.Value();
-    losSegmentRequest.sourceEntityId = 0;//no source entity associated with geodetic source request
+    losSegmentRequest.sourceEntityId = 0;// no source entity associated with geodetic source request
     losSegmentRequest.requestType = CIGI::V40::LineOfSightSegmentRequest::RequestType::eRequestType_Extended;
     losSegmentRequest.sourcePointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
     losSegmentRequest.destinationPointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
-    losSegmentRequest.responseCoordinateSystem = 0;//Extended does not have response coordinate system field, so set to 0.
+    losSegmentRequest.responseCoordinateSystem = 0;// Extended does not have response coordinate system field, so set to 0.
     losSegmentRequest.destinationEntityIdValid = false;
     losSegmentRequest.alphaThreshold = losRequest.nAlphaThreshold;
     losSegmentRequest.updatePeriod = losRequest.updatePeriod.Value();
@@ -2261,7 +2261,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToEntityBasic(const SL
   {
     CIGI::V40::LineOfSightSegmentRequest losSegmentRequest;
     losSegmentRequest.LOSId = losRequest.requestID.Value();
-    losSegmentRequest.sourceEntityId = 0;//no source entity associated with geodetic source request
+    losSegmentRequest.sourceEntityId = 0;// no source entity associated with geodetic source request
     losSegmentRequest.requestType = CIGI::V40::LineOfSightSegmentRequest::RequestType::eRequestType_Basic;
     losSegmentRequest.sourcePointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
     losSegmentRequest.destinationPointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Entity;
@@ -2345,7 +2345,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToEntityExtended(const
   {
     CIGI::V40::LineOfSightSegmentRequest losSegmentRequest;
     losSegmentRequest.LOSId = losRequest.requestID.Value();
-    losSegmentRequest.sourceEntityId = 0;//no source entity associated with geodetic source request
+    losSegmentRequest.sourceEntityId = 0;// no source entity associated with geodetic source request
     losSegmentRequest.requestType = CIGI::V40::LineOfSightSegmentRequest::RequestType::eRequestType_Extended;
     losSegmentRequest.sourcePointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
     losSegmentRequest.destinationPointCoordinateSystem = CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Entity;
@@ -2789,9 +2789,9 @@ void CHostSessionV4::SendLineOfSightVectorRequestGeodeticBasic(const SLineOfSigh
     losVectorRequest.sourcePointCoordinateSystem = CIGI::V40::LineOfSightVectorRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
     losVectorRequest.responseCoordinateSystem = 0;// basic does not have a response coordinate system field.
     losVectorRequest.alphaThreshold = losRequest.nAlphaThreshold;
-    losVectorRequest.entityId = 0;//no source entity associated with geodetic source request
-    losVectorRequest.azimuth = losRequest.azimuth.Value();
-    losVectorRequest.elevation = losRequest.elevation.Value();
+    losVectorRequest.entityId = 0;// no source entity associated with geodetic source request
+    losVectorRequest.azimuth = static_cast<float>(losRequest.azimuth.Value());
+    losVectorRequest.elevation = static_cast<float>(losRequest.elevation.Value());
     losVectorRequest.maximumRange = losRequest.fMaximumRange;
     losVectorRequest.minimumRange = losRequest.fMinimumRange;
 
@@ -2856,19 +2856,19 @@ void CHostSessionV4::SendLineOfSightVectorRequestGeodeticExtended(const SLineOfS
     losVectorRequest.LOSId = losRequest.requestID.Value();
 
     losVectorRequest.requestType = CIGI::V40::LineOfSightVectorRequest::RequestType::eRequestType_Extended;
-    losVectorRequest.entityId = 0;//no source entity associated with geodetic source request
+    losVectorRequest.entityId = 0;// no source entity associated with geodetic source request
     losVectorRequest.sourcePointCoordinateSystem = CIGI::V40::LineOfSightVectorRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
     losVectorRequest.responseCoordinateSystem = 0;// Extended does not have a response coordinate system field.
     losVectorRequest.alphaThreshold = losRequest.nAlphaThreshold;
-    losVectorRequest.azimuth = losRequest.azimuth.Value();
-    losVectorRequest.elevation = losRequest.elevation.Value();
+    losVectorRequest.azimuth = static_cast<float>(losRequest.azimuth.Value());
+    losVectorRequest.elevation = static_cast<float>(losRequest.elevation.Value());
     losVectorRequest.maximumRange = losRequest.fMaximumRange;
     losVectorRequest.minimumRange = losRequest.fMinimumRange;
 
     {
-      losVectorRequest.sourceLatitudeXOffset = losRequest.sourceGeodeticCoordinates.latitude.Value();
-      losVectorRequest.sourceLongitudeYOffset = losRequest.sourceGeodeticCoordinates.longitude.Value();
-      losVectorRequest.sourceAltitudeZOffset = losRequest.sourceGeodeticCoordinates.altitude.Value();
+      losVectorRequest.sourceLatitudeXOffset = static_cast<float>(losRequest.sourceGeodeticCoordinates.latitude.Value());
+      losVectorRequest.sourceLongitudeYOffset = static_cast<float>(losRequest.sourceGeodeticCoordinates.longitude.Value());
+      losVectorRequest.sourceAltitudeZOffset = static_cast<float>(losRequest.sourceGeodeticCoordinates.altitude.Value());
     }
 
     losVectorRequest.materialMask = losRequest.nMaterialMask;
@@ -2933,13 +2933,13 @@ void CHostSessionV4::SendLineOfSightVectorRequestEntityBasic(const sbio::cigi::S
     losVectorRequest.responseCoordinateSystem = 0;// basic does not have a response coordinate system field.
     losVectorRequest.alphaThreshold = losRequest.nAlphaThreshold;
     losVectorRequest.entityId = losRequest.sourceEntityID.Value();
-    losVectorRequest.azimuth = losRequest.azimuth.Value();
-    losVectorRequest.elevation = losRequest.elevation.Value();
-    losVectorRequest.maximumRange = losRequest.fMaximumRange;
-    losVectorRequest.minimumRange = losRequest.fMinimumRange;
-    losVectorRequest.sourceLatitudeXOffset = losRequest.sourceOffset[0];
-    losVectorRequest.sourceLongitudeYOffset = losRequest.sourceOffset[1];
-    losVectorRequest.sourceAltitudeZOffset = losRequest.sourceOffset[2];
+    losVectorRequest.azimuth = static_cast<float>(losRequest.azimuth.Value());
+    losVectorRequest.elevation = static_cast<float>(losRequest.elevation.Value());
+    losVectorRequest.maximumRange = static_cast<float>(losRequest.fMaximumRange);
+    losVectorRequest.minimumRange = static_cast<float>(losRequest.fMinimumRange);
+    losVectorRequest.sourceLatitudeXOffset = static_cast<float>(losRequest.sourceOffset[0]);
+    losVectorRequest.sourceLongitudeYOffset = static_cast<float>(losRequest.sourceOffset[1]);
+    losVectorRequest.sourceAltitudeZOffset = static_cast<float>(losRequest.sourceOffset[2]);
     losVectorRequest.materialMask = losRequest.nMaterialMask;
     losVectorRequest.updatePeriod = losRequest.updatePeriod.Value();
 
@@ -3002,8 +3002,8 @@ void CHostSessionV4::SendLineOfSightVectorRequestEntityExtended(const sbio::cigi
     losVectorRequest.responseCoordinateSystem = 0;// Extended does not have a response coordinate system field.
     losVectorRequest.alphaThreshold = losRequest.nAlphaThreshold;
     losVectorRequest.entityId = losRequest.sourceEntityID.Value();
-    losVectorRequest.azimuth = losRequest.azimuth.Value();
-    losVectorRequest.elevation = losRequest.elevation.Value();
+    losVectorRequest.azimuth = static_cast<float>(losRequest.azimuth.Value());
+    losVectorRequest.elevation = static_cast<float>(losRequest.elevation.Value());
     losVectorRequest.maximumRange = losRequest.fMaximumRange;
     losVectorRequest.minimumRange = losRequest.fMinimumRange;
     losVectorRequest.sourceLatitudeXOffset = losRequest.sourceOffset[0];
@@ -3882,8 +3882,8 @@ void CHostSessionV4::SendSymbolCircleDefinition(const SSymbolCircle& circleDef)
       circle.centerV = circleProperties.centerUV.V;
       circle.radius = circleProperties.fRadius;
       circle.innerRadius = circleProperties.fInnerRadius;
-      circle.startAngle = circleProperties.startAngle.Value();
-      circle.endAngle = circleProperties.endAngle.Value();
+      circle.startAngle = static_cast<float>(circleProperties.startAngle.Value());
+      circle.endAngle = static_cast<float>(circleProperties.endAngle.Value());
       helper.push(circle);
     }
 
@@ -4009,7 +4009,7 @@ void CHostSessionV4::SendSymbolControl(const SSymbolControl& symbolControl)
     symControl.flashPeriod = symbolControl.fFlashPeriod;
     symControl.positionU = symbolControl.fPositionU;
     symControl.positionV = symbolControl.fPositionV;
-    symControl.rotation = symbolControl.fRotation.Value();
+    symControl.rotation = static_cast<float>(symbolControl.fRotation.Value());
     symControl.red = symbolControl.color.r;
     symControl.green = symbolControl.color.g;
     symControl.blue = symbolControl.color.b;
@@ -4266,9 +4266,9 @@ void CHostSessionV4::SendEntitySymbolSurfaceDefinition(const SEntitySymbolSurfac
     symbolSurfaceDef.xOffsetLeft = symbolSurfaceDefinition.offsetToSurface[0];
     symbolSurfaceDef.yOffsetRight = symbolSurfaceDefinition.offsetToSurface[1];
     symbolSurfaceDef.zOffsetTop = symbolSurfaceDefinition.offsetToSurface[2];
-    symbolSurfaceDef.yawBottom = symbolSurfaceDefinition.yaw.Value();
-    symbolSurfaceDef.pitch = symbolSurfaceDefinition.pitch.Value();
-    symbolSurfaceDef.roll = symbolSurfaceDefinition.roll.Value();
+    symbolSurfaceDef.yawBottom = static_cast<float>(symbolSurfaceDefinition.yaw.Value());
+    symbolSurfaceDef.pitch = static_cast<float>(symbolSurfaceDefinition.pitch.Value());
+    symbolSurfaceDef.roll = static_cast<float>(symbolSurfaceDefinition.roll.Value());
     symbolSurfaceDef.width = symbolSurfaceDefinition.width;
     symbolSurfaceDef.height = symbolSurfaceDefinition.height;
     symbolSurfaceDef.minU = symbolSurfaceDefinition.uvMin[0];
@@ -4555,7 +4555,7 @@ void CHostSessionV4::SendSymbolTextDefinition(const SSymbolTextDefinition& symbo
 
 void Swap(CIGI::V40::SymbolTexturedCircleDefinition& symbolTexturedCircleDefinition, int nNumRecords)
 {
-  //swap textured circle definition
+  // swap textured circle definition
 
   CEndian::Swap(symbolTexturedCircleDefinition.size);
   uint16_t nPacketId = symbolTexturedCircleDefinition.id;
@@ -4563,9 +4563,9 @@ void Swap(CIGI::V40::SymbolTexturedCircleDefinition& symbolTexturedCircleDefinit
   symbolTexturedCircleDefinition.id = nPacketId;
   symbolTexturedCircleDefinition.doByteSwapping();
   CEndian::Swap(symbolTexturedCircleDefinition.symbolId);
-  //CEndian::Swap(symbolTexturedCircleDefinition.textureFilterMode);//no need to swap 1-bit field
+  // CEndian::Swap(symbolTexturedCircleDefinition.textureFilterMode);//no need to swap 1-bit field
   CEndian::Swap(symbolTexturedCircleDefinition.textureId);
-  //CEndian::Swap(symbolTexturedCircleDefinition.textureRepeatOrClamp);//no need to swap 1-bit field
+  // CEndian::Swap(symbolTexturedCircleDefinition.textureRepeatOrClamp);//no need to swap 1-bit field
 
   for (int i = 0; i < nNumRecords; ++i)
   {
@@ -4597,8 +4597,8 @@ void CHostSessionV4::SendSymbolTexturedCircleDefinition(const SSymbolTexturedCir
       texturedCircle.centerV = c.centerUV[1];
       texturedCircle.radius = c.fRadius;
       texturedCircle.innerRadius = c.fInnerRadius;
-      texturedCircle.startAngle = c.startAngle.Value();
-      texturedCircle.endAngle = c.endAngle.Value();
+      texturedCircle.startAngle = static_cast<float>(c.startAngle.Value());
+      texturedCircle.endAngle = static_cast<float>(c.endAngle.Value());
       texturedCircle.textureCoordinateSAtCenterPoint = c.centerTextureST[0];
       texturedCircle.textureCoordinateTAtCenterPoint = c.centerTextureST[1];
       texturedCircle.textureMappingRadius = c.fTextureMapRadius;
@@ -4609,7 +4609,7 @@ void CHostSessionV4::SendSymbolTexturedCircleDefinition(const SSymbolTexturedCir
     if (GetLoggingEnabled())
     {
       HostCigiDataMessageEventArgs args;
-      args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::SYMBOL_TEXTURED_CIRICLE_DEFINITION) << "\n"
+      args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::SYMBOL_TEXTURED_CIRCLE_DEFINITION) << "\n"
                         << "Symbol ID: " << std::to_string(symbolTexturedCircle.symbolID.Value()) << "\n"
                         << "Texture ID: " << std::to_string(symbolTexturedCircle.textureID.Value()) << "\n";
 
@@ -4721,7 +4721,7 @@ void CHostSessionV4::SendSymbolTexturedPolygonDefinition(const SSymbolTexturedPo
     if (GetLoggingEnabled())
     {
       HostCigiDataMessageEventArgs args;
-      args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::SYMBOL_TEXTURED_CIRICLE_DEFINITION) << "\n"
+      args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::SYMBOL_TEXTURED_POLYGON_DEFINITION) << "\n"
                         << "Symbol ID: " << std::to_string(symbolTexturedPolygon.symbolID.Value()) << "\n"
                         << "Texture ID: " << std::to_string(symbolTexturedPolygon.textureID.Value()) << "\n";
 
@@ -4965,9 +4965,9 @@ void CHostSessionV4::SendVelocityControl(const SCigiEntityVelocityControl& entit
     velocityControl.applyToArticulatedPart = false;
     velocityControl.articulatedPartId = 0;
     velocityControl.coordinateSystem = ConvertToVelocityCtrlCoordinateSystem(entityVelocityControl.coordinateSystem);
-    velocityControl.rollAngularVelocity = entityVelocityControl.angularVelocity.roll.Value();
-    velocityControl.pitchAngularVelocity = entityVelocityControl.angularVelocity.pitch.Value();
-    velocityControl.yawAngularVelocity = entityVelocityControl.angularVelocity.yaw.Value();
+    velocityControl.rollAngularVelocity = static_cast<float>(entityVelocityControl.angularVelocity.roll.Value());
+    velocityControl.pitchAngularVelocity = static_cast<float>(entityVelocityControl.angularVelocity.pitch.Value());
+    velocityControl.yawAngularVelocity = static_cast<float>(entityVelocityControl.angularVelocity.yaw.Value());
     velocityControl.xLinearVelocity = static_cast<float>(entityVelocityControl.linearVelocity[0]);
     velocityControl.yLinearVelocity = static_cast<float>(entityVelocityControl.linearVelocity[1]);
     velocityControl.zLinearVelocity = static_cast<float>(entityVelocityControl.linearVelocity[2]);
@@ -5029,9 +5029,9 @@ void CHostSessionV4::SendVelocityControl(const sbio::cigi::SCigiArticulatedPartV
     velocityControl.xLinearVelocity = static_cast<float>(articulatedPartVelocityControl.linearVelocity[0]);
     velocityControl.yLinearVelocity = static_cast<float>(articulatedPartVelocityControl.linearVelocity[1]);
     velocityControl.zLinearVelocity = static_cast<float>(articulatedPartVelocityControl.linearVelocity[2]);
-    velocityControl.rollAngularVelocity = articulatedPartVelocityControl.angularVelocity.roll.Value();
-    velocityControl.pitchAngularVelocity = articulatedPartVelocityControl.angularVelocity.pitch.Value();
-    velocityControl.yawAngularVelocity = articulatedPartVelocityControl.angularVelocity.yaw.Value();
+    velocityControl.rollAngularVelocity = static_cast<float>(articulatedPartVelocityControl.angularVelocity.roll.Value());
+    velocityControl.pitchAngularVelocity = static_cast<float>(articulatedPartVelocityControl.angularVelocity.pitch.Value());
+    velocityControl.yawAngularVelocity = static_cast<float>(articulatedPartVelocityControl.angularVelocity.yaw.Value());
 
     if (GetLoggingEnabled())
     {
@@ -5078,9 +5078,9 @@ void CHostSessionV4::SendViewControl(const sbio::cigi::SCigiViewControl& viewCon
     viewCtrl.xOffset = static_cast<float>(viewControl.offset[0]);
     viewCtrl.yOffset = static_cast<float>(viewControl.offset[1]);
     viewCtrl.zOffset = static_cast<float>(viewControl.offset[2]);
-    viewCtrl.roll = viewControl.rotation.roll.Value();
-    viewCtrl.pitch = viewControl.rotation.pitch.Value();
-    viewCtrl.yaw = viewControl.rotation.yaw.Value();
+    viewCtrl.roll = static_cast<float>(viewControl.rotation.roll.Value());
+    viewCtrl.pitch = static_cast<float>(viewControl.rotation.pitch.Value());
+    viewCtrl.yaw = static_cast<float>(viewControl.rotation.yaw.Value());
 
     if (GetLoggingEnabled())
     {
@@ -5234,8 +5234,8 @@ void CHostSessionV4::SendEntityWaveControl(EntityID entityID, const SCigiWaveCon
     waveCtrl.wavelength = waveCondition.fWavelength;
     waveCtrl.period = waveCondition.fPeriod;
     waveCtrl.direction = static_cast<float>(waveCondition.direction.Value());
-    waveCtrl.phaseOffset = waveCondition.phaseOffset.Value();
-    waveCtrl.leading = waveCondition.leading.Value();
+    waveCtrl.phaseOffset = static_cast<float>(waveCondition.phaseOffset.Value());
+    waveCtrl.leading = static_cast<float>(waveCondition.leading.Value());
 
     PackPacketV4(this, waveCtrl, m_bByteSwap);
   }
@@ -5266,8 +5266,8 @@ void CHostSessionV4::SendRegionalWaveControl(RegionID regionID, const SCigiWaveC
     waveCtrl.wavelength = waveCondition.fWavelength;
     waveCtrl.period = waveCondition.fPeriod;
     waveCtrl.direction = static_cast<float>(waveCondition.direction.Value());
-    waveCtrl.phaseOffset = waveCondition.phaseOffset.Value();
-    waveCtrl.leading = waveCondition.leading.Value();
+    waveCtrl.phaseOffset = static_cast<float>(waveCondition.phaseOffset.Value());
+    waveCtrl.leading = static_cast<float>(waveCondition.leading.Value());
 
     PackPacketV4(this, waveCtrl, m_bByteSwap);
   }
@@ -5298,8 +5298,8 @@ void CHostSessionV4::SendGlobalWaveControl(const SCigiWaveCondition& waveConditi
     waveCtrl.wavelength = waveCondition.fWavelength;
     waveCtrl.period = waveCondition.fPeriod;
     waveCtrl.direction = static_cast<float>(waveCondition.direction.Value());
-    waveCtrl.phaseOffset = waveCondition.phaseOffset.Value();
-    waveCtrl.leading = waveCondition.leading.Value();
+    waveCtrl.phaseOffset = static_cast<float>(waveCondition.phaseOffset.Value());
+    waveCtrl.leading = static_cast<float>(waveCondition.leading.Value());
 
     PackPacketV4(this, waveCtrl, m_bByteSwap);
   }
@@ -5332,7 +5332,7 @@ void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayer
     weatherCtrl.thickness = spatialWeatherCondition.fThickness;
     weatherCtrl.horizontalWindSpeed = weatherCondition.HorizontalWindSpeed;
     weatherCtrl.verticalWindSpeed = weatherCondition.VerticalWindSpeed;
-    weatherCtrl.windDirection = weatherCondition.WindDirection;
+    weatherCtrl.windDirection = static_cast<float>(weatherCondition.WindDirection.Value());
     weatherCtrl.barometricPressure = weatherCondition.fBarometricPressure;
     weatherCtrl.aerosolConcentration = weatherCondition.fAerosolConcentration;
 
@@ -5370,7 +5370,7 @@ void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayer
                         << "Bottom Transition Band Thickness: " << std::to_string(spatialWeatherCondition.fBottomTransitionBandThickness) << "\n"
                         << "Horizontal Wind Speed: " << std::to_string(weatherCondition.HorizontalWindSpeed) << "\n"
                         << "Vertical Wind Speed: " << std::to_string(weatherCondition.VerticalWindSpeed) << "\n"
-                        << "Wind Direction: " << std::to_string(weatherCondition.WindDirection) << "\n"
+                        << "Wind Direction: " << std::to_string(weatherCondition.WindDirection.Value()) << "\n"
                         << "Barometric Pressure: " << std::to_string(weatherCondition.fBarometricPressure) << "\n"
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration) << "\n"
                         << "Top Scud Frequency: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.topScudFrequency).Value()) << "\n"
@@ -5409,7 +5409,7 @@ void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayered
     weatherCtrl.thickness = spatialWeatherCondition.fThickness;
     weatherCtrl.horizontalWindSpeed = weatherCondition.HorizontalWindSpeed;
     weatherCtrl.verticalWindSpeed = weatherCondition.VerticalWindSpeed;
-    weatherCtrl.windDirection = weatherCondition.WindDirection;
+    weatherCtrl.windDirection = static_cast<float>(weatherCondition.WindDirection.Value());
     weatherCtrl.barometricPressure = weatherCondition.fBarometricPressure;
     weatherCtrl.aerosolConcentration = weatherCondition.fAerosolConcentration;
 
@@ -5446,7 +5446,7 @@ void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayered
                         << "Bottom Transition Band Thickness: " << std::to_string(spatialWeatherCondition.fBottomTransitionBandThickness) << "\n"
                         << "Horizontal Wind Speed: " << std::to_string(weatherCondition.HorizontalWindSpeed) << "\n"
                         << "Vertical Wind Speed: " << std::to_string(weatherCondition.VerticalWindSpeed) << "\n"
-                        << "Wind Direction: " << std::to_string(weatherCondition.WindDirection) << "\n"
+                        << "Wind Direction: " << std::to_string(weatherCondition.WindDirection.Value()) << "\n"
                         << "Barometric Pressure: " << std::to_string(weatherCondition.fBarometricPressure) << "\n"
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration) << "\n"
                         << "Top Scud Frequency: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.topScudFrequency).Value()) << "\n"
@@ -5483,7 +5483,7 @@ void CHostSessionV4::SendWeatherControl(sbio::EntityID entityID, const sbio::cig
     weatherCtrl.coverage = ConvertToCigiFloatPercentage(weatherCondition.coverage).Value();
     weatherCtrl.horizontalWindSpeed = weatherCondition.HorizontalWindSpeed;
     weatherCtrl.verticalWindSpeed = weatherCondition.VerticalWindSpeed;
-    weatherCtrl.windDirection = weatherCondition.WindDirection;
+    weatherCtrl.windDirection = static_cast<float>(weatherCondition.WindDirection.Value());
     weatherCtrl.barometricPressure = weatherCondition.fBarometricPressure;
     weatherCtrl.aerosolConcentration = weatherCondition.fAerosolConcentration;
 
@@ -5516,7 +5516,7 @@ void CHostSessionV4::SendWeatherControl(sbio::EntityID entityID, const sbio::cig
                         << "Coverage: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.coverage).Value()) << "\n"
                         << "Horizontal Wind Speed: " << std::to_string(weatherCondition.HorizontalWindSpeed) << "\n"
                         << "Vertical Wind Speed: " << std::to_string(weatherCondition.VerticalWindSpeed) << "\n"
-                        << "Wind Direction: " << std::to_string(weatherCondition.WindDirection) << "\n"
+                        << "Wind Direction: " << std::to_string(weatherCondition.WindDirection.Value()) << "\n"
                         << "Barometric Pressure: " << std::to_string(weatherCondition.fBarometricPressure) << "\n"
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration) << "\n"
                         << "Top Scud Frequency: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.topScudFrequency).Value());

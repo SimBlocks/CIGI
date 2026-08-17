@@ -64,6 +64,29 @@ namespace sbio
       void Reset();
 
       /**
+       * @brief Appends raw bytes at the current write position.
+       * @param data Source bytes to append.
+       * @param size Number of bytes to append.
+       * @return `true` when all bytes were appended; otherwise `false`.
+       */
+      bool Write(const void* data, size_t size)
+      {
+        if (m_buffer == nullptr || m_pCurrentBufferPtr == nullptr || data == nullptr)
+        {
+          return false;
+        }
+
+        if ((m_pCurrentBufferPtr - m_buffer) + size > static_cast<size_t>(m_nSize))
+        {
+          return false;
+        }
+
+        std::memcpy(m_pCurrentBufferPtr, data, size);
+        m_pCurrentBufferPtr += size;
+        return true;
+      }
+
+      /**
        * @brief Writes a trivially copyable value at the current position.
        * @tparam T Value type to copy into the buffer.
        * @param data Value to write.

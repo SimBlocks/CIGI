@@ -11,6 +11,8 @@
  */
 #include "Buffer.h"
 
+#include <cstring>
+
 using namespace sbio::utils;
 
 // Constructs a buffer of the specified size.
@@ -20,6 +22,11 @@ CBuffer::CBuffer(int nSize) : m_nSize(nSize)
   {
     m_buffer = new char[m_nSize];
   }
+}
+
+CBuffer::CBuffer(std::vector<std::uint8_t>&& buffer) : m_own_Buffer(false), m_nSize(static_cast<int>(buffer.size())), m_ownedBytes(std::move(buffer))
+{
+  m_buffer = reinterpret_cast<char*>(m_ownedBytes.data());
 }
 
 // Constructs a buffer with a specified size and existing data.
@@ -47,6 +54,7 @@ void CBuffer::Clear()
 
   m_buffer = nullptr;
   m_nSize = 0;
+  m_ownedBytes.clear();
 }
 
 // Gets a pointer to the buffer.
@@ -75,6 +83,16 @@ bool CBuffer::IsEmpty() const
 // Transfers ownership of the buffer pointer to the caller.
 char* CBuffer::StealPointer()
 {
+  if (!m_ownedBytes.empty())
+  {
+    char* p = new char[m_nSize];
+    std::memcpy(p, m_buffer, m_nSize);
+    m_ownedBytes.clear();
+    m_buffer = nullptr;
+    m_nSize = 0;
+    return p;
+  }
+
   char* p = m_buffer;
   m_buffer = nullptr;
   m_nSize = 0;
@@ -92,6 +110,7 @@ void CBuffer::Set(int nSize, void* data)
     m_buffer = nullptr;
   }
 
+  m_ownedBytes.clear();
   m_nSize = nSize;
   m_buffer = (char*)data;
   m_own_Buffer = false;

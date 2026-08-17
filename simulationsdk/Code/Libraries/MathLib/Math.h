@@ -30,7 +30,7 @@ namespace sbio
      * @param fDegrees The angle in degrees.
      * @return The angle in radians.
      */
-    float DegreesToRadians(float fDegrees);
+    double DegreesToRadians(double fDegrees);
 
     /**
      * @brief Converts degrees to radians.
@@ -40,11 +40,18 @@ namespace sbio
     Radians DegreesToRadians(Degrees fDegrees);
 
     /**
+     * @brief Converts degrees to radians.
+     * @param fDegrees The angle in degrees.
+     * @return The angle in radians.
+     */
+    Radians DegreesToRadians(Degrees360 fDegrees);
+
+    /**
      * @brief Converts radians to degrees.
      * @param fRadians The angle in radians.
      * @return The angle in degrees.
      */
-    float RadiansToDegrees(float fRadians);
+    double RadiansToDegrees(double fRadians);
 
     /**
      * @brief Converts radians to degrees.

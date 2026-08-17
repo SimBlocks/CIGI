@@ -5,6 +5,8 @@
 #include "GlobalHeaders/Globals.h"
 #include "MathLib/CoordinateConversions.h"
 #include "MathLib/Math.h"
+#include <algorithm>
+#include <cmath>
 
 using namespace std;
 using namespace sbio;
@@ -38,8 +40,8 @@ namespace sbio
 
     CigiBodyCoordinates ConvertBodyCoordinatesToCigiBodyCoordinates(const BodyCoordinates& bodyCoordinates)
     {
-      //CIGI body coordinates are forward, right, down
-      //Body coordinates are right, forward, up
+      // CIGI body coordinates are forward, right, down
+      // Body coordinates are right, forward, up
       CigiBodyCoordinates cigiBodyCoordinates;
       cigiBodyCoordinates.Forward() = bodyCoordinates.Forward();
       cigiBodyCoordinates.Right() = bodyCoordinates.Right();
@@ -50,8 +52,8 @@ namespace sbio
 
     BodyCoordinates ConvertCigiBodyCoordinatesToBodyCoordinates(CigiBodyCoordinates cigiBodyCoordinates)
     {
-      //CIGI body coordinates are forward, right, down
-      //Body coordinates are right, forward, up
+      // CIGI body coordinates are forward, right, down
+      // Body coordinates are right, forward, up
       return BodyCoordinates(cigiBodyCoordinates.Right(), cigiBodyCoordinates.Forward(), -cigiBodyCoordinates.Down());
     }
 
@@ -66,8 +68,8 @@ namespace sbio
 
     TBodyRotation ConvertCigiBodyRotationToBodyRotation(TCigiBodyRotation cigiBodyRotation)
     {
-      //CIGI body coordinates are forward, right, down
-      //Body coordinates are right, forward, up
+      // CIGI body coordinates are forward, right, down
+      // Body coordinates are right, forward, up
       TCigiBodyMatrix m = cigiBodyRotation.toRotationMatrix();
       CigiBodyCoordinates forward = m.getCol(0);
       CigiBodyCoordinates right = m.getCol(1);
@@ -83,8 +85,8 @@ namespace sbio
 
     TCigiBodyRotation ConvertBodyRotationToCigiBodyRotation(TBodyRotation bodyRotation)
     {
-      //Body coordinates are right, forward, up
-      //CIGI body coordinates are forward, right, down
+      // Body coordinates are right, forward, up
+      // CIGI body coordinates are forward, right, down
       TBodyMatrix m = bodyRotation.toRotationMatrix();
       BodyCoordinates right = m.getCol(0);
       BodyCoordinates forward = m.getCol(1);
@@ -97,13 +99,7 @@ namespace sbio
 
       return TCigiBodyRotation(cigiBodyMatrix);
     }
-  }
-}
 
-namespace sbio
-{
-  namespace cigi
-  {
     TGeocentricTransform SetupTopLevelTransformation(const SGeodeticCoordinates& geodeticCoordinates, const TCigiBodyEulerRotation& rotation)
     {
       TGeocentricTransform transformation;
@@ -112,19 +108,13 @@ namespace sbio
 
       return transformation;
     }
-  }
-}
 
-namespace sbio
-{
-  namespace cigi
-  {
     TCigiBodyRotation SetupCigiObjectRotation(const TCigiBodyEulerRotation& rotation)
     {
       Quaternion4d q;
       q.setIdentity();
 
-      //Rotate about yaw, then pitch, then roll
+      // Rotate about yaw, then pitch, then roll
       q = q * AxisRotation(DegreesToRadians(rotation.yaw).Value(), Vec3::UnitZ());
       q = q * AxisRotation(DegreesToRadians(rotation.pitch).Value(), Vec3::UnitY());
       q = q * AxisRotation(DegreesToRadians(rotation.roll).Value(), Vec3::UnitX());
@@ -134,27 +124,21 @@ namespace sbio
 
     TGeocentricRotation SetupTopLevelEntityRotation(const TCigiBodyEulerRotation& rotation, Latitude latitude, Longitude longitude)
     {
-      //The order of rotation is about the Z, Y, and then X axes(i.e., yaw, pitch, and then roll).
-      //An entity’s yaw is the measure of the angle formed from True North to the entity’s + X axis.
-      //This angle is specified in degrees and is positive clockwise if looking along the + Z axis.
-      //An entity’s pitch is the measure of the angle between the reference plane and the entity’s + X axis.
-      //This angle is specified in degrees and is positive above(away from the ellipsoid) the reference plane.
-      //Roll is the measure of the angle between the reference plane and the entity’s + Y axis
-      //along a plane perpendicular to the entity’s X axis.
-      //In other words, it is the angle of rotation about the X axis after yaw and pitch have been applied.
-      //Roll is also specified in degrees and is positive clockwise from the point of view of looking along the +X axis.
+      // The order of rotation is about the Z, Y, and then X axes(i.e., yaw, pitch, and then roll).
+      // An entityï¿½s yaw is the measure of the angle formed from True North to the entityï¿½s + X axis.
+      // This angle is specified in degrees and is positive clockwise if looking along the + Z axis.
+      // An entityï¿½s pitch is the measure of the angle between the reference plane and the entityï¿½s + X axis.
+      // This angle is specified in degrees and is positive above(away from the ellipsoid) the reference plane.
+      // Roll is the measure of the angle between the reference plane and the entityï¿½s + Y axis
+      // along a plane perpendicular to the entityï¿½s X axis.
+      // In other words, it is the angle of rotation about the X axis after yaw and pitch have been applied.
+      // Roll is also specified in degrees and is positive clockwise from the point of view of looking along the +X axis.
       TBodyRotation bodyRotation;
-      //Rotate about yaw, then pitch, then roll
+      // Rotate about yaw, then pitch, then roll
       bodyRotation = ConvertCigiBodyRotationToBodyRotation(SetupCigiObjectRotation(rotation));
       return GetGeocentricRotation(latitude, longitude) * bodyRotation;
     }
-  }
-}
 
-namespace sbio
-{
-  namespace cigi
-  {
     EActiveState ConvertRegion(CIGI::V40::EnvironmentalRegionCtrl::RegionState eRegionState)
     {
       switch (eRegionState)
@@ -181,12 +165,17 @@ namespace sbio
 
     sbio::Percentage ConvertAlphaToPercentage(float fAlpha)
     {
-      return Percentage(fAlpha / 255.0f);
+      if (!std::isfinite(fAlpha))
+      {
+        return Percentage(0.0f);
+      }
+
+      return Percentage(std::clamp(fAlpha, 0.0f, 255.0f) / 255.0f);
     }
 
     sbio::Percentage ConvertAlphaToPercentage(int nAlpha)
     {
-      return Percentage(nAlpha / 255.0f);
+      return Percentage(std::clamp(nAlpha, 0, 255) / 255.0f);
     }
 
     EDegreeOfFreedom ConvertDegreeOfFreedom(CIGI::V40::ShortArticulatedPartCtrl::DOFSelect eDOF)
@@ -762,7 +751,7 @@ namespace sbio
 
     uint8_t ConvertToCigiAlpha(sbio::Percentage alpha)
     {
-      return static_cast<uint8_t>(alpha.Value() * 255.0f + .5f);
+      return static_cast<uint8_t>(ClampPercentageValue(alpha) * 255.0f + .5f);
     }
 
     EFlashControl ConvertToFlashControl(CIGI::V40::SymbolCtrl::FlashControl eFlashControl)
@@ -781,12 +770,12 @@ namespace sbio
 
     sbio::cigi::CigiFloatPercentage ConvertToCigiFloatPercentage(sbio::Percentage percentage)
     {
-      return CigiFloatPercentage(percentage.Value() * 100.0f);
+      return CigiFloatPercentage(ClampPercentageValue(percentage) * 100.0f);
     }
 
     sbio::cigi::CigiIntPercentage ConvertToCigiIntPercentage(sbio::Percentage percentage)
     {
-      return CigiIntPercentage(static_cast<uint8_t>(percentage.Value() * 100.0f + .5f));
+      return CigiIntPercentage(static_cast<uint8_t>(ClampPercentageValue(percentage) * 100.0f + .5f));
     }
 
     sbio::cigi::CigiMonth ConvertToCigiMonth(sbio::Month month)
@@ -796,7 +785,7 @@ namespace sbio
 
     sbio::cigi::CigiTerrestrialSurfaceSeverity ConvertToCigiTerrestrailSurfaceConditionsSeverity(sbio::Percentage percentage)
     {
-      return CigiTerrestrialSurfaceSeverity(static_cast<uint8_t>(percentage.Value() * 31.0 + .5f));
+      return CigiTerrestrialSurfaceSeverity(static_cast<uint8_t>(ClampPercentageValue(percentage) * 31.0f + .5f));
     }
 
     sbio::Month ConvertToMonth(sbio::cigi::CigiMonth cigiMonth)
@@ -1691,7 +1680,7 @@ namespace sbio
     {
       switch (igMode)
       {
-      case EIGMode::RESET://same as Standby
+      case EIGMode::RESET:// same as Standby
       {
         return CIGI::V40::SoF::IGMode::eIGMode_Reset;
       }
@@ -1766,6 +1755,12 @@ namespace sbio
       default:
         return "Unknown";
       }
+    }
+
+    float ClampPercentageValue(sbio::Percentage percentage)
+    {
+      const float value = percentage.Value();
+      return std::isfinite(value) ? std::clamp(value, 0.0f, 1.0f) : 0.0f;
     }
   }
 }

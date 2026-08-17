@@ -49,9 +49,9 @@ void CIGCigiSymbolTexturedCircle::SendUpdate()
     updateTexturedCircleMessage.CenterUV.U = circle.centerUV[0];
     updateTexturedCircleMessage.CenterUV.V = circle.centerUV[1];
     updateTexturedCircleMessage.CircleIndex = n;
-    updateTexturedCircleMessage.EndAngle = circle.endAngle.Value();
+    updateTexturedCircleMessage.EndAngle = static_cast<float>(circle.endAngle.Value());
     updateTexturedCircleMessage.Radius = circle.fRadius;
-    updateTexturedCircleMessage.StartAngle = circle.startAngle.Value();
+    updateTexturedCircleMessage.StartAngle = static_cast<float>(circle.startAngle.Value());
     updateTexturedCircleMessage.SymbolID = m_SymbolTexturedCircle.symbolID;
     updateTexturedCircleMessage.TextureMapRadius = circle.fTextureMapRadius;
     updateTexturedCircleMessage.TextureMapRotation = circle.fTextureMapRotation;

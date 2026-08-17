@@ -42,7 +42,7 @@ namespace sbio
 
     void SetupCigiOpCodeNamesV3()
     {
-      //HOST TO IG
+      // HOST TO IG
       OpCodeNamesV3[ECigiOpCodeV3::IG_CONTROL] = "IG_CONTROL";
       OpCodeNamesV3[ECigiOpCodeV3::ENTITY_CONTROL] = "ENTITY_CONTROL";
       OpCodeNamesV3[ECigiOpCodeV3::CONFORMAL_CLAMPED_ENTITY_CONTROL] = "CONFORMAL_CLAMPED_ENTITY_CONTROL";
@@ -79,7 +79,7 @@ namespace sbio
       OpCodeNamesV3[ECigiOpCodeV3::SYMBOL_CONTROL] = "SYMBOL_CONTROL";
       OpCodeNamesV3[ECigiOpCodeV3::SHORT_SYMBOL_CONTROL] = "SHORT_SYMBOL_CONTROL";
 
-      //IG TO HOST
+      // IG TO HOST
       OpCodeNamesV3[ECigiOpCodeV3::START_OF_FRAME] = "START_OF_FRAME";
       OpCodeNamesV3[ECigiOpCodeV3::HAT_HOT_RESPONSE] = "HAT_HOT_RESPONSE";
       OpCodeNamesV3[ECigiOpCodeV3::HAT_HOT_EXTENDED_RESPONSE] = "HAT_HOT_EXTENDED_RESPONSE";
@@ -101,7 +101,7 @@ namespace sbio
 
     void SetupCigiOpCodeNamesV4()
     {
-      //HOST TO IG
+      // HOST TO IG
       OpCodeNamesV4[ECigiOpCodeV4::IG_CONTROL] = "IG_CONTROL";
       OpCodeNamesV4[ECigiOpCodeV4::ENTITY_POSITION] = "ENTITY_POSITION";
       OpCodeNamesV4[ECigiOpCodeV4::CONFORMAL_CLAMPED_ENTITY_POSITION] = "CONFORMAL_CLAMPED_ENTITY_POSITION";
@@ -137,12 +137,12 @@ namespace sbio
       OpCodeNamesV4[ECigiOpCodeV4::SYMBOL_CLONE] = "SYMBOL_CLONE";
       OpCodeNamesV4[ECigiOpCodeV4::SYMBOL_CONTROL] = "SYMBOL_CONTROL";
       OpCodeNamesV4[ECigiOpCodeV4::SHORT_SYMBOL_CONTROL] = "SHORT_SYMBOL_CONTROL";
-      OpCodeNamesV4[ECigiOpCodeV4::SYMBOL_TEXTURED_CIRICLE_DEFINITION] = "SYMBOL_TEXTURED_CIRICLE_DEFINITION";
+      OpCodeNamesV4[ECigiOpCodeV4::SYMBOL_TEXTURED_CIRCLE_DEFINITION] = "SYMBOL_TEXTURED_CIRCLE_DEFINITION";
       OpCodeNamesV4[ECigiOpCodeV4::SYMBOL_TEXTURED_POLYGON_DEFINITION] = "SYMBOL_TEXTURED_POLYGON_DEFINITION";
       OpCodeNamesV4[ECigiOpCodeV4::ENTITY_CONTROL] = "ENTITY_CONTROL";
       OpCodeNamesV4[ECigiOpCodeV4::ANIMATION_CONTROL] = "ANIMATION_CONTROL";
 
-      //IG TO HOST
+      // IG TO HOST
       OpCodeNamesV4[ECigiOpCodeV4::START_OF_FRAME] = "START_OF_FRAME";
       OpCodeNamesV4[ECigiOpCodeV4::HAT_HOT_RESPONSE] = "HAT_HOT_RESPONSE";
       OpCodeNamesV4[ECigiOpCodeV4::HAT_HOT_EXTENDED_RESPONSE] = "HAT_HOT_EXTENDED_RESPONSE";
@@ -758,7 +758,7 @@ namespace sbio
     {
       if (s == "Reset" || s == "Standby" || s == "RESET")
       {
-        return EIGMode::RESET;//same as standby
+        return EIGMode::RESET;// same as standby
       }
       else if (s == "Operate" || s == "OPERATE")
       {

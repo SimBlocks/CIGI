@@ -107,7 +107,7 @@ namespace sbio
          * @param regionID Region identifier.
          * @param region Pointer to the region.
          */
-        void AddRegion(RegionID regionID, CCigiEnvironmentalRegion* region);
+        void AddRegion(RegionID regionID, std::unique_ptr<CCigiEnvironmentalRegion> region);
         /**
          * @brief Removes a region from the tree.
          * @param regionID Region identifier.
@@ -131,8 +131,10 @@ namespace sbio
         std::vector<CCigiEnvironmentalRegion*> QueryRegions(sbio::math::GeocentricCoordinates& point);
 
       private:
-        typedef std::unordered_map<RegionID, std::pair<Eigen::AlignedBox3d, SRegionSphereBound*>, StrongTypeHash<RegionID>> TRegionBounds;
+        typedef std::unordered_map<RegionID, std::pair<Eigen::AlignedBox3d, std::unique_ptr<SRegionSphereBound>>, StrongTypeHash<RegionID>> TRegionBounds;
         TRegionBounds m_Bounds;///< Owned bounding volumes keyed by region identifier.
+        typedef std::unordered_map<RegionID, std::unique_ptr<CCigiEnvironmentalRegion>, StrongTypeHash<RegionID>> TRegions;
+        TRegions m_Regions;///< Owned environmental regions keyed by region identifier.
         Eigen::KdBVH<double, 3, SRegionSphereBound*> m_Tree;///< BVH built from the cached region bounds.
       };
     }

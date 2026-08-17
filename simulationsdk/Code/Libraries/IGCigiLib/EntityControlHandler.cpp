@@ -57,7 +57,7 @@ CCigiEntityControlHandler::~CCigiEntityControlHandler()
 
 void CCigiEntityControlHandler::HandleCigiConformalClampedEntityPosition(const SCigiConformalClampedEntityPosition& conformalClampedEntityPosition)
 {
-  //If a non-existent entity is referenced by a Conformal Clamped Entity Control packet, the packet will be ignored.
+  // If a non-existent entity is referenced by a Conformal Clamped Entity Control packet, the packet will be ignored.
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(conformalClampedEntityPosition.entityID))
   {
     stringstream ss;
@@ -68,8 +68,8 @@ void CCigiEntityControlHandler::HandleCigiConformalClampedEntityPosition(const S
 
   CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(conformalClampedEntityPosition.entityID));
 
-  //If this packet is applied to an unclamped or non-conformal clamped entity,
-  //its current absolute roll, pitch, and altitude will be maintained
+  // If this packet is applied to an unclamped or non-conformal clamped entity,
+  // its current absolute roll, pitch, and altitude will be maintained
   TCigiBodyEulerRotation rotation = ConvertToCigiBodyEulerRotation(pCigiEntity->GetRotation());
 
   SGeodeticCoordinates geodeticCoordinates;
@@ -77,16 +77,16 @@ void CCigiEntityControlHandler::HandleCigiConformalClampedEntityPosition(const S
   geodeticCoordinates.latitude = conformalClampedEntityPosition.latitude;
   geodeticCoordinates.longitude = conformalClampedEntityPosition.longitude;
 
-  //An entity�s current roll, pitch, and altitude offsets
+  // An entity�s current roll, pitch, and altitude offsets
   //(specified in the last Entity Control packet referencing the entity)
-  //will be maintained when the IG receives a Conformal Clamped Entity Control packet describing that entity.
+  // will be maintained when the IG receives a Conformal Clamped Entity Control packet describing that entity.
 
-  //The entity is clamped and its attitude conforms to the terrain
-  //The Pitch and Roll parameters specify the entity�s pitch and roll relative to the slope of the terrain or water.
+  // The entity is clamped and its attitude conforms to the terrain
+  // The Pitch and Roll parameters specify the entity�s pitch and roll relative to the slope of the terrain or water.
 
   if (pCigiEntity->IsChild())
   {
-    //TODO: can conformal clamped entity control packet be applied to parented entities?
+    // TODO: can conformal clamped entity control packet be applied to parented entities?
   }
   else
   {
@@ -132,8 +132,8 @@ bool CCigiEntityControlHandler::HandleCigiEntityControl(const SEntityControl& en
     }
 
     pCigiEntity->SetEntityState(entityControl.eState);
-    //A value of zero(0) corresponds to fully transparent; a value of 255 corresponds to fully opaque.
-    //TODO: handle inherit alpha
+    // A value of zero(0) corresponds to fully transparent; a value of 255 corresponds to fully opaque.
+    // TODO: handle inherit alpha
     float fAlpha = entityControl.alpha / (float)255;
     pCigiEntity->SetAlpha(fAlpha);
     pCigiEntity->SetCollisionDetectionEnabled(entityControl.bCollisionReportingEnabled);
@@ -210,7 +210,7 @@ void CCigiEntityControlHandler::HandleCigiPositionRequest(const SPositionRequest
 {
   if (positionRequest.eCoordinateSystem == EObjectCoordinateSystem::LOCAL && positionRequest.eObjectClass != EObjectClass::ARTICULATED_PART)
   {
-    //submodel only valid for articulated parts
+    // submodel only valid for articulated parts
     return;
   }
 
@@ -245,7 +245,7 @@ void CCigiEntityControlHandler::HandleCigiPositionRequest(const SPositionRequest
 
     if (pEntity == nullptr || pEntity->IsTopLevel() && positionRequest.eCoordinateSystem == EObjectCoordinateSystem::PARENT)
     {
-      //invalid
+      // invalid
       return;
     }
 
@@ -389,7 +389,7 @@ void CCigiEntityControlHandler::RequestEntityPosition(CCigiEntity* pEntity)
   SPositionResponseGeodeticCoordinates positionResponse;
   positionResponse.eObjectClass = EObjectClass::ENTITY;
   positionResponse.objectID = pEntity->GetEntityID().Value();
-  //Position shall be specified as a geodetic latitude, longitude, and altitude. Orientation shall be given with respect to the reference plane
+  // Position shall be specified as a geodetic latitude, longitude, and altitude. Orientation shall be given with respect to the reference plane
   positionResponse.geodeticCoordinates = ConvertCigiWorldToGeodeticCoordinates(worldTransform.pos);
   positionResponse.rotation = ConvertToCigiBodyEulerRotation(ConvertCigiWorldRotationToBodyEulerRotation(worldTransform));
   m_ImageGenerator.GetPacketSenders()->SendPositionResponse(&positionResponse, sbio::cigi::EPositionResponseType::GEODETIC);
@@ -594,17 +594,17 @@ void CCigiEntityControlHandler::HandleCigiChildEntityPosition(CCigiEntity* pCigi
     return;
   }
 
-  //If this parameter is set to Attach(1), the entity becomes or remains attached to the entity specified by the Parent ID parameter.
-  //The parent must already exist, having been created in a prior frame or earlier in the current frame.
+  // If this parameter is set to Attach(1), the entity becomes or remains attached to the entity specified by the Parent ID parameter.
+  // The parent must already exist, having been created in a prior frame or earlier in the current frame.
 
-  //The value of Parent ID may be changed without first detaching the entity from its existing parent.
-  // already attached and the parent ID has changed, unattach from old parent first.
-  //if (entityProperties.bHasParent && entityProperties.parentID != childEntityPosition.parentID)
+  // The value of Parent ID may be changed without first detaching the entity from its existing parent.
+  //  already attached and the parent ID has changed, unattach from old parent first.
+  // if (entityProperties.bHasParent && entityProperties.parentID != childEntityPosition.parentID)
   //{
-  //  pCigiEntity->Unattach();
-  //}
+  //   pCigiEntity->Unattach();
+  // }
 
-  //The Yaw, Pitch, Roll, X Offset, Y Offset, and Z Offset parameters all specify the entity�s position relative to the parent�s coordinate system(see Section 3.4.2).
+  // The Yaw, Pitch, Roll, X Offset, Y Offset, and Z Offset parameters all specify the entity�s position relative to the parent�s coordinate system(see Section 3.4.2).
   TCigiBodyEulerRotation rotation;
   rotation.yaw = childEntityPosition.rotation.yaw;
   rotation.pitch = childEntityPosition.rotation.pitch;

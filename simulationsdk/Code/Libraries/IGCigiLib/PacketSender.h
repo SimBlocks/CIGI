@@ -62,6 +62,7 @@ namespace sbio
         CCigiImageGenerator& m_ImageGenerator;///< Non-owning image generator supplying outbound state.
         std::unique_ptr<sbio::utils::CUDPSendSocket> m_pSocketIGToHost;///< Owned UDP socket used for IG-to-host traffic.
         std::unique_ptr<sbio::utils::CBufferWriter> m_pBuffer;///< Owned serialization buffer used to build outbound packets.
+        std::unique_ptr<sbio::utils::CBufferWriter> m_pMessageBuffer;///< Owned buffer used to prepend start-of-frame data to queued responses.
       };
     }
   }

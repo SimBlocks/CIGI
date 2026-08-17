@@ -443,6 +443,15 @@ void CBasePacketPanel::SetInt(const std::string& sName, int n)
   it->second->SetValue(ss.str());
 }
 
+void CBasePacketPanel::SetControlLabel(const std::string& sName, const std::string& label)
+{
+  auto it = m_StaticText.find(sName);
+  if (it != m_StaticText.end())
+  {
+    it->second->SetLabel(label + ":");
+  }
+}
+
 void CBasePacketPanel::SetFloat(const std::string& sName, float f)
 {
   auto it = m_TextCtrls.find(sName);

@@ -72,7 +72,7 @@ namespace sbio
  * @brief Initializes the global `IGCigiLib` state.
  * @param globals Shared application globals supplied by the surrounding SDK.
  * @param params Library-specific dependencies and managers.
- * @return Pointer to the process-wide `SCigiLibGlobals` instance.
+ * @return Pointer to the process-wide `SCigiLibGlobals` instance, or `nullptr` if a required dependency is missing.
  */
 sbio::cigi::ig::SIGCigiLibGlobals* InitIGCigiLib(const sbio::SGlobals& globals, const sbio::cigi::ig::SIGCigiLibParams& params);
 /**

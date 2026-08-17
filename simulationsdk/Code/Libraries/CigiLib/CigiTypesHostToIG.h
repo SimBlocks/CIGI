@@ -22,9 +22,8 @@ namespace sbio
     /**
      * @brief Stores the current IG control values supplied by the host.
      *
-     * Invariants:
-     * - `databaseNumber` is stored exactly as received and may use the CIGI loading conventions for negative values.
-     * - `hostFrameNumber` and `lastIgFrameNumber` are host-supplied frame identifiers.
+     * @note `databaseNumber` is stored exactly as received and may use the CIGI loading conventions for negative values.
+     * @note `hostFrameNumber` and `lastIgFrameNumber` are host-supplied frame identifiers.
      */
     struct SCigiIgControl
     {
@@ -41,9 +40,8 @@ namespace sbio
     /**
      * @brief Base data shared by all entity position requests.
      *
-     * Invariants:
-     * - `entityID` identifies the entity being updated.
-     * - `bAttached` reflects only the requested attach state; no parent linkage is implied by this base type.
+     * @note `entityID` identifies the entity being updated.
+     * @note `bAttached` reflects only the requested attach state; no parent linkage is implied by this base type.
      */
     struct SEntityPosition
     {
@@ -54,9 +52,8 @@ namespace sbio
     /**
      * @brief Represents a top-level entity position update in geodetic space.
      *
-     * Invariants:
-     * - `geodeticCoordinates` and `rotation` describe the requested world-space pose.
-     * - `eClamp` records the requested clamp mode exactly as parsed.
+     * @note `geodeticCoordinates` and `rotation` describe the requested world-space pose.
+     * @note `eClamp` records the requested clamp mode exactly as parsed.
      */
     struct STopLevelEntityPosition : SEntityPosition
     {
@@ -68,9 +65,8 @@ namespace sbio
     /**
      * @brief Represents a child-entity position update relative to a parent entity.
      *
-     * Invariants:
-     * - `parentID` identifies the requested parent entity.
-     * - `offset` and `rotation` are expressed in the CIGI body frame expected for child placement.
+     * @note `parentID` identifies the requested parent entity.
+     * @note `offset` and `rotation` are expressed in the CIGI body frame expected for child placement.
      */
     struct SChildEntityPosition : SEntityPosition
     {
@@ -82,9 +78,7 @@ namespace sbio
     /**
      * @brief Stores a conformal clamped entity position request.
      *
-     * Invariants:
-     * - The type carries only latitude, longitude, and yaw because altitude is derived by the conformal clamp operation.
-     * - Members are stored exactly as assigned.
+     * @note The type carries only latitude, longitude, and yaw because altitude is derived by the conformal clamp operation.
      */
     struct SCigiConformalClampedEntityPosition
     {
@@ -96,9 +90,6 @@ namespace sbio
 
     /**
      * @brief Identifies one component instance within a CIGI entity.
-     *
-     * Invariants:
-     * - The tuple `{ componentID, componentClassID, nInstanceID }` forms the complete comparison key.
      */
     struct SCigiComponentKey
     {
@@ -128,9 +119,7 @@ namespace sbio
     /**
      * @brief Stores the state data for a component control request.
      *
-     * Invariants:
-     * - `componentData` contains exactly six 32-bit words because that is the fixed component-data shape represented by this API.
-     * - No interpretation of `nComponentState` or `componentData` is enforced by this type.
+     * @note `componentData` contains exactly six 32-bit words because that is the fixed component-data shape represented by this API.
      */
     struct SCigiComponentControlState
     {
@@ -150,9 +139,6 @@ namespace sbio
     /**
      * @brief Stores a full component control request keyed by component identity.
      *
-     * Invariants:
-     * - `key` identifies the target component.
-     * - `state` carries the requested component state data.
      */
     struct SCigiComponentControl
     {
@@ -163,9 +149,6 @@ namespace sbio
     /**
      * @brief Stores the compact short-component control form.
      *
-     * Invariants:
-     * - This type exposes only the two component data words carried by the short packet variant.
-     * - Members are stored exactly as received.
      */
     struct SCigiShortComponentControl
     {
@@ -180,9 +163,6 @@ namespace sbio
     /**
      * @brief Stores a full articulated-part control update.
      *
-     * Invariants:
-     * - `offset` and `rotation` are interpreted only for the enabled degrees of freedom.
-     * - `entityID` and `articulatedPartID` together identify the target articulated part.
      */
     struct SCigiArticulatedPart
     {
@@ -200,9 +180,6 @@ namespace sbio
     /**
      * @brief Stores the compact two-DOF short articulated-part control form.
      *
-     * Invariants:
-     * - Each `eDOF` member describes the semantic meaning of the paired `fDOF` value.
-     * - The type carries at most two articulated part identifiers because that is the short packet format.
      */
     struct SCigiShortArticulatedPart
     {
@@ -220,9 +197,6 @@ namespace sbio
     /**
      * @brief Stores linear and angular velocity for an entity.
      *
-     * Invariants:
-     * - `coordinateSystem` identifies the frame used to interpret the velocity vectors.
-     * - Members are stored exactly as assigned.
      */
     struct SCigiEntityVelocityControl
     {
@@ -235,9 +209,6 @@ namespace sbio
     /**
      * @brief Stores linear and angular velocity for an articulated part.
      *
-     * Invariants:
-     * - `entityID` and `articulatedPartID` identify the target articulated part.
-     * - Members are stored exactly as assigned.
      */
     struct SCigiArticulatedPartVelocityControl
     {
@@ -250,9 +221,6 @@ namespace sbio
     /**
      * @brief Stores host-requested celestial sphere settings.
      *
-     * Invariants:
-     * - Date and time fields are meaningful only when `bDateTimeValid` is `true`.
-     * - `starFieldIntensity` uses the SDK percentage type and is stored exactly as assigned.
      */
     struct SCigiCelestialSphereControl
     {
@@ -273,9 +241,6 @@ namespace sbio
     /**
      * @brief Stores host-requested global atmosphere settings.
      *
-     * Invariants:
-     * - Members are stored exactly as assigned.
-     * - This type does not compute derived weather state.
      */
     struct SCigiAtmosphereControl
     {
@@ -292,10 +257,6 @@ namespace sbio
     /**
      * @brief Defines one environmental region and its merge behavior.
      *
-     * Invariants:
-     * - `regionID` identifies the region.
-     * - Merge fields record the requested per-domain merge behavior exactly as parsed.
-     * - Geometry members describe the region footprint and transition without additional validation.
      */
     struct SCigiEnvironmentalRegion
     {
@@ -316,9 +277,6 @@ namespace sbio
     /**
      * @brief Stores one set of weather properties for composition or application.
      *
-     * Invariants:
-     * - Members are stored exactly as assigned.
-     * - No normalization is performed across enable flags and numeric fields.
      *
      * Side effects: `Sum()` returns a composed value and `Scale()` returns a scaled copy; neither mutates the source operands.
      */
@@ -338,7 +296,7 @@ namespace sbio
       Percentage coverage = UnknownPercentage;
       float HorizontalWindSpeed = 0;
       float VerticalWindSpeed = 0;
-      float WindDirection = 0;
+      sbio::math::Degrees360 WindDirection = UnknownDegrees360;
       float fBarometricPressure = 0;
       float fAerosolConcentration = 0;
       Percentage topScudFrequency = UnknownPercentage;
@@ -366,9 +324,6 @@ namespace sbio
     /**
      * @brief Stores vertical bounds for non-entity spatial weather layers.
      *
-     * Invariants:
-     * - This type applies only to regional or global weather representations, as noted by the surrounding API.
-     * - Members are stored exactly as assigned.
      */
     struct SCigiSpatialWeatherCondition
     {
@@ -381,9 +336,6 @@ namespace sbio
     /**
      * @brief Stores maritime surface properties for one scope.
      *
-     * Invariants:
-     * - `scope` identifies whether the condition applies globally, regionally, or to an entity.
-     * - Members are stored exactly as assigned.
      *
      * Side effects: `Sum()` and `Scale()` return derived values without mutating the source operands.
      */
@@ -416,9 +368,6 @@ namespace sbio
     /**
      * @brief Stores wave properties for a single wave condition.
      *
-     * Invariants:
-     * - `waveID` is a unique identifier for this wave condition instance.
-     * - Members are stored exactly as received.
      */
     struct SCigiWaveCondition
     {
@@ -439,9 +388,6 @@ namespace sbio
     /**
      * @brief Stores one terrestrial surface condition request or state description.
      *
-     * Invariants:
-     * - `surfaceConditionID` identifies the requested or active terrain-surface condition.
-     * - `scope` determines how the condition is applied.
      *
      * Side effects: `IsDry()` reads the current instance only.
      */
@@ -464,9 +410,6 @@ namespace sbio
     /**
      * @brief Stores view-attachment control values for one view or view group.
      *
-     * Invariants:
-     * - `offset` and `rotation` are interpreted only for the enabled components.
-     * - `viewID`, `viewGroupID`, and `groupID` are preserved exactly as supplied.
      */
     struct SCigiViewControl
     {
@@ -485,9 +428,6 @@ namespace sbio
     /**
      * @brief Stores sensor control values for one sensor.
      *
-     * Invariants:
-     * - `sensorID` identifies the controlled sensor.
-     * - Gain, level, and noise are constrained by their strong types; all other fields are stored exactly as assigned.
      */
     struct SCigiSensorControl
     {
@@ -509,9 +449,6 @@ namespace sbio
     /**
      * @brief Stores the enabled degrees of freedom for one motion tracker.
      *
-     * Invariants:
-     * - Boolean members indicate which tracker axes are enabled.
-     * - `motionTrackerID` identifies the target tracker.
      */
     struct SMotionTrackerControl
     {
@@ -529,9 +466,6 @@ namespace sbio
     /**
      * @brief Associates a motion tracker control request with a specific view.
      *
-     * Invariants:
-     * - Inherits the tracker-axis enable flags from `SMotionTrackerControl`.
-     * - `viewID` identifies the target view for the tracker association.
      */
     struct SMotionTrackerViewControl : SMotionTrackerControl
     {
@@ -541,9 +475,6 @@ namespace sbio
     /**
      * @brief Associates a motion tracker control request with a specific view group.
      *
-     * Invariants:
-     * - Inherits the tracker-axis enable flags from `SMotionTrackerControl`.
-     * - `viewGroupID` identifies the target view group for the tracker association.
      */
     struct SMotionTrackerViewGroupControl : SMotionTrackerControl
     {
@@ -553,9 +484,6 @@ namespace sbio
     /**
      * @brief Stores an earth-reference-model definition supplied by the host.
      *
-     * Invariants:
-     * - `eEarthReferenceModel` selects the model identity.
-     * - Radius and flattening are stored exactly as assigned and are meaningful only for host-defined models.
      */
     struct SCigiEarthReferenceModel
     {
@@ -567,9 +495,6 @@ namespace sbio
     /**
      * @brief Stores linear and angular acceleration for an entity.
      *
-     * Invariants:
-     * - `eCoordinateSystem` identifies the frame used to interpret the accelerations.
-     * - Members are stored exactly as assigned.
      */
     struct SCigiEntityAcceleration
     {
@@ -582,9 +507,6 @@ namespace sbio
     /**
      * @brief Stores linear and angular acceleration for an articulated part.
      *
-     * Invariants:
-     * - `entityID` and `articulatedPartID` identify the target articulated part.
-     * - Members are stored exactly as assigned.
      */
     struct SCigiArticulatedPartAcceleration
     {
@@ -600,9 +522,6 @@ namespace sbio
     /**
      * @brief Stores the static definition for one view.
      *
-     * Invariants:
-     * - Frustum members are meaningful only for the corresponding enabled flags.
-     * - `viewID` identifies the defined view and `viewGroupID` records its group membership.
      */
     struct SCigiViewDefinition
     {
@@ -630,9 +549,6 @@ namespace sbio
     /**
      * @brief Defines a collision-detection segment attached to an entity.
      *
-     * Invariants:
-     * - `segmentID` identifies the segment for `entityID`.
-     * - `beg` and `end` are expressed in CIGI body coordinates.
      */
     struct SCollisionDetectionSegmentDefinition
     {
@@ -647,9 +563,6 @@ namespace sbio
     /**
      * @brief Base data shared by collision-detection volume definitions.
      *
-     * Invariants:
-     * - `volumeID` identifies the volume for `entityID`.
-     * - `offset` is expressed in CIGI body coordinates.
      */
     struct SCollisionDetectionVolumeDefinition
     {
@@ -662,9 +575,6 @@ namespace sbio
     /**
      * @brief Defines a cuboid collision-detection volume.
      *
-     * Invariants:
-     * - Dimensions and orientation are stored exactly as assigned.
-     * - This type adds cuboid-specific geometry to `SCollisionDetectionVolumeDefinition`.
      */
     struct SCollisionDetectionCuboidDefinition : SCollisionDetectionVolumeDefinition
     {
@@ -677,9 +587,6 @@ namespace sbio
     /**
      * @brief Defines a spherical collision-detection volume.
      *
-     * Invariants:
-     * - `fRadius` is stored exactly as assigned.
-     * - This type adds sphere-specific geometry to `SCollisionDetectionVolumeDefinition`.
      */
     struct SCollisionDetectionSphereDefinition : SCollisionDetectionVolumeDefinition
     {
@@ -691,9 +598,6 @@ namespace sbio
     /**
      * @brief Base data shared by all HAT/HOT request variants.
      *
-     * Invariants:
-     * - `requestID` identifies the request instance.
-     * - `lastHostFrameNumber` preserves the host frame associated with the request.
      */
     struct SBaseHATHOTRequest
     {
@@ -706,8 +610,6 @@ namespace sbio
     /**
      * @brief Requests height above terrain for a global geodetic point.
      *
-     * Invariants:
-     * - `geodeticCoordinates` identifies the world-space point to evaluate.
      */
     struct SHATHOTGlobalRequest : SBaseHATHOTRequest
     {
@@ -717,8 +619,6 @@ namespace sbio
     /**
      * @brief Requests height above terrain for an entity-relative point.
      *
-     * Invariants:
-     * - `entityID` identifies the entity whose frame defines `offset`.
      */
     struct SHATHOTEntityRequest : SBaseHATHOTRequest
     {
@@ -729,10 +629,6 @@ namespace sbio
     /**
      * @brief Base data shared by all line-of-sight request variants.
      *
-     * Invariants:
-     * - `requestID` identifies the request instance.
-     * - `eType` records whether the request is a segment or vector query.
-     * - `lastHostFrameNumber` preserves the host frame associated with the request.
      */
     struct SLineOfSightRequest
     {
@@ -822,9 +718,6 @@ namespace sbio
     /**
      * @brief Base data for line-of-sight vector requests.
      *
-     * Invariants:
-     * - `eType` is initialized to `ELineOfSightRequestType::LINE_OF_SIGHT_VECTOR_RESPONSE`.
-     * - `azimuth`, `elevation`, and range values describe the vector query exactly as supplied.
      */
     struct SLineOfSightVectorRequest : SLineOfSightRequest
     {
@@ -870,9 +763,6 @@ namespace sbio
     /**
      * @brief Stores one position request for an entity, articulated part, view, or tracker object.
      *
-     * Invariants:
-     * - `nObjectID` and `eObjectClass` together identify the requested object.
-     * - `articulatedPartID` is meaningful when the object class requires it.
      */
     struct SPositionRequest
     {
@@ -886,9 +776,6 @@ namespace sbio
     /**
      * @brief Stores one environmental conditions query for a geodetic location.
      *
-     * Invariants:
-     * - Request booleans select which response packet types are expected.
-     * - `nRequestID` identifies the request instance.
      */
     struct SEnvironmentalConditionsRequest
     {
@@ -903,10 +790,6 @@ namespace sbio
     /**
      * @brief Stores host control state for one entity.
      *
-     * Invariants:
-     * - `entityID` identifies the controlled entity.
-     * - `shortEntityTypeID` and `entityType` are interpreted according to `eExtendedEntityType`.
-     * - `parentID` is meaningful only when `bHasParent` is `true`.
      */
     struct SEntityControl
     {
@@ -926,9 +809,6 @@ namespace sbio
     /**
      * @brief Stores animation playback control for a single entity animation.
      *
-     * Invariants:
-     * - `entityID` and `animationID` identify the controlled animation instance.
-     * - Loop, state, and frame-reset values are stored exactly as assigned.
      */
     struct SCigiAnimationControl
     {

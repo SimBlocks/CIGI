@@ -23,27 +23,27 @@ struct AABB
 {
   // Minimum X coordinate of the bounding box.
   double minX = std::numeric_limits<double>::max();
-  //Minimum Y coordinate of the bounding box.
+  // Minimum Y coordinate of the bounding box.
   double minY = std::numeric_limits<double>::max();
-  //Minimum Z coordinate of the bounding box.
+  // Minimum Z coordinate of the bounding box.
   double minZ = std::numeric_limits<double>::max();
-  //Maximum X coordinate of the bounding box.
+  // Maximum X coordinate of the bounding box.
   double maxX = std::numeric_limits<double>::lowest();
-  //Maximum Y coordinate of the bounding box.
+  // Maximum Y coordinate of the bounding box.
   double maxY = std::numeric_limits<double>::lowest();
-  //Maximum Z coordinate of the bounding box.
+  // Maximum Z coordinate of the bounding box.
   double maxZ = std::numeric_limits<double>::lowest();
-  //Center X coordinate of the bounding box.
+  // Center X coordinate of the bounding box.
   double centerX = 0;
-  //Center Y coordinate of the bounding box.
+  // Center Y coordinate of the bounding box.
   double centerY = 0;
-  //Center Z coordinate of the bounding box.
+  // Center Z coordinate of the bounding box.
   double centerZ = 0;
-  //Extent (half-size) along the X axis.
+  // Extent (half-size) along the X axis.
   double extentX = 0;
-  //Extent (half-size) along the Y axis.
+  // Extent (half-size) along the Y axis.
   double extentY = 0;
-  //Extent (half-size) along the Z axis.
+  // Extent (half-size) along the Z axis.
   double extentZ = 0;
 
   /**

@@ -15,6 +15,8 @@
 #include "IGCigiLib.h"
 #include "UtilitiesLib/Logger.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include <algorithm>
+#include <cmath>
 
 using namespace sbio;
 using namespace sbio::cigi;
@@ -85,7 +87,7 @@ void CCigiEnvironmentalRegionHandler::Handle(const SCigiEnvironmentalRegion& env
     return;
   }
 
-  CCigiEnvironmentalRegion* region = new CCigiEnvironmentalRegion(environmentalRegion.regionID);
+  std::unique_ptr<CCigiEnvironmentalRegion> region = std::make_unique<CCigiEnvironmentalRegion>(environmentalRegion.regionID);
 
   // fill in values
   region->SetActive(environmentalRegion.eRegionState == EActiveState::ACTIVE);
@@ -104,8 +106,9 @@ void CCigiEnvironmentalRegionHandler::Handle(const SCigiEnvironmentalRegion& env
   region->SetMergeAerosol(environmentalRegion.eMergeAerosolConcentrations);
   region->SetMergeMaritime(environmentalRegion.eMergeMaritimeSurfaceConditions);
   region->SetMergeTerrestrial(environmentalRegion.eMergeTerrestrialSurfaceConditions);
+  region->SetUpdateSequence(m_NextRegionUpdateSequence++);
 
-  m_Regions->AddRegion(environmentalRegion.regionID, region);
+  m_Regions->AddRegion(environmentalRegion.regionID, std::move(region));
 }
 
 void CCigiEnvironmentalRegionHandler::HandleGlobalTerrestrialSurfaceCondition(const SCigiTerrestrialSurfaceCondition& terrestrialSurfaceCondition)
@@ -182,7 +185,7 @@ void CCigiEnvironmentalRegionHandler::Handle(const SEnvironmentalConditionsReque
     response.fVisibilityRange = condition.fVisibilityRange;
     response.windSpeedHorVer.horizontalWindSpeed = condition.HorizontalWindSpeed;
     response.windSpeedHorVer.verticalWindSpeed = condition.VerticalWindSpeed;
-    response.fWindDirection = condition.WindDirection;
+    response.fWindDirection = static_cast<float>(condition.WindDirection.Value());
     response.fBarometricPressure = condition.fBarometricPressure;
     g_CigiLibGlobals.pImageGenerator->GetPacketSenders()->SendWeatherConditionsResponse(response);
   }
@@ -194,13 +197,29 @@ void CCigiEnvironmentalRegionHandler::Handle(const SEnvironmentalConditionsReque
 /// </summary>
 SCigiWeatherCondition CCigiEnvironmentalRegionHandler::QueryWeather(const SGeodeticCoordinates& query)
 {
-  float sum = 0;
-
+  float weatherWeight = 0;
+  float aerosolWeight = 0;
+  float weightedAerosol = 0;
+  double windDirectionX = 0;
+  double windDirectionY = 0;
   SCigiWeatherCondition sumCondition;
+
+  auto accumulateWindDirection = [&](Degrees360 directionDegrees, float weight)
+  {
+    Radians directionRadians = sbio::math::DegreesToRadians(directionDegrees);
+    windDirectionX += std::cos(directionRadians.Value()) * weight;
+    windDirectionY += std::sin(directionRadians.Value()) * weight;
+  };
 
   // get a list of possible intersecting regions with BVH tree
   GeocentricCoordinates queryECEF = ConvertCigiGeodeticToWorldCoordinates(query);
   std::vector<CCigiEnvironmentalRegion*> queriedRegions = m_Regions->QueryRegions(queryECEF);
+
+  // sort by update sequence so that newer regions take precedence over older regions
+  std::sort(queriedRegions.begin(), queriedRegions.end(), [](const CCigiEnvironmentalRegion* left, const CCigiEnvironmentalRegion* right)
+  {
+    return left->GetUpdateSequence() < right->GetUpdateSequence();
+  });
 
   // for each possible region
   for (std::vector<CCigiEnvironmentalRegion*>::iterator it = queriedRegions.begin(); it != queriedRegions.end(); ++it)
@@ -212,6 +231,10 @@ SCigiWeatherCondition CCigiEnvironmentalRegionHandler::QueryWeather(const SGeode
     {
       // find amount of contribution (or amount of intersection between 0 and 1, including transition bounds)
       float contribution = region->IntersectionTest(query);
+      if (contribution <= 0.0f)
+      {
+        continue;
+      }
 
       // query layers within region
       bool used;
@@ -221,9 +244,28 @@ SCigiWeatherCondition CCigiEnvironmentalRegionHandler::QueryWeather(const SGeode
       // if intersected layers
       if (used)
       {
+        if (region->GetMergeWeather() != EMergeState::MERGE)
+        {
+          sumCondition = SCigiWeatherCondition();
+          weatherWeight = 0;
+          windDirectionX = 0;
+          windDirectionY = 0;
+        }
+
+        if (region->GetMergeAerosol() != EMergeState::MERGE)
+        {
+          weightedAerosol = 0;
+          aerosolWeight = 0;
+        }
+
         // scale weather condition by contribution and add to sum of weather conditions
-        sumCondition = SCigiWeatherCondition::Sum(sumCondition, layersResult.Scale(contribution));
-        sum += contribution;
+        SCigiWeatherCondition scaledCondition = layersResult.Scale(contribution);
+        scaledCondition.fAerosolConcentration = 0;
+        sumCondition = SCigiWeatherCondition::Sum(sumCondition, scaledCondition);
+        weatherWeight += contribution;
+        accumulateWindDirection(layersResult.WindDirection, contribution);
+        weightedAerosol += layersResult.fAerosolConcentration * contribution;
+        aerosolWeight += contribution;
       }
     }
   }
@@ -232,21 +274,57 @@ SCigiWeatherCondition CCigiEnvironmentalRegionHandler::QueryWeather(const SGeode
   bool used;
   SCigiWeatherCondition globalResult;
   m_GlobalRegion->QueryWeatherAtAltitude(query.altitude, globalResult, used);
-  if (used)
+  if (used && weatherWeight < 1.0f)
   {
-    sumCondition = SCigiWeatherCondition::Sum(sumCondition, globalResult);
+    float globalContribution = 1.0f - weatherWeight;
+    SCigiWeatherCondition scaledGlobalCondition = globalResult.Scale(globalContribution);
+    scaledGlobalCondition.fAerosolConcentration = 0;
+    sumCondition = SCigiWeatherCondition::Sum(sumCondition, scaledGlobalCondition);
+    weatherWeight += globalContribution;
+    accumulateWindDirection(globalResult.WindDirection, globalContribution);
+  }
+
+  if (used && aerosolWeight < 1.0f)
+  {
+    float globalContribution = 1.0f - aerosolWeight;
+    weightedAerosol += globalResult.fAerosolConcentration * globalContribution;
+    aerosolWeight += globalContribution;
   }
 
   SCigiWeatherCondition result = sumCondition;
 
   // divide by sum of contributions
-  if (sum > 0)
+  if (weatherWeight > 0)
   {
-    result.fAerosolConcentration /= sum;
-    result.fAirTemperature /= sum;
+    result.fAirTemperature /= weatherWeight;
+    result.fBarometricPressure /= weatherWeight;
+    result.humidity /= weatherWeight;
+    result.fVisibilityRange /= weatherWeight;
+    result.VerticalWindSpeed /= weatherWeight;
+    result.HorizontalWindSpeed /= weatherWeight;
+    result.coverage /= weatherWeight;
+    result.bottomScudFrequency /= weatherWeight;
+    result.topScudFrequency /= weatherWeight;
 
-    result.VerticalWindSpeed /= sum;
-    result.HorizontalWindSpeed /= sum;
+    if (std::abs(windDirectionX) > 0.000001 || std::abs(windDirectionY) > 0.000001)
+    {
+      // calculate wind direction from the weighted average of the wind direction vectors
+      Radians radians = Radians(std::atan2(windDirectionY, windDirectionX));
+      Degrees windDirection = sbio::math::RadiansToDegrees(radians);
+
+      // normalize wind direction to be in the range [0, 360)
+      const double normalizedDegrees =
+        windDirection.Value() < 0.0
+          ? windDirection.Value() + 360.0
+          : windDirection.Value();
+
+      result.WindDirection = Degrees360(normalizedDegrees);
+    }
+  }
+
+  if (aerosolWeight > 0)
+  {
+    result.fAerosolConcentration = weightedAerosol / aerosolWeight;
   }
   return result;
 }
@@ -257,9 +335,15 @@ SCigiMaritimeSurfaceCondition CCigiEnvironmentalRegionHandler::QueryMaritimeSurf
 
   SCigiMaritimeSurfaceCondition sumCondition;
 
-  // for each region, query into BVH tree for a set of possib le intersecting regions
+  // for each region, query into BVH tree for a set of possible intersecting regions
   GeocentricCoordinates queryECEF = ConvertCigiGeodeticToWorldCoordinates(query);
   std::vector<CCigiEnvironmentalRegion*> queriedRegions = m_Regions->QueryRegions(queryECEF);
+
+  // sort by update sequence so that newer regions are processed last
+  std::sort(queriedRegions.begin(), queriedRegions.end(), [](const CCigiEnvironmentalRegion* left, const CCigiEnvironmentalRegion* right)
+  {
+    return left->GetUpdateSequence() < right->GetUpdateSequence();
+  });
 
   // foreach possible intersecting region
   for (std::vector<CCigiEnvironmentalRegion*>::iterator it = queriedRegions.begin(); it != queriedRegions.end(); ++it)
@@ -271,6 +355,10 @@ SCigiMaritimeSurfaceCondition CCigiEnvironmentalRegionHandler::QueryMaritimeSurf
     {
       // find contribution amount (0 to 1, including transition bounds)
       float contribution = region->IntersectionTest(query);
+      if (contribution <= 0.0f)
+      {
+        continue;
+      }
 
       // query maritime surface within region
       bool used;
@@ -280,6 +368,12 @@ SCigiMaritimeSurfaceCondition CCigiEnvironmentalRegionHandler::QueryMaritimeSurf
       // if has maritime surface
       if (used)
       {
+        if (region->GetMergeMaritime() != EMergeState::MERGE)
+        {
+          sumCondition = SCigiMaritimeSurfaceCondition();
+          sum = 0;
+        }
+
         // scale by contribution and then sum into merged result
         sumCondition = SCigiMaritimeSurfaceCondition::Sum(sumCondition, regionalResult.Scale(contribution));
         sum += contribution;
@@ -291,9 +385,13 @@ SCigiMaritimeSurfaceCondition CCigiEnvironmentalRegionHandler::QueryMaritimeSurf
   bool used;
   SCigiMaritimeSurfaceCondition globalResult;
   m_GlobalRegion->QueryMaritimeSurface(globalResult, used);
-  if (used)
+
+  // if global maritime surface is used and there is remaining contribution space, add the global maritime surface to the sum
+  if (used && sum < 1.0f)
   {
-    sumCondition = SCigiMaritimeSurfaceCondition::Sum(sumCondition, globalResult);
+    float globalContribution = 1.0f - sum;
+    sumCondition = SCigiMaritimeSurfaceCondition::Sum(sumCondition, globalResult.Scale(globalContribution));
+    sum += globalContribution;
   }
 
   SCigiMaritimeSurfaceCondition result = sumCondition;
@@ -327,7 +425,7 @@ std::vector<SCigiTerrestrialSurfaceCondition> CCigiEnvironmentalRegionHandler::Q
       continue;
     }
 
-    if (!g_CigiLibGlobals.pEventMessenger->IsPointInEntityVolume(queryPosGeocentric, pEntity->GetEntityID()))
+    if (g_CigiLibGlobals.pEventMessenger == nullptr || !g_CigiLibGlobals.pEventMessenger->IsPointInEntityVolume(queryPosGeocentric, pEntity->GetEntityID()))
     {
       continue;
     }
@@ -351,6 +449,12 @@ std::vector<SCigiTerrestrialSurfaceCondition> CCigiEnvironmentalRegionHandler::Q
 
   // for each region, query into BVH tree for a set of possible intersecting regions
   std::vector<CCigiEnvironmentalRegion*> queriedRegions = m_Regions->QueryRegions(queryPosGeocentric);
+
+  // sort by update sequence so that newer regions take precedence over older regions
+  std::sort(queriedRegions.begin(), queriedRegions.end(), [](const CCigiEnvironmentalRegion* left, const CCigiEnvironmentalRegion* right)
+  {
+    return left->GetUpdateSequence() < right->GetUpdateSequence();
+  });
 
   float summedContribution = 0;
   std::map<uint16_t, STerrestrialSurfaceConditionAccumulator> regionalAccumulators;
@@ -379,6 +483,12 @@ std::vector<SCigiTerrestrialSurfaceCondition> CCigiEnvironmentalRegionHandler::Q
       // enabled regional terrestrial conditions take precedence over global conditions
       if (used && regionalResult.bEnabled)
       {
+        if (region->GetMergeTerrestrial() != EMergeState::MERGE)
+        {
+          regionalAccumulators.clear();
+          summedContribution = 0;
+        }
+
         summedContribution += contribution;
         AccumulateTerrestrialSurfaceCondition(regionalAccumulators, regionalResult, contribution);
       }

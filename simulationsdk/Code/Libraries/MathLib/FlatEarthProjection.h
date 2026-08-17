@@ -52,7 +52,7 @@ namespace sbio
 
       /**
        * @brief Initializes the projection with a reference geodetic point.
-       * 
+       *
        * Sets the reference latitude and longitude for the flat Earth projection.
        * All projected coordinates will be relative to this reference point.
        *

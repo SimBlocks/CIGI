@@ -11,23 +11,21 @@ void CCigiPacketSenders::AddHost(CCigiImageGenerator& imageGenerator, std::strin
 {
   if (eCigiVersion == ECigiVersion::VERSION_3_3)
   {
-    //g_CigiLibGlobals.pLogger->LogInformation("Initializing Image Generator CIGI Version 3.3");
     unique_ptr<CCigiPacketSenderV3> pPacketSender = make_unique<CCigiPacketSenderV3>(imageGenerator, hostIPAddress, igToHostPort);
     m_pPacketSenders.push_back(std::move(pPacketSender));
   }
   else if (eCigiVersion == ECigiVersion::VERSION_4_0)
   {
-    //g_CigiLibGlobals.pLogger->LogInformation("Initializing Image Generator CIGI Version 4.0");
     unique_ptr<CCigiPacketSenderV4> pPacketSender = make_unique<CCigiPacketSenderV4>(imageGenerator, hostIPAddress, igToHostPort);
     m_pPacketSenders.push_back(std::move(pPacketSender));
   }
 }
 
-void CCigiPacketSenders::SendStartOfFramePacket()
+void CCigiPacketSenders::SendStartOfFramePacket(FrameNumber frameNumber)
 {
   for (auto&& pPacketSender : m_pPacketSenders)
   {
-    pPacketSender->SendStartOfFramePacket();
+    pPacketSender->SendStartOfFramePacket(frameNumber);
   }
 }
 

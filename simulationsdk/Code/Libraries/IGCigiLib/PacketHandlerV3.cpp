@@ -111,41 +111,41 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 CCigiPacketHandlerV3::CCigiPacketHandlerV3(CCigiImageGenerator& imageGenerator, const std::string& sHostIP, int nHostToIgPort, int nIgToHostPort) : CCigiPacketHandler(imageGenerator, nHostToIgPort)
 {
-  m_PacketHandlerFunctions[ECigiOpCodeV3::IG_CONTROL] = &CCigiPacketHandlerV3::ParseIgControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::ENTITY_CONTROL] = &CCigiPacketHandlerV3::ParseEntityControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::CONFORMAL_CLAMPED_ENTITY_CONTROL] = &CCigiPacketHandlerV3::ParseConformalClampedEntityControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::COMPONENT_CONTROL] = &CCigiPacketHandlerV3::ParseComponentControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SHORT_COMPONENT_CONTROL] = &CCigiPacketHandlerV3::ParseShortComponentControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SHORT_SYMBOL_CONTROL] = &CCigiPacketHandlerV3::ParseShortSymbolControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::ARTICULATED_PART_CONTROL] = &CCigiPacketHandlerV3::ParseArticulatedPartControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SHORT_ARTICULATED_PART_CONTROL] = &CCigiPacketHandlerV3::ParseShortArticulatedPartControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::RATE_CONTROL] = &CCigiPacketHandlerV3::ParseRateControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::CELESTIAL_SPHERE_CONTROL] = &CCigiPacketHandlerV3::ParseCelestialSphereControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::ATMOSPHERE_CONTROL] = &CCigiPacketHandlerV3::ParseAtmosphereControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::ENVIRONMENTAL_REGION_CONTROL] = &CCigiPacketHandlerV3::ParseEnvironmentalRegionControl;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::WEATHER_CONTROL] = &CCigiPacketHandlerV3::ParseWeatherControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::MARITIME_SURFACE_CONDITIONS_CONTROL] = &CCigiPacketHandlerV3::ParseMaritimeSurfaceConditionsControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::WAVE_CONTROL] = &CCigiPacketHandlerV3::ParseWaveControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL] = &CCigiPacketHandlerV3::ParseTerrestrialSurfaceConditionsControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::VIEW_CONTROL] = &CCigiPacketHandlerV3::ParseViewControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SENSOR_CONTROL] = &CCigiPacketHandlerV3::ParseSensorControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::MOTION_TRACKER_CONTROL] = &CCigiPacketHandlerV3::ParseMotionTrackerControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::EARTH_REFERENCE_MODEL_DEFINITION] = &CCigiPacketHandlerV3::ParseEarthReferenceModelDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::TRAJECTORY_DEFINITION] = &CCigiPacketHandlerV3::ParseTrajectoryDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::VIEW_DEFINITION] = &CCigiPacketHandlerV3::ParseViewDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::COLLISION_DETECTION_SEGMENT_DEFINITION] = &CCigiPacketHandlerV3::ParseCollisionDetectionSegmentDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::COLLISION_DETECTION_VOLUME_DEFINITION] = &CCigiPacketHandlerV3::ParseCollisionDetectionVolumeDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::POSITION_REQUEST] = &CCigiPacketHandlerV3::ParsePositionRequestPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::ENVIRONMENTAL_CONDITIONS_REQUEST] = &CCigiPacketHandlerV3::ParseEnvironmentalConditionsRequestPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SYMBOL_SURFACE_DEFINITION] = &CCigiPacketHandlerV3::ParseSymbolSurfaceDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SYMBOL_TEXT_DEFINITION] = &CCigiPacketHandlerV3::ParseSymbolTextDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SYMBOL_CIRCLE_DEFINITION] = &CCigiPacketHandlerV3::ParseSymbolCircleDefinitionPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SYMBOL_LINE_DEFINITION] = &CCigiPacketHandlerV3::ParseSymbolLineDefinitonPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SYMBOL_CLONE] = &CCigiPacketHandlerV3::ParseSymbolClonePacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::SYMBOL_CONTROL] = &CCigiPacketHandlerV3::ParseSymbolControlPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::HAT_HOT_REQUEST] = &CCigiPacketHandlerV3::ParseHatHotRequestPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::LINE_OF_SIGHT_SEGMENT_REQUEST] = &CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket;
-  m_PacketHandlerFunctions[ECigiOpCodeV3::LINE_OF_SIGHT_VECTOR_REQUEST] = &CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket;
+  RegisterPacket<CIGI::V33::IGCtrl>(ECigiOpCodeV3::IG_CONTROL, &CCigiPacketHandlerV3::ParseIgControlPacket);
+  RegisterPacket<CIGI::V33::EntityCtrl>(ECigiOpCodeV3::ENTITY_CONTROL, &CCigiPacketHandlerV3::ParseEntityControlPacket);
+  RegisterPacket<CIGI::V33::ConformalClampedEntityCtrl>(ECigiOpCodeV3::CONFORMAL_CLAMPED_ENTITY_CONTROL, &CCigiPacketHandlerV3::ParseConformalClampedEntityControlPacket);
+  RegisterPacket<CIGI::V33::ComponentCtrl>(ECigiOpCodeV3::COMPONENT_CONTROL, &CCigiPacketHandlerV3::ParseComponentControlPacket);
+  RegisterPacket<CIGI::V33::ShortComponentCtrl>(ECigiOpCodeV3::SHORT_COMPONENT_CONTROL, &CCigiPacketHandlerV3::ParseShortComponentControlPacket);
+  RegisterPacket<CIGI::V33::ShortSymbolCtrl>(ECigiOpCodeV3::SHORT_SYMBOL_CONTROL, &CCigiPacketHandlerV3::ParseShortSymbolControlPacket);
+  RegisterPacket<CIGI::V33::ArticulatedPartCtrl>(ECigiOpCodeV3::ARTICULATED_PART_CONTROL, &CCigiPacketHandlerV3::ParseArticulatedPartControlPacket);
+  RegisterPacket<CIGI::V33::ShortArticulatedPartCtrl>(ECigiOpCodeV3::SHORT_ARTICULATED_PART_CONTROL, &CCigiPacketHandlerV3::ParseShortArticulatedPartControlPacket);
+  RegisterPacket<CIGI::V33::RateCtrl>(ECigiOpCodeV3::RATE_CONTROL, &CCigiPacketHandlerV3::ParseRateControlPacket);
+  RegisterPacket<CIGI::V33::CelestialSphereCtrl>(ECigiOpCodeV3::CELESTIAL_SPHERE_CONTROL, &CCigiPacketHandlerV3::ParseCelestialSphereControlPacket);
+  RegisterPacket<CIGI::V33::AtmosphereCtrl>(ECigiOpCodeV3::ATMOSPHERE_CONTROL, &CCigiPacketHandlerV3::ParseAtmosphereControlPacket);
+  RegisterPacket<CIGI::V33::EnvironmentalRegionCtrl>(ECigiOpCodeV3::ENVIRONMENTAL_REGION_CONTROL, &CCigiPacketHandlerV3::ParseEnvironmentalRegionControl);
+  RegisterPacket<CIGI::V33::WeatherCtrl>(ECigiOpCodeV3::WEATHER_CONTROL, &CCigiPacketHandlerV3::ParseWeatherControlPacket);
+  RegisterPacket<CIGI::V33::MaritimeSurfaceConditionsCtrl>(ECigiOpCodeV3::MARITIME_SURFACE_CONDITIONS_CONTROL, &CCigiPacketHandlerV3::ParseMaritimeSurfaceConditionsControlPacket);
+  RegisterPacket<CIGI::V33::WaveCtrl>(ECigiOpCodeV3::WAVE_CONTROL, &CCigiPacketHandlerV3::ParseWaveControlPacket);
+  RegisterPacket<CIGI::V33::TerrestrialSurfaceConditionsCtrl>(ECigiOpCodeV3::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL, &CCigiPacketHandlerV3::ParseTerrestrialSurfaceConditionsControlPacket);
+  RegisterPacket<CIGI::V33::ViewCtrl>(ECigiOpCodeV3::VIEW_CONTROL, &CCigiPacketHandlerV3::ParseViewControlPacket);
+  RegisterPacket<CIGI::V33::SensorCtrl>(ECigiOpCodeV3::SENSOR_CONTROL, &CCigiPacketHandlerV3::ParseSensorControlPacket);
+  RegisterPacket<CIGI::V33::MotionTrackerCtrl>(ECigiOpCodeV3::MOTION_TRACKER_CONTROL, &CCigiPacketHandlerV3::ParseMotionTrackerControlPacket);
+  RegisterPacket<CIGI::V33::EarthReferenceModelDefinition>(ECigiOpCodeV3::EARTH_REFERENCE_MODEL_DEFINITION, &CCigiPacketHandlerV3::ParseEarthReferenceModelDefinitionPacket);
+  RegisterPacket<CIGI::V33::TrajectoryDefinition>(ECigiOpCodeV3::TRAJECTORY_DEFINITION, &CCigiPacketHandlerV3::ParseTrajectoryDefinitionPacket);
+  RegisterPacket<CIGI::V33::ViewDefinition>(ECigiOpCodeV3::VIEW_DEFINITION, &CCigiPacketHandlerV3::ParseViewDefinitionPacket);
+  RegisterPacket<CIGI::V33::CollisionDetectionSegmentDefinition>(ECigiOpCodeV3::COLLISION_DETECTION_SEGMENT_DEFINITION, &CCigiPacketHandlerV3::ParseCollisionDetectionSegmentDefinitionPacket);
+  RegisterPacket<CIGI::V33::CollisionDetectionVolumeDefinition>(ECigiOpCodeV3::COLLISION_DETECTION_VOLUME_DEFINITION, &CCigiPacketHandlerV3::ParseCollisionDetectionVolumeDefinitionPacket);
+  RegisterPacket<CIGI::V33::PositionRequest>(ECigiOpCodeV3::POSITION_REQUEST, &CCigiPacketHandlerV3::ParsePositionRequestPacket);
+  RegisterPacket<CIGI::V33::EnvironmentalConditionsRequest>(ECigiOpCodeV3::ENVIRONMENTAL_CONDITIONS_REQUEST, &CCigiPacketHandlerV3::ParseEnvironmentalConditionsRequestPacket);
+  RegisterPacket<CIGI::V33::SymbolSurfaceDefinition>(ECigiOpCodeV3::SYMBOL_SURFACE_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolSurfaceDefinitionPacket);
+  RegisterVariablePacket<CIGI::V33::SymbolTextDefinition>(ECigiOpCodeV3::SYMBOL_TEXT_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolTextDefinitionPacket, CIGI::V33::SymbolTextDefinition::kMinDataLength);
+  RegisterVariablePacket<CIGI::V33::SymbolCircleDefinition>(ECigiOpCodeV3::SYMBOL_CIRCLE_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolCircleDefinitionPacket);
+  RegisterVariablePacket<CIGI::V33::SymbolLineDefinition>(ECigiOpCodeV3::SYMBOL_LINE_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolLineDefinitonPacket);
+  RegisterPacket<CIGI::V33::SymbolClone>(ECigiOpCodeV3::SYMBOL_CLONE, &CCigiPacketHandlerV3::ParseSymbolClonePacket);
+  RegisterPacket<CIGI::V33::SymbolCtrl>(ECigiOpCodeV3::SYMBOL_CONTROL, &CCigiPacketHandlerV3::ParseSymbolControlPacket);
+  RegisterPacket<CIGI::V33::HATHOTRequest>(ECigiOpCodeV3::HAT_HOT_REQUEST, &CCigiPacketHandlerV3::ParseHatHotRequestPacket);
+  RegisterPacket<CIGI::V33::LineOfSightSegmentRequest>(ECigiOpCodeV3::LINE_OF_SIGHT_SEGMENT_REQUEST, &CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket);
+  RegisterPacket<CIGI::V33::LineOfSightVectorRequest>(ECigiOpCodeV3::LINE_OF_SIGHT_VECTOR_REQUEST, &CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket);
 }
 
 CCigiPacketHandlerV3::~CCigiPacketHandlerV3()
@@ -292,7 +292,7 @@ void CCigiPacketHandlerV3::ParseCelestialSphereControlPacket(uint8_t* pBuffer)
     STime time;
     time.hour = Hour(celestialSphereControl.hour);
     time.minute = Minute(celestialSphereControl.minute);
-    time.seconds = Second(0);//added in version 4
+    time.seconds = Second(0);// added in version 4
 
     SDate date;
     date.year = Year(celestialSphereControl.year());
@@ -430,7 +430,7 @@ void CCigiPacketHandlerV3::ParseConformalClampedEntityControlPacket(uint8_t* pBu
   conformalClampedEntityPosition.latitude = Latitude(conformalClampedEntityControl.latitude);
   conformalClampedEntityPosition.longitude = Longitude(conformalClampedEntityControl.longitude);
 
-  //Conformal Clamped Entity Control renamed to Conformal Clamped Entity Position in 4.0
+  // Conformal Clamped Entity Control renamed to Conformal Clamped Entity Position in 4.0
   m_pEntityControlHandler->HandleCigiConformalClampedEntityPosition(conformalClampedEntityPosition);
 }
 
@@ -456,8 +456,8 @@ void CCigiPacketHandlerV3::ParseEarthReferenceModelDefinitionPacket(uint8_t* pBu
   {
     earthReferenceModel.eEarthReferenceModel = EEarthReferenceModel::WGS84;
 
-    //If this parameter is set to Disable (0), the IG shall use the WGS 84 reference model
-    //and all other parameters in this packet shall be ignored.
+    // If this parameter is set to Disable (0), the IG shall use the WGS 84 reference model
+    // and all other parameters in this packet shall be ignored.
     earthReferenceModel.fEquatorialRadius = 6378137.0;
     earthReferenceModel.fFlattening = 1.0 / 298.257223563;
     m_pEarthReferenceModelHandler->Handle(earthReferenceModel);
@@ -710,7 +710,7 @@ void CCigiPacketHandlerV3::ParseIgControlPacket(uint8_t* pBuffer)
   }
 
   SCigiIgControl igControl;
-  igControl.bEntityTypeSubstitutionEnabled = false;//added in version 4.0
+  igControl.bEntityTypeSubstitutionEnabled = false;// added in version 4.0
   igControl.bSmoothingEnabled = igControlV3.extrapolationEnable;
   igControl.bTimestampValid = igControlV3.timestampValid;
   igControl.databaseNumber = CigiDatabaseNumber(igControlV3.dbNumber);
@@ -1490,8 +1490,8 @@ sbio::symbol::EDrawingStyle ConvertDrawingStyle33(CIGI::V33::SymbolCircleDefinit
 
 void CCigiPacketHandlerV3::ParseSymbolCircleDefinitionPacket(uint8_t* pBuffer)
 {
-  CIGI::V33::SymbolCircleDefinition symbolCircleDefV3;
-  memcpy(&symbolCircleDefV3, pBuffer, sizeof(CIGI::V33::SymbolCircleDefinition));
+  CIGI::V33::SymbolCircleDefinition symbolCircleDefV3 = {};
+  memcpy(&symbolCircleDefV3, pBuffer, m_CurrentPacketSize);
 
   if (m_bByteSwap)
   {
@@ -1613,8 +1613,8 @@ sbio::symbol::EPrimitiveType ConvertPrimitiveGrp33(CIGI::V33::SymbolLineDefiniti
 
 void CCigiPacketHandlerV3::ParseSymbolLineDefinitonPacket(uint8_t* pBuffer)
 {
-  CIGI::V33::SymbolLineDefinition symbolLineDefinitionV3;
-  memcpy(&symbolLineDefinitionV3, pBuffer, sizeof(CIGI::V33::SymbolLineDefinition));
+  CIGI::V33::SymbolLineDefinition symbolLineDefinitionV3 = {};
+  memcpy(&symbolLineDefinitionV3, pBuffer, m_CurrentPacketSize);
 
   if (m_bByteSwap)
   {
@@ -2046,17 +2046,17 @@ void CCigiPacketHandlerV3::ParseWeatherControlPacket(uint8_t* pBuffer)
   condition.severity = WeatherSeverity(weatherControl.severity);
   condition.HorizontalWindSpeed = weatherControl.horizontalWindSpeed;
   condition.VerticalWindSpeed = weatherControl.verticalWindSpeed;
-  condition.WindDirection = weatherControl.windDirection;
+  condition.WindDirection = Degrees360(weatherControl.windDirection);
   condition.bWeatherEnabled = weatherControl.weatherEnable;
-  condition.bTopScudEnabled = weatherControl.scudEnable;//updated in version 4
-  condition.bBottomScudEnabled = weatherControl.scudEnable;//updated in version 4
-  condition.bottomScudFrequency = Percentage(weatherControl.scudFrequency);//updated in version 4
-  condition.topScudFrequency = Percentage(weatherControl.scudFrequency);//updated in version 4
+  condition.bTopScudEnabled = weatherControl.scudEnable;// updated in version 4
+  condition.bBottomScudEnabled = weatherControl.scudEnable;// updated in version 4
+  condition.bottomScudFrequency = Percentage(weatherControl.scudFrequency);// updated in version 4
+  condition.topScudFrequency = Percentage(weatherControl.scudFrequency);// updated in version 4
 
   SCigiSpatialWeatherCondition spatialWeatherCondition;
   spatialWeatherCondition.fBaseElevation = weatherControl.baseElevation;
-  spatialWeatherCondition.fBottomTransitionBandThickness = weatherControl.transitionBand;//updated in version 4
-  spatialWeatherCondition.fTopTransitionBandThickness = weatherControl.transitionBand;//updated in version 4
+  spatialWeatherCondition.fBottomTransitionBandThickness = weatherControl.transitionBand;// updated in version 4
+  spatialWeatherCondition.fTopTransitionBandThickness = weatherControl.transitionBand;// updated in version 4
   spatialWeatherCondition.fThickness = weatherControl.thickness;
 
   // set weather conditions on entity, region, or global level
@@ -2155,17 +2155,17 @@ void CCigiPacketHandlerV3::ParseTrajectoryDefinitionPacket(uint8_t* pBuffer)
   }
 
   SCigiEntityAcceleration acceleration;
-  acceleration.angularAcceleration.roll = Degrees(0);//not in 3.3
-  acceleration.angularAcceleration.pitch = Degrees(0);//not in 3.3
-  acceleration.angularAcceleration.yaw = Degrees(0);//not in 3.3
+  acceleration.angularAcceleration.roll = Degrees(0);// not in 3.3
+  acceleration.angularAcceleration.pitch = Degrees(0);// not in 3.3
+  acceleration.angularAcceleration.yaw = Degrees(0);// not in 3.3
 
   acceleration.linearAcceleration[0] = trajectoryDefV3.accelerationX;
   acceleration.linearAcceleration[1] = trajectoryDefV3.accelerationY;
   acceleration.linearAcceleration[2] = trajectoryDefV3.accelerationZ;
 
-  //acceleration.articulatedPartID = UnknownArticulatedPartID;//not in 3.3
-  //acceleration.bApplyToArticulatedPart = false;//not in 3.3
-  acceleration.eCoordinateSystem = EObjectCoordinateSystem::LOCAL;//not in 3.3
+  // acceleration.articulatedPartID = UnknownArticulatedPartID;//not in 3.3
+  // acceleration.bApplyToArticulatedPart = false;//not in 3.3
+  acceleration.eCoordinateSystem = EObjectCoordinateSystem::LOCAL;// not in 3.3
   acceleration.entityID = EntityID(trajectoryDefV3.entityId);
 
   m_pAccelerationControlHandler->HandleEntityAccelerationControl(acceleration);
@@ -2179,7 +2179,7 @@ void CCigiPacketHandlerV3::ProcessPackets()
     m_pPacketLoggerWriter->BeginFrame();
   }
 
-  uint8_t buffer[65535];
+  uint8_t buffer[MAX_UDP_DATAGRAM_SIZE];
   const int nBufferSize = static_cast<int>(sizeof(buffer));
 
   SCigiPacketHeaderV3 packetHeader;
@@ -2307,8 +2307,30 @@ void CCigiPacketHandlerV3::ProcessPackets()
       }
       else
       {
+        // ensure packet size meets the minimum required size for this packet type
+        if (nPacketSize < itFunction->second.minimumPacketSize)
+        {
+          stringstream ss;
+          ss << "Skipping undersized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " is smaller than required size " << itFunction->second.minimumPacketSize << endl;
+          g_CigiLibGlobals.pLogger->LogWarning(ss.str());
+          pBuffer += nPacketSize;
+          continue;
+        }
+
+        // ensure packet size does not exceed the maximum allowed size for this packet type
+        if (nPacketSize > itFunction->second.maximumPacketSize)
+        {
+          stringstream ss;
+          ss << "Skipping oversized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " exceeds maximum size " << itFunction->second.maximumPacketSize << endl;
+          g_CigiLibGlobals.pLogger->LogWarning(ss.str());
+          pBuffer += nPacketSize;
+          continue;
+        }
+
+        m_CurrentPacketSize = nPacketSize;
+
         // call the handler function for this packet
-        auto pFunction = itFunction->second;
+        auto pFunction = itFunction->second.function;
         (this->*pFunction)(pBuffer);
       }
 

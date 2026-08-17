@@ -128,13 +128,13 @@ void CCigiPacketHandler::Handle(const SCigiIgControl& igControl)
 
   m_ImageGenerator.SetOperationMode(igControl.eIgMode);
   m_ImageGenerator.SetInteropolationEnabled(igControl.bSmoothingEnabled);
-  //m_ImageGenerator.SetTimestamp(igControl.timestamp);
+  // m_ImageGenerator.SetTimestamp(igControl.timestamp);
   m_ImageGenerator.SetLastHostFrameNumber((FrameNumber)igControl.hostFrameNumber);
-  //m_ImageGenerator.SetTimestampValid(igControl.bTimestampValid);
+  // m_ImageGenerator.SetTimestampValid(igControl.bTimestampValid);
 
   if (m_ImageGenerator.GetSynchronizationMode() == ECigiSynchronizationMode::ASYNCHRONOUS && !igControl.bTimestampValid)
   {
-    //g_CigiLibGlobals.pLogger->LogError("TimeStampValid must be set to Valid because timestamp is required for asynchronous operation.");
+    // g_CigiLibGlobals.pLogger->LogError("TimeStampValid must be set to Valid because timestamp is required for asynchronous operation.");
   }
 
   if (m_ImageGenerator.GetOperationMode() == EIGMode::RESET)
@@ -162,18 +162,18 @@ void CCigiPacketHandler::Handle(const SCigiIgControl& igControl)
   {
     if (m_ImageGenerator.GetSetupOptions().bDatabaseControlledByIG)
     {
-      //ignore database number if database is IG-controlled
+      // ignore database number if database is IG-controlled
     }
     else if (m_ImageGenerator.GetDatabaseState() == EIGDatabaseState::WAIT_FOR_ACKNOWLEDGE)
     {
-      //The IG shall indicate that the database is being loaded by negating the value and placing it in the Database Number parameter of the Start of Frame packet.
-      //The Host shall then acknowledge this change by setting the Database Number parameter of the IG Control packet to zero (0).
+      // The IG shall indicate that the database is being loaded by negating the value and placing it in the Database Number parameter of the Start of Frame packet.
+      // The Host shall then acknowledge this change by setting the Database Number parameter of the IG Control packet to zero (0).
       if (igControl.databaseNumber.Value() == 0)
       {
         m_ImageGenerator.BeginLoadingDatabase(m_ImageGenerator.GetCurrentDatabaseID());
       }
     }
-    else if (igControl.databaseNumber.Value() > 0)//check if a database should be loaded
+    else if (igControl.databaseNumber.Value() > 0)// check if a database should be loaded
     {
       m_ImageGenerator.QueueLoadingDatabase(igControl.databaseNumber);
     }
@@ -188,7 +188,7 @@ void CCigiPacketHandler::CheckHostConnection(std::string sHostAddress, double fC
 
   bool bFound = false;
 
-  //iterate through existing connections to check for timeouts
+  // iterate through existing connections to check for timeouts
   for (auto it = m_HostConnections.begin(); it != m_HostConnections.end(); ++it)
   {
     if (it->sHostAddress == sHostAddress)
@@ -196,7 +196,7 @@ void CCigiPacketHandler::CheckHostConnection(std::string sHostAddress, double fC
       bFound = true;
       it->fLastMessageReceivedTime = fCurrentTime;
 
-      //send connected message if previously disconnected
+      // send connected message if previously disconnected
       if (!it->bConnected)
       {
         it->bConnected = true;
@@ -205,7 +205,7 @@ void CCigiPacketHandler::CheckHostConnection(std::string sHostAddress, double fC
     }
   }
 
-  //add new host
+  // add new host
   if (!bFound)
   {
     hostInfo.bConnected = true;
@@ -216,11 +216,11 @@ void CCigiPacketHandler::CheckHostConnection(std::string sHostAddress, double fC
 
 void CCigiPacketHandler::CheckHostDisconnection(double fCurrentTime)
 {
-  //iterate through existing connections to check for timeouts
+  // iterate through existing connections to check for timeouts
   for (auto it = m_HostConnections.begin(); it != m_HostConnections.end(); ++it)
   {
     double fTimeSinceLastMessage = fCurrentTime - it->fLastMessageReceivedTime;
-    if (it->bConnected && fTimeSinceLastMessage > 5.0)//5 seconds without a message means the host is disconnected
+    if (it->bConnected && fTimeSinceLastMessage > 5.0)// 5 seconds without a message means the host is disconnected
     {
       SendDisconnectedFromHostMessage(it->sHostAddress);
       it->bConnected = false;
@@ -230,6 +230,11 @@ void CCigiPacketHandler::CheckHostDisconnection(double fCurrentTime)
 
 void CCigiPacketHandler::SendConnectedToHostMessage(std::string sHostAddress)
 {
+  if (g_CigiLibGlobals.pEventMessenger == nullptr)
+  {
+    return;
+  }
+
   SHostConnectedMessage data;
   data.sHostIP = sHostAddress;
   g_CigiLibGlobals.pEventMessenger->SendHostConnectedMessage(data);
@@ -237,6 +242,11 @@ void CCigiPacketHandler::SendConnectedToHostMessage(std::string sHostAddress)
 
 void CCigiPacketHandler::SendDisconnectedFromHostMessage(std::string sHostAddress)
 {
+  if (g_CigiLibGlobals.pEventMessenger == nullptr)
+  {
+    return;
+  }
+
   SHostDisconnectedMessage data;
   data.sHostIP = sHostAddress;
   g_CigiLibGlobals.pEventMessenger->SendHostDisconnectedMessage(data);

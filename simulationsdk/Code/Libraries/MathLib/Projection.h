@@ -37,7 +37,7 @@ namespace sbio
 
       /**
        * @brief Projects geodetic coordinates onto the reference plane.
-       * 
+       *
        * Converts the given geodetic coordinates (latitude, longitude, altitude) to
        * reference plane coordinates using the projection method defined in the derived class.
        *

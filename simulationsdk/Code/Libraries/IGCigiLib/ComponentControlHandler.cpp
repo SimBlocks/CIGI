@@ -226,7 +226,7 @@ void CCigiComponentControlHandler::HandleGlobalTerrainSurface(const SCigiCompone
 
 void CCigiComponentControlHandler::HandleNoComponent(const SCigiComponentControl& componentControl, CBaseComponentDataParser* pComponentDataParser)
 {
-  //no component class
+  // no component class
 }
 
 void CCigiComponentControlHandler::HandleRegionalLayeredWeather(const SCigiComponentControl& componentControl, CBaseComponentDataParser* pComponentDataParser)
@@ -279,7 +279,7 @@ void CCigiComponentControlHandler::HandleRegionalTerrainSurface(const SCigiCompo
 
 void CCigiComponentControlHandler::HandleSensor(const SCigiComponentControl& componentControl, CBaseComponentDataParser* pComponentDataParser)
 {
-  //sensor ID is a uint8_t according to CIGI standard
+  // sensor ID is a uint8_t according to CIGI standard
   SensorID sensorID = SensorID(static_cast<uint8_t>(componentControl.key.nInstanceID));
 
   SUpdateSensorComponentMessage data;

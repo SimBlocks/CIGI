@@ -729,9 +729,9 @@ void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionRespo
       scriptPositionResponse.Altitude = positionResponse.geodeticCoordinates.altitude.Value();
       scriptPositionResponse.ObjectClass = ConvertCigiObjectClassToString(positionResponse.eObjectClass);
       scriptPositionResponse.objectID = positionResponse.objectID;
-      scriptPositionResponse.Yaw = positionResponse.rotation.yaw.Value();
-      scriptPositionResponse.Pitch = positionResponse.rotation.pitch.Value();
-      scriptPositionResponse.Roll = positionResponse.rotation.roll.Value();
+      scriptPositionResponse.Yaw = static_cast<float>(positionResponse.rotation.yaw.Value());
+      scriptPositionResponse.Pitch = static_cast<float>(positionResponse.rotation.pitch.Value());
+      scriptPositionResponse.Roll = static_cast<float>(positionResponse.rotation.roll.Value());
 
       pFuncOnPositionResponseGeodetic(scriptPositionResponse);
     }
@@ -759,9 +759,9 @@ void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionRespo
       scriptPositionResponse.zOffset = (float)positionResponse.offset[2];
       scriptPositionResponse.ObjectClass = ConvertCigiObjectClassToString(positionResponse.eObjectClass);
       scriptPositionResponse.objectID = positionResponse.objectID;
-      scriptPositionResponse.Yaw = positionResponse.rotation.yaw.Value();
-      scriptPositionResponse.Pitch = positionResponse.rotation.pitch.Value();
-      scriptPositionResponse.Roll = positionResponse.rotation.roll.Value();
+      scriptPositionResponse.Yaw = static_cast<float>(positionResponse.rotation.yaw.Value());
+      scriptPositionResponse.Pitch = static_cast<float>(positionResponse.rotation.pitch.Value());
+      scriptPositionResponse.Roll = static_cast<float>(positionResponse.rotation.roll.Value());
 
       pFuncOnPositionResponseParentEntity(scriptPositionResponse);
     }
@@ -789,9 +789,9 @@ void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionRespo
       scriptPositionResponse.zOffset = static_cast<float>(positionResponse.offset[2]);
       scriptPositionResponse.ObjectClass = ConvertCigiObjectClassToString(positionResponse.eObjectClass);
       scriptPositionResponse.objectID = positionResponse.objectID;
-      scriptPositionResponse.Yaw = positionResponse.rotation.yaw.Value();
-      scriptPositionResponse.Pitch = positionResponse.rotation.pitch.Value();
-      scriptPositionResponse.Roll = positionResponse.rotation.roll.Value();
+      scriptPositionResponse.Yaw = static_cast<float>(positionResponse.rotation.yaw.Value());
+      scriptPositionResponse.Pitch = static_cast<float>(positionResponse.rotation.pitch.Value());
+      scriptPositionResponse.Roll = static_cast<float>(positionResponse.rotation.roll.Value());
       scriptPositionResponse.ArticulatedPartID = positionResponse.articulatedPartID.Value();
 
       pFuncOnPositionResponseArticulatedPart(scriptPositionResponse);
@@ -960,7 +960,7 @@ void CScriptRuntime::Update()
 
   double fCurrentSessionTime = pHostSession->GetSessionTime();
 
-  //check for any wait callbacks
+  // check for any wait callbacks
   auto it = m_WaitCallbacks.begin();
   while (it != m_WaitCallbacks.end())
   {
@@ -1003,13 +1003,13 @@ void CScriptRuntime::Update()
 
   m_WaitCallbacks.remove_if([fCurrentSessionTime](const SWaitCallback& waitCallback) { return waitCallback.fTime < fCurrentSessionTime; });
 
-  //make sure database is loaded before calling OnUpdate
+  // make sure database is loaded before calling OnUpdate
   if ((pHostSession->GetDatabaseState() == EHostSessionDatabaseState::NO_DATABASE) || (pHostSession->GetDatabaseState() == EHostSessionDatabaseState::LOAD_DATABASE_REQUESTED) || (pHostSession->GetDatabaseState() == EHostSessionDatabaseState::LOADING_ACKNOWLEDGED))
   {
     return;
   }
 
-  //call OnUpdate
+  // call OnUpdate
   auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
   if (pFunctionExists("OnUpdate"))
   {
@@ -2028,7 +2028,7 @@ void sendWeatherControl(SScriptWeatherControl scriptWeatherControl)
 
   cigiWeatherCondition.HorizontalWindSpeed = scriptWeatherControl.HorizontalWindSpeed;
   cigiWeatherCondition.VerticalWindSpeed = scriptWeatherControl.VerticalWindSpeed;
-  cigiWeatherCondition.WindDirection = scriptWeatherControl.WindDirection;
+  cigiWeatherCondition.WindDirection = Degrees360(scriptWeatherControl.WindDirection);
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
   if (eScope == ECigiScope::GLOBAL)
@@ -2582,8 +2582,7 @@ void RegisterMaritimeSurfaceConditionsControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendMaritimeSurfaceConditionsControl), "sendMaritimeSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptMaritimeSurfaceConditionsControl>(*m, "MaritimeSurfaceConditionsControl",
-                                                                          {constructor<SScriptMaritimeSurfaceConditionsControl()>(), constructor<SScriptMaritimeSurfaceConditionsControl(const SScriptMaritimeSurfaceConditionsControl&)>()},
+  chaiscript::utility::add_class<SScriptMaritimeSurfaceConditionsControl>(*m, "MaritimeSurfaceConditionsControl", {constructor<SScriptMaritimeSurfaceConditionsControl()>(), constructor<SScriptMaritimeSurfaceConditionsControl(const SScriptMaritimeSurfaceConditionsControl&)>()},
                                                                           {
                                                                             {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
                                                                             {fun(&SScriptMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
@@ -5100,39 +5099,29 @@ void RegisterGetHostSeconds(ChaiScript& chai)
   chai.add(chaiscript::fun(&getHostSeconds), "getHostSeconds");
 }
 
-float scriptSin(float p)
-{
-  return std::sin(p);
-}
-
-float scriptCos(float p)
-{
-  return std::cos(p);
-}
-
-float scriptModulo(float a, float b)
-{
-  float c = (a - (int)(a / b) * b);
-  if (c < 0)
-  {
-    c = c + b;
-  }
-  return c;
-}
-
 void RegisterSin(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun(&scriptSin), "sin");
+  chai.add(chaiscript::fun([](float p) { return std::sin(p); }), "sin");
 }
 
 void RegisterCos(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun(&scriptCos), "cos");
+  chai.add(chaiscript::fun([](float p) { return std::cos(p); }), "cos");
 }
 
 void RegisterModulo(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun(&scriptModulo), "modulo");
+  chai.add(chaiscript::fun(
+             [](float a, float b)
+             {
+               float c = (a - (int)(a / b) * b);
+               if (c < 0)
+               {
+                 c = c + b;
+               }
+               return c;
+             }),
+           "modulo");
 }
 
 CScriptRuntime::CScriptRuntime(const std::filesystem::path& scriptsPath) : m_scriptsPath(scriptsPath)
@@ -5243,7 +5232,7 @@ CScriptRuntime::CScriptRuntime(const std::filesystem::path& scriptsPath) : m_scr
   chai.add(chaiscript::fun(&Pause), "Pause");
   chai.add(chaiscript::fun(&Wait), "Wait");
 
-  //grab current state
+  // grab current state
   base_state = m_pChaiScript->get_state();
   base_locals = m_pChaiScript->get_locals();
 
@@ -5275,13 +5264,13 @@ void CScriptRuntime::Execute(const std::string& sCategory, const std::string& sF
     m_bIsExecutingScript = true;
     m_WaitCallbacks.clear();
 
-    //restore previous state
+    // restore previous state
     m_pChaiScript->set_state(base_state);
     m_pChaiScript->set_locals(base_locals);
 
     m_pChaiScript->eval("def function_exists(String name) { return contains(get_function_objects(), fun(elem){ return elem.first == name; }); }");
 
-    //evaluate file
+    // evaluate file
     m_pChaiScript->eval_file((m_scriptsPath / sCategory / sFilename).string().c_str());
 
     auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");

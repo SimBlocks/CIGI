@@ -13,6 +13,33 @@ extern sbio::symbol::SSymbolLibSettings g_SymbolLibSettings;
 
 void CSymbolSurfaceManager::AddSymbol(SymbolID symbolID, std::unique_ptr<CSymbol> pSymbol)
 {
+  // If the symbol pointer is null, log an error and return without adding it to the manager.
+  if (pSymbol == nullptr)
+  {
+    if (g_SymbolLibSettings.pLogger != nullptr)
+    {
+      std::stringstream ss;
+      ss << "Ignoring null symbol for ID: " << symbolID.Value() << std::endl;
+      g_SymbolLibSettings.pLogger->LogError(ss);
+    }
+
+    return;
+  }
+
+  // If the symbol's stored ID does not match the provided ID, log an error and return without adding it to the manager.
+  if (pSymbol->GetSymbolID() != symbolID)
+  {
+    if (g_SymbolLibSettings.pLogger != nullptr)
+    {
+      std::stringstream ss;
+      ss << "Ignoring symbol with mismatched ID. Map ID: " << symbolID.Value() << ", Symbol ID: " << pSymbol->GetSymbolID().Value() << std::endl;
+      g_SymbolLibSettings.pLogger->LogError(ss);
+    }
+
+    return;
+  }
+
+  // If the symbol ID already exists in the manager, log an error and return without adding it to the manager.
   if (HasSymbol(symbolID))
   {
     if (g_SymbolLibSettings.pLogger != nullptr)
@@ -25,6 +52,7 @@ void CSymbolSurfaceManager::AddSymbol(SymbolID symbolID, std::unique_ptr<CSymbol
     return;
   }
 
+  // Add the symbol to the manager, transferring ownership of the symbol pointer to the manager.
   m_Symbols[symbolID] = std::move(pSymbol);
 }
 
@@ -35,8 +63,8 @@ void CSymbolSurfaceManager::AddSymbolSurface(SymbolSurfaceID symbolSurfaceID)
 
 void CSymbolSurfaceManager::ClearSymbols()
 {
-  // Clear the symbols from the manager, which will also clear the symbol surfaces since they are owned by the symbols.
   m_Symbols.clear();
+  m_SymbolSurfaces.clear();
 }
 
 void CSymbolSurfaceManager::ClearSymbolSurfaces()
@@ -108,6 +136,9 @@ void CSymbolSurfaceManager::RemoveSymbol(SymbolID symbolID)
     pParentSymbol->RemoveChild(symbolID);
   }
 
+  // Create a vector to store the IDs of any children that are detached from the removed symbol
+  std::vector<SymbolID> detachedChildSymbolIDs;
+
   // Set the parent symbol ID of any children of the symbol being removed to UnknownSymbolID to detach them from the removed symbol before removing the symbol
   for (auto childSymbolID : pSymbol->GetChildren())
   {
@@ -115,13 +146,18 @@ void CSymbolSurfaceManager::RemoveSymbol(SymbolID symbolID)
     if (pChildSymbol != nullptr && pChildSymbol->GetParentSymbolID() == symbolID)
     {
       pChildSymbol->SetParentSymbolID(UnknownSymbolID);
-      pChildSymbol->SetHiddenByAncestor(false);
-      pChildSymbol->SetVisible(pChildSymbol->IsVisible(), true);
+      detachedChildSymbolIDs.push_back(childSymbolID);
     }
   }
 
   // Remove the symbol from the manager
   m_Symbols.erase(symbolID);
+
+  // Update the hidden by ancestor state for any detached children to ensure that their effective visibility is correctly computed
+  for (auto childSymbolID : detachedChildSymbolIDs)
+  {
+    UpdateSymbolTreeHiddenByAncestor(childSymbolID);
+  }
 }
 
 void CSymbolSurfaceManager::UpdateSymbolTreeHiddenByAncestor(SymbolID symbolID)

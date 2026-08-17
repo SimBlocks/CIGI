@@ -24,7 +24,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SBIO_THIRD_PARTY);..\;$(SolutionDir)\Libraries\;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\Net\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\Foundation\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\Util\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\XML\include;$(SBIO_THIRD_PARTY)\$(POCO_DIR)\JSON\include;$(SBIO_THIRD_PARTY)\$(TINYXML_DIR);$(SBIO_THIRD_PARTY)\$(EIGEN3_DIR);$(SBIO_THIRD_PARTY)\build\$(GEOGRAPHIC_DIR)\vs2022-x64\include;$(SBIO_THIRD_PARTY)\$(GEOGRAPHIC_DIR)\include;$(SBIO_THIRD_PARTY)\$(BOOST_DIR);$(SBIO_THIRD_PARTY)\$(CHAISCRIPT_DIR)\include;$(SBIO_THIRD_PARTY)\$(CIGI_DIR);$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\include\msvc;$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;EIGEN_MPL2_ONLY;BOOST_FILESYSTEM_NO_DEPRECATED;BOOST_ALL_NO_LIB;_MBCS;D_SCL_SECURE_NO_WARNINGS;DIS_VERSION=6;TIXML_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp14</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <WarningLevel>Level2</WarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>

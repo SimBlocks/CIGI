@@ -53,6 +53,7 @@ namespace sbio
        * @ownership Ownership of `pSymbol` is transferred to the manager on successful insertion.
        * @failurecases If `symbolID` already exists, the insertion is ignored and an error is logged when a global
        * logger is configured.
+       * @failurecases Null symbols and symbols whose stored ID differs from `symbolID` are ignored and logged.
        * @failurecases When insertion is ignored, the passed `pSymbol` is destroyed when the function returns.
        */
       void AddSymbol(sbio::symbol::SymbolID symbolID, std::unique_ptr<CSymbol> pSymbol);
@@ -76,7 +77,7 @@ namespace sbio
       /**
        * @brief Clears all known symbol surface IDs.
        *
-       * @sideeffects Removes all surface IDs from the known set. 
+       * @sideeffects Removes all surface IDs from the known set.
        * This function does not modify any symbols that may still reference the removed surface IDs.
        * @failurecases This function always succeeds and leaves the manager with an empty set of known surface IDs.
        */

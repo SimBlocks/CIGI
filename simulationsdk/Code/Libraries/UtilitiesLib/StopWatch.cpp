@@ -36,7 +36,7 @@ uint64_t CStopWatch::GetElapsedMicroseconds() const
 // Gets the elapsed time in milliseconds.
 double CStopWatch::GetElapsedMilliSeconds() const
 {
-  //elapsed returns microseconds
+  // elapsed returns microseconds
   return static_cast<double>(m_pStopwatch->elapsed()) / 1000.0;
 }
 

@@ -19,6 +19,17 @@ SIGCigiLibGlobals g_CigiLibGlobals;
 
 SIGCigiLibGlobals* InitIGCigiLib(const SGlobals& globals, const SIGCigiLibParams& params)
 {
+  if (globals.pLogger == nullptr)
+  {
+    return nullptr;
+  }
+
+  if (params.pEventMessenger == nullptr || globals.pEventDispatcher == nullptr || params.pEntityManager == nullptr || params.pViewManager == nullptr || params.pSymbolSurfaceManager == nullptr)
+  {
+    globals.pLogger->LogError("IGCigiLib initialization requires an event messenger, event dispatcher, entity manager, view manager, and symbol surface manager.");
+    return nullptr;
+  }
+
   g_CigiLibGlobals.pEventDispatcher = globals.pEventDispatcher.get();
   g_CigiLibGlobals.pEntityManager = params.pEntityManager.get();
   g_CigiLibGlobals.pViewManager = params.pViewManager.get();
@@ -28,27 +39,7 @@ SIGCigiLibGlobals* InitIGCigiLib(const SGlobals& globals, const SIGCigiLibParams
   g_CigiLibGlobals.applicationDataPath = globals.currentApplicationDataPath;
   g_CigiLibGlobals.pEventMessenger = params.pEventMessenger;
 
-  if (g_CigiLibGlobals.pLogger != nullptr)
-  {
-    if (g_CigiLibGlobals.pEventMessenger == nullptr)
-    {
-      g_CigiLibGlobals.pLogger->LogWarning("IGCigiLib initialized without an event messenger.");
-    }
-
-    if (g_CigiLibGlobals.pEntityManager == nullptr)
-    {
-      g_CigiLibGlobals.pLogger->LogWarning("IGCigiLib initialized without an entity manager.");
-    }
-  }
-
-  if (g_CigiLibGlobals.pEventDispatcher != nullptr)
-  {
-    g_CigiLibGlobals.pEventDispatcher->RegisterEvent<IGCIGIEvent>(make_unique<IGCIGIEventHandler>());
-  }
-  else if (g_CigiLibGlobals.pLogger != nullptr)
-  {
-    g_CigiLibGlobals.pLogger->LogError("IGCigiLib initialization requires an event dispatcher to register IGCIGIEvent.");
-  }
+  g_CigiLibGlobals.pEventDispatcher->RegisterEvent<IGCIGIEvent>(make_unique<IGCIGIEventHandler>());
 
   SetupCigiOpCodeNames();
 

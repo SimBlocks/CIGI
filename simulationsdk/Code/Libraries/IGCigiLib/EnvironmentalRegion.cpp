@@ -55,7 +55,7 @@ void CCigiEnvironmentalRegion::SetDimensions(float x, float y, float radius, flo
   m_TransitionPerimeter = transitionPerimeter;
 }
 
-void CCigiEnvironmentalRegion::SetRotation(float rotation)
+void CCigiEnvironmentalRegion::SetRotation(double rotation)
 {
   m_Rotation = rotation;
 }
@@ -408,7 +408,7 @@ void SetWeatherData(SSetWeatherMessage& data, const SCigiWeatherCondition& condi
   data.Coverage = condition.coverage.Value();
   data.HorizontalWindSpeed = condition.HorizontalWindSpeed;
   data.VerticalWindSpeed = condition.VerticalWindSpeed;
-  data.WindDirection = condition.WindDirection;
+  data.WindDirection = static_cast<float>(condition.WindDirection.Value());
   data.Humidity = condition.humidity.Value();
   data.RandomLightningEnabled = condition.bRandomLightningEnabled;
   data.RandomWindsEnabled = condition.bRandomWindsEnabled;
@@ -427,7 +427,7 @@ void CCigiEnvironmentalRegion::SetWeatherCondition(const SCigiWeatherCondition& 
 {
   CCigiWeatherLayer* pLayer = nullptr;
 
-  RegionalLayeredWeatherID regionaLayerWeatherID = RegionalLayeredWeatherID(0);//for entities
+  RegionalLayeredWeatherID regionaLayerWeatherID = RegionalLayeredWeatherID(0);// for entities
   TRegionalWeatherLayers::iterator it = m_WeatherLayers.find(regionaLayerWeatherID);
 
   // if not exist, create new layer
@@ -503,6 +503,36 @@ void CCigiEnvironmentalRegion::SetMergeMaritime(EMergeState eMergeState)
 void CCigiEnvironmentalRegion::SetMergeTerrestrial(EMergeState eMergeState)
 {
   m_eMergeTerrestrial = eMergeState;
+}
+
+EMergeState CCigiEnvironmentalRegion::GetMergeWeather() const
+{
+  return m_eMergeWeather;
+}
+
+EMergeState CCigiEnvironmentalRegion::GetMergeAerosol() const
+{
+  return m_eMergeAerosol;
+}
+
+EMergeState CCigiEnvironmentalRegion::GetMergeMaritime() const
+{
+  return m_eMergeMaritime;
+}
+
+EMergeState CCigiEnvironmentalRegion::GetMergeTerrestrial() const
+{
+  return m_eMergeTerrestrial;
+}
+
+void CCigiEnvironmentalRegion::SetUpdateSequence(uint64_t updateSequence)
+{
+  m_UpdateSequence = updateSequence;
+}
+
+uint64_t CCigiEnvironmentalRegion::GetUpdateSequence() const
+{
+  return m_UpdateSequence;
 }
 
 void CCigiEnvironmentalRegion::AddWeatherLayer(RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition)

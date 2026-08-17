@@ -119,9 +119,6 @@ namespace sbio
    *
    * This is a passive value type used by CIGI weather and environmental response structures.
    *
-   * Invariants:
-   * - `horizontalWindSpeed` and `verticalWindSpeed` are stored exactly as assigned.
-   * - No unit conversion or range validation is performed by this type.
    */
   struct SWindSpeed
   {
@@ -142,13 +139,13 @@ namespace sbio
      *
      * The value is expected to match `DatabaseID` once a database is loaded and may be negative while loading.
      */
-    STRONG_TYPE(CigiDatabaseNumber, int8_t);//will match DatabaseID once loaded. will be negative while loading.
+    STRONG_TYPE(CigiDatabaseNumber, int8_t);// will match DatabaseID once loaded. will be negative while loading.
     /** @brief Strong identifier for a CIGI component. */
     STRONG_TYPE(CigiComponentID, uint16_t);
     /** @brief Strong identifier for a CIGI component class. */
     STRONG_TYPE(CigiComponentClassID, uint8_t);
     /** @brief CIGI month value constrained to the inclusive range 1 through 12. */
-    RANGED_STRONG_INT(CigiMonth, uint8_t, 1, 12);//cigi month is 1-based
+    RANGED_STRONG_INT(CigiMonth, uint8_t, 1, 12);// cigi month is 1-based
 
     /** @brief Strong identifier for a sensor. */
     STRONG_TYPE(SensorID, uint8_t)
@@ -164,10 +161,6 @@ namespace sbio
      *
      * This value type is used to carry one error code and its relative priority so callers can choose which
      * error to report when multiple conditions are present.
-     *
-     * Invariants:
-     * - `nPriority` and `nErrorCode` are stored exactly as assigned.
-     * - The type does not enforce any priority ordering rules.
      */
     struct SImageGeneratorError
     {
@@ -194,7 +187,7 @@ namespace sbio
      */
     enum class ECigiOpCodeV3 : uint8_t
     {
-      //HOST TO IG
+      // HOST TO IG
       IG_CONTROL = 1,
       ENTITY_CONTROL = 2,
       CONFORMAL_CLAMPED_ENTITY_CONTROL = 3,
@@ -231,7 +224,7 @@ namespace sbio
       SYMBOL_CONTROL = 34,
       SHORT_SYMBOL_CONTROL = 35,
 
-      //IG TO HOST
+      // IG TO HOST
       START_OF_FRAME = 101,
       HAT_HOT_RESPONSE = 102,
       HAT_HOT_EXTENDED_RESPONSE = 103,
@@ -250,7 +243,7 @@ namespace sbio
       EVENT_NOTIFICATION = 116,
       IMAGE_GENERATOR_MESSAGE = 117,
 
-      //EXTENSION PACKETS
+      // EXTENSION PACKETS
     };
 
     /**
@@ -260,7 +253,7 @@ namespace sbio
      */
     enum class ECigiOpCodeV4 : uint16_t
     {
-      //HOST TO IG
+      // HOST TO IG
       IG_CONTROL = 0x00,
       ENTITY_POSITION = 0x01,
       CONFORMAL_CLAMPED_ENTITY_POSITION = 0x02,
@@ -296,12 +289,12 @@ namespace sbio
       SYMBOL_CLONE = 0x20,
       SYMBOL_CONTROL = 0x21,
       SHORT_SYMBOL_CONTROL = 0x22,
-      SYMBOL_TEXTURED_CIRICLE_DEFINITION = 0x23,
+      SYMBOL_TEXTURED_CIRCLE_DEFINITION = 0x23,
       SYMBOL_TEXTURED_POLYGON_DEFINITION = 0x24,
       ENTITY_CONTROL = 0x25,
       ANIMATION_CONTROL = 0x26,
 
-      //IG TO HOST
+      // IG TO HOST
       START_OF_FRAME = 0xFFFF,
       HAT_HOT_RESPONSE = 0x0FFF,
       HAT_HOT_EXTENDED_RESPONSE = 0x0FFE,
@@ -320,16 +313,13 @@ namespace sbio
       EVENT_NOTIFICATION = 0x0FF1,
       IMAGE_GENERATOR_MESSAGE = 0x0FF0,
 
-      //EXTENSION PACKETS
+      // EXTENSION PACKETS
       FIRST_EXTENSION = 0xFFFE,
     };
 
     /**
      * @brief Stores the fixed header fields used by a CIGI 3.x packet.
      *
-     * Invariants:
-     * - `nPacketSize` is the size field carried on the wire for the corresponding packet payload.
-     * - `eOpCode` identifies the packet type encoded by the header.
      */
     struct SCigiPacketHeaderV3
     {
@@ -342,9 +332,6 @@ namespace sbio
     /**
      * @brief Stores the fixed header fields used by a CIGI 4.x packet.
      *
-     * Invariants:
-     * - `nPacketSize` is the size field carried on the wire for the corresponding packet payload.
-     * - `eOpCode` identifies the packet type encoded by the header.
      */
     struct SCigiPacketHeaderV4
     {
@@ -570,10 +557,6 @@ namespace sbio
      * @brief Captures the persistent control state associated with one entity.
      *
      * This structure groups the flags and parent relationship derived from entity control packets.
-     *
-     * Invariants:
-     * - `m_ParentID` is meaningful only when `m_bHasParent` is `true`.
-     * - All other members are stored exactly as assigned.
      */
     struct SEntityState
     {
@@ -596,9 +579,6 @@ namespace sbio
     /**
      * @brief Stores global celestial sphere control state.
      *
-     * Invariants:
-     * - Members mirror the last applied control values exactly.
-     * - No cross-field validation is performed.
      */
     struct SCelestialSphere
     {
@@ -617,9 +597,6 @@ namespace sbio
     /**
      * @brief Stores atmospheric state values used by CIGI environment control and response paths.
      *
-     * Invariants:
-     * - Members are stored exactly as assigned.
-     * - This type does not enforce units or value ranges beyond the member types.
      */
     struct SAtmosphere
     {
@@ -660,6 +637,9 @@ namespace sbio
       WGS84,
       HOST_DEFINED,
     };
+
+    // @brief Maximum size of a UDP datagram, which is 65535 bytes.
+    constexpr int MAX_UDP_DATAGRAM_SIZE = std::numeric_limits<std::uint16_t>::max();
   }
 }
 

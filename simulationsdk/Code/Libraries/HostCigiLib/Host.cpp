@@ -164,12 +164,34 @@ void CHost::Initialize(const SHostSetupOptions& options)
 
     pHostSession->SetSessionID(sessionOption.sessionID);
 
+    // Override the host setup options for this session with any session-specific values
     SHostSetupOptions sessionHostOptions = m_HostSetupOptions;
-    sessionHostOptions.hostToIGPort = sessionOption.hostToIGPort;
-    sessionHostOptions.igToHostPort = sessionOption.igToHostPort;
-    sessionHostOptions.hostIPAddress = sessionOption.hostIPAddress;
-    sessionHostOptions.igIPAddress = sessionOption.igIPAddress;
-    sessionHostOptions.defaultDatabaseID = sessionOption.defaultDatabaseID;
+
+    if (sessionOption.hostToIGPort != 0)
+    {
+      sessionHostOptions.hostToIGPort = sessionOption.hostToIGPort;
+    }
+
+    if (sessionOption.igToHostPort != 0)
+    {
+      sessionHostOptions.igToHostPort = sessionOption.igToHostPort;
+    }
+
+    if (!sessionOption.hostIPAddress.empty())
+    {
+      sessionHostOptions.hostIPAddress = sessionOption.hostIPAddress;
+    }
+
+    if (!sessionOption.igIPAddress.empty())
+    {
+      sessionHostOptions.igIPAddress = sessionOption.igIPAddress;
+    }
+
+    if (sessionOption.defaultDatabaseID != sbio::UnknownDatabaseID)
+    {
+      sessionHostOptions.defaultDatabaseID = sessionOption.defaultDatabaseID;
+    }
+
     sessionHostOptions.sessions.clear();
 
     pHostSession->hostSetupOptions = sessionHostOptions;
@@ -226,7 +248,7 @@ bool CHost::ProcessPackets()
 
     if (sessionConnected)
     {
-      //make sure to process all packets
+      // make sure to process all packets
       while (pHostSession->ProcessPackets())
       {
       }

@@ -29,14 +29,20 @@ namespace sbio
     constexpr double DOUBLE_ABSOLUTE_TOLERANCE = 1.0e-8;
     constexpr double DOUBLE_RELATIVE_TOLERANCE = 1.0e-10;
 
+    template <typename TDegrees>
+    Radians DegreesToRadiansInternal(TDegrees degrees)
+    {
+      return Radians(DegreesToRadians(degrees.Value()));
+    }
+
     /**
      * @brief Converts degrees to radians.
      * @param degrees The angle in degrees.
      * @return The angle in radians.
      */
-    float DegreesToRadians(float degrees)
+    double DegreesToRadians(double degrees)
     {
-      return degrees * static_cast<float>(M_PI) / 180.0f;
+      return degrees * static_cast<double>(M_PI) / 180.0;
     }
 
     /**
@@ -46,7 +52,17 @@ namespace sbio
      */
     Radians DegreesToRadians(Degrees degrees)
     {
-      return Radians(DegreesToRadians(degrees.Value()));
+      return DegreesToRadiansInternal(degrees);
+    }
+
+    /**
+     * @brief Converts degrees to radians (strong type).
+     * @param degrees The angle in degrees (strong type).
+     * @return The angle in radians (strong type).
+     */
+    Radians DegreesToRadians(Degrees360 degrees)
+    {
+      return DegreesToRadiansInternal(degrees);
     }
 
     /**
@@ -54,9 +70,9 @@ namespace sbio
      * @param radians The angle in radians.
      * @return The angle in degrees.
      */
-    float RadiansToDegrees(float radians)
+    double RadiansToDegrees(double radians)
     {
-      return radians * static_cast<float>(180.0f / (M_PI));
+      return radians * static_cast<double>(180.0 / (M_PI));
     }
 
     /**

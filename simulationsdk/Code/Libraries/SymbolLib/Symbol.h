@@ -260,8 +260,8 @@ namespace sbio
       sbio::symbol::SymbolID m_SymbolID;///< Unique symbol ID.
       sbio::symbol::ESymbolType m_eSymbolType = sbio::symbol::ESymbolType::UNKNOWN;///< Declared symbol type.
       sbio::SColor32 m_Color;///< Symbol color.
-      sbio::math::Vec2f m_Position;///< Symbol position.
-      sbio::math::Vec2f m_Scale;///< Symbol scale.
+      sbio::math::Vec2f m_Position = sbio::math::Vec2f::Zero();///< Symbol position.
+      sbio::math::Vec2f m_Scale = sbio::math::Vec2f::Ones();///< Symbol scale.
       bool m_bVisible = false;///< Local visibility flag.
       bool m_bHiddenByAncestor = false;///< `true` when an ancestor causes this symbol to be hidden.
       sbio::math::Degrees m_Rotation = UnknownDegrees;///< Symbol rotation.

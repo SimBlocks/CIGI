@@ -95,7 +95,7 @@ bool CViewManager::RemoveView(ViewID viewID)
 
 void CViewManager::Reset()
 {
-  //don't clear view for now. just reset each one
+  // don't clear view for now. just reset each one
   for (auto& v : m_Views)
   {
     v.second->Reset();

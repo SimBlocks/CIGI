@@ -62,7 +62,7 @@ bool CHATHOTRequestHandler::SendRequest(const sbio::math::SGeodeticCoordinates& 
     SHeightAboveTerrainRequestMessage data;
     data.HatHotID = GetRequestID();
     data.Point = resolvedPoint;
-    //data.UpDir = BodyCoordinates(GetGeocentricRotation(resolvedPoint.latitude, resolvedPoint.longitude).toRotationMatrix().toMat3().col(2));
+    // data.UpDir = BodyCoordinates(GetGeocentricRotation(resolvedPoint.latitude, resolvedPoint.longitude).toRotationMatrix().toMat3().col(2));
     data.isExtendedRequest = false;
     g_CigiLibGlobals.pEventMessenger->SendHeightAboveTerrainRequestMessage(data);
     return true;
@@ -73,7 +73,7 @@ bool CHATHOTRequestHandler::SendRequest(const sbio::math::SGeodeticCoordinates& 
     SHeightOfTerrainRequestMessage data;
     data.HatHotID = GetRequestID();
     data.Point = resolvedPoint;
-    //data.UpDir = BodyCoordinates(GetGeocentricRotation(resolvedPoint.latitude, resolvedPoint.longitude).toRotationMatrix().toMat3().col(2));
+    // data.UpDir = BodyCoordinates(GetGeocentricRotation(resolvedPoint.latitude, resolvedPoint.longitude).toRotationMatrix().toMat3().col(2));
     data.isExtendedRequest = GetRequestType() == ERequestType::EXTENDED;
 
     g_CigiLibGlobals.pEventMessenger->SendHeightOfTerrainRequestMessage(data);
@@ -84,7 +84,7 @@ bool CHATHOTRequestHandler::SendRequest(const sbio::math::SGeodeticCoordinates& 
     SHeightOfTerrainRequestMessage data;
     data.HatHotID = GetRequestID();
     data.Point = resolvedPoint;
-    //data.UpDir = BodyCoordinates(GetGeocentricRotation(resolvedPoint.latitude, resolvedPoint.longitude).toRotationMatrix().toMat3().col(2));
+    // data.UpDir = BodyCoordinates(GetGeocentricRotation(resolvedPoint.latitude, resolvedPoint.longitude).toRotationMatrix().toMat3().col(2));
     data.isExtendedRequest = true;
     g_CigiLibGlobals.pEventMessenger->SendHeightOfTerrainRequestMessage(data);
     return true;

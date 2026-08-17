@@ -31,7 +31,7 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 CCigiView::CCigiView(const sbio::ViewID& viewID) : CView(viewID)
 {
-  //TODO: this is not set in the views configuration file
+  // TODO: this is not set in the views configuration file
   m_eMirrorMode = sbio::EMirrorMode::NONE;
 
   if (g_CigiLibGlobals.pEventDispatcher != nullptr)
@@ -198,7 +198,7 @@ void CCigiView::UpdateTransformation()
 
   CCigiEntity* pCigiAttachEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(m_AttachedEntityID));
 
-  //A view is always attached either directly to an entity, or to a view group that is attached to an entity
+  // A view is always attached either directly to an entity, or to a view group that is attached to an entity
   if (!pCigiAttachEntity)
   {
     stringstream ss;

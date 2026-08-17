@@ -21,6 +21,11 @@
 #include <wx/wx.h>
 #include <wx/notebook.h>
 
+//_T macro from wx.h conflicts with _T macro from CigiLib/CigiConversions.h, so undefine it here to avoid conflicts.
+#ifdef _T
+#undef _T
+#endif
+
 class CMessageLogPage;
 
 /**

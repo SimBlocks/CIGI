@@ -184,7 +184,7 @@ SEntityType CCigiEntityTypes::GetExtendedEntityType(ShortEntityTypeID entityType
   TCigiToSisoEntityType::const_iterator it = m_CigiEntityTypes.find(entityTypeID);
   if (it == m_CigiEntityTypes.end())
   {
-    //CIGI 4.0 allows using only short entity type IDs without an entity enumeration association
+    // CIGI 4.0 allows using only short entity type IDs without an entity enumeration association
     return SEntityType();
   }
 

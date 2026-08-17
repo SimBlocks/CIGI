@@ -52,7 +52,7 @@ CScriptsPage::CScriptsPage(wxWindow* pParent) : CNotebookPage(pParent)
   pPanelLeft->SetMinSize(wxSize(500, 700));
 
   wxArrayString scriptCategoryOptions = GetScriptCategories();
-  wxString initialCategory = scriptCategoryOptions.empty() ? "" : scriptCategoryOptions[0];
+  wxString initialCategory = scriptCategoryOptions.empty() ? wxString("") : scriptCategoryOptions[0];
 
   m_pCategoriesComboBox = new wxComboBox(pPanelLeft, ID_SCRIPTS_PAGE_CATEGORY_COMBO_BOX, initialCategory, wxPoint(20, 20), wxSize(450, 20), scriptCategoryOptions);
   if (!scriptCategoryOptions.empty())

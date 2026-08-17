@@ -21,22 +21,44 @@ void CEntity::Update(double deltaTime)
 
 void CEntity::AttachToEntity(CEntity* pParent)
 {
+  // If pParent is nullptr, detach this entity from its current parent.
   if (pParent == nullptr)
   {
     Unattach();
     return;
   }
 
+  // Check for cycles in the parent-child hierarchy to prevent infinite loops.
+  std::unordered_set<const CEntity*> ancestors;
+  const CEntity* pAncestor = pParent;
+  while (pAncestor != nullptr && ancestors.insert(pAncestor).second)
+  {
+    if (pAncestor == this)
+    {
+      return;
+    }
+    pAncestor = pAncestor->m_pParent;
+  }
+
+  // If pAncestor is not nullptr, it means a cycle was found, so do not attach.
+  if (pAncestor != nullptr)
+  {
+    return;
+  }
+
+  // If the entity is already attached to the same parent, do nothing.
   if (m_pParent == pParent)
   {
     return;
   }
 
+  // If the entity is currently attached to a different parent, remove it from that parent's children set.
   if (m_pParent != nullptr)
   {
     m_pParent->m_Children.erase(m_EntityID);
   }
 
+  // Attach to the new parent.
   m_ParentID = pParent->m_EntityID;
   m_pParent = pParent;
   m_pParent->m_Children.insert(m_EntityID);

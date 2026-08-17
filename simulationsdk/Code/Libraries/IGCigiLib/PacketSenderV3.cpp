@@ -100,9 +100,9 @@ void CCigiPacketSenderV3::SendPositionResponse(const SBasePositionResponse* resp
 
   posResp.objectClass = ConvertObjectClass(response->eObjectClass);
   posResp.objectId = response->objectID;
-  posResp.yaw = response->rotation.yaw.Value();
-  posResp.pitch = response->rotation.pitch.Value();
-  posResp.roll = response->rotation.roll.Value();
+  posResp.yaw = static_cast<float>(response->rotation.yaw.Value());
+  posResp.pitch = static_cast<float>(response->rotation.pitch.Value());
+  posResp.roll = static_cast<float>(response->rotation.roll.Value());
 
   if (type == sbio::cigi::EPositionResponseType::GEODETIC)
   {
@@ -379,8 +379,8 @@ void CCigiPacketSenderV3::SendHatHotExtendedResponse(const sbio::cigi::SHATHOTEx
   hatHotRespV3.HOT = response.heightOfTerrain.Value();
   hatHotRespV3.hostFrameNumberLSN = response.hostFrameLSN;
   hatHotRespV3.materialCode = response.materialCode.Value();
-  hatHotRespV3.normalVectorAzimuth = response.normalVectorAzimuth.Value();
-  hatHotRespV3.normalVectorElevation = response.normalVectorElevation.Value();
+  hatHotRespV3.normalVectorAzimuth = static_cast<float>(response.normalVectorAzimuth.Value());
+  hatHotRespV3.normalVectorElevation = static_cast<float>(response.normalVectorElevation.Value());
 
   m_pBuffer->Write(hatHotRespV3);
 }
@@ -531,7 +531,7 @@ void CCigiPacketSenderV3::SendCollisionDetectionSegmentNotificationResponse(cons
   collisionSegmentResponse.entityId = response.entityID.Value();
   collisionSegmentResponse.materialCode = response.materialCode.Value();
   collisionSegmentResponse.intersectionDistance = response.fIntersectionDistance;
-  collisionSegmentResponse.collisionType = 0;//non-entity
+  collisionSegmentResponse.collisionType = 0;// non-entity
 
   m_pBuffer->Write(collisionSegmentResponse);
 }
@@ -551,7 +551,7 @@ void CCigiPacketSenderV3::SendCollisionDetectionSegmentEntityNotificationRespons
   collisionSegmentResponse.intersectionDistance = response.fIntersectionDistance;
   collisionSegmentResponse.contactedEntityId = response.contactedEntityID.Value();
 
-  collisionSegmentResponse.collisionType = 1;//entity
+  collisionSegmentResponse.collisionType = 1;// entity
 
   m_pBuffer->Write(collisionSegmentResponse);
 }
@@ -567,7 +567,7 @@ void CCigiPacketSenderV3::SendCollisionDetectionVolumeNotificationResponse(const
   collisionVolumeResponse.entityId = response.entityID.Value();
   collisionVolumeResponse.volumeId = response.volumeID.Value();
 
-  collisionVolumeResponse.collisionType = 0;//non-entity
+  collisionVolumeResponse.collisionType = 0;// non-entity
 
   m_pBuffer->Write(collisionVolumeResponse);
 }
@@ -585,12 +585,12 @@ void CCigiPacketSenderV3::SendCollisionDetectionVolumeEntityNotificationResponse
   collisionVolumeResponse.contactedEntityId = response.contactedEntityID.Value();
   collisionVolumeResponse.contactedVolumeId = response.contactedVolumeID.Value();
 
-  collisionVolumeResponse.collisionType = 1;//entity
+  collisionVolumeResponse.collisionType = 1;// entity
 
   m_pBuffer->Write(collisionVolumeResponse);
 }
 
-void CCigiPacketSenderV3::SendStartOfFramePacket()
+void CCigiPacketSenderV3::SendStartOfFramePacket(FrameNumber frameNumber)
 {
   CIGI::V33::SoF startOfFramePacket;
 
@@ -608,38 +608,38 @@ void CCigiPacketSenderV3::SendStartOfFramePacket()
   }
   else if (eDatabaseState == EIGDatabaseState::WAIT_FOR_ACKNOWLEDGE || eDatabaseState == EIGDatabaseState::LOADING)
   {
-    startOfFramePacket.dbNumber = -static_cast<int8_t>(m_ImageGenerator.GetCurrentDatabaseID().Value());//negate ID to indicate that it is loading
+    startOfFramePacket.dbNumber = -static_cast<int8_t>(m_ImageGenerator.GetCurrentDatabaseID().Value());// negate ID to indicate that it is loading
   }
   else if (eDatabaseState == EIGDatabaseState::LOADING_FAILED)
   {
-    //If the Host requests a database that does not exist or cannot be loaded, the IG will set this parameter to -128.
+    // If the Host requests a database that does not exist or cannot be loaded, the IG will set this parameter to -128.
     startOfFramePacket.dbNumber = -128;
   }
   else if (eDatabaseState == EIGDatabaseState::IG_CONTROLLED)
   {
-    //Indicates IG controls database loading
+    // Indicates IG controls database loading
     startOfFramePacket.dbNumber = 0;
   }
   else
   {
-    //When the database load is complete and after the Host has acknowledged the database change,
-    //the IG will set this parameter to the positive database number. The IG can now be considered mission-ready.
+    // When the database load is complete and after the Host has acknowledged the database change,
+    // the IG will set this parameter to the positive database number. The IG can now be considered mission-ready.
     startOfFramePacket.dbNumber = static_cast<int8_t>(m_ImageGenerator.GetCurrentDatabaseID().Value());
   }
 
   startOfFramePacket.earthReferenceModel = m_ImageGenerator.GetEarthReferenceModel() == EEarthReferenceModel::HOST_DEFINED ? 1 : 0;
-  startOfFramePacket.igFrameNumber = m_ImageGenerator.GetFrameNumber().Value();
+  startOfFramePacket.igFrameNumber = frameNumber.Value();
   startOfFramePacket.igMode = ConvertFrom(m_ImageGenerator.GetOperationMode());
 
   list<SImageGeneratorError> errors = m_ImageGenerator.GetErrors();
 
   if (errors.empty())
   {
-    startOfFramePacket.igStatusCode = 0;//normal operation
+    startOfFramePacket.igStatusCode = 0;// normal operation
   }
   else
   {
-    //If more than one error is detected, the IG will report the one with the highest priority.
+    // If more than one error is detected, the IG will report the one with the highest priority.
     SImageGeneratorError highestError = errors.front();
 
     for (auto error : errors)

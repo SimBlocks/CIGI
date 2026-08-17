@@ -42,12 +42,14 @@ bool SEntityKindDomainCountry::operator<(const SEntityKindDomainCountry& rhs) co
 
 SEntityEnumeration* CEntityEnumerations::GetEntityPduCategory()
 {
-  return m_EntityEnums[SISO_PDU_TYPE].get();
+  const auto it = m_EntityEnums.find(SISO_PDU_TYPE);
+  return it != m_EntityEnums.end() ? it->second.get() : nullptr;
 }
 
 std::string CEntityEnumerations::GetCountry(SisoEntityCountryID entityCountryID)
 {
-  return m_EntityEnums[SISO_COUNTRY_ID]->entityDescriptions[entityCountryID.Value()].sDescription;
+  const auto it = m_EntityEnums.find(SISO_COUNTRY_ID);
+  return it != m_EntityEnums.end() ? GetEnumerationDescription(it->second.get(), entityCountryID.Value()) : "";
 }
 
 std::string CEntityEnumerations::GetEntityCategory(SisoEntityCategoryID entityCategoryID, const std::string& sEntityKind, const std::string& sEntityDomain)
@@ -56,9 +58,9 @@ std::string CEntityEnumerations::GetEntityCategory(SisoEntityCategoryID entityCa
 
   for (auto it = m_EntityEnums.begin(); it != m_EntityEnums.end(); ++it)
   {
-    if (it->second->sName == s)
+    if (it->second != nullptr && it->second->sName == s)
     {
-      return it->second->entityDescriptions[entityCategoryID.Value()].sDescription;
+      return GetEnumerationDescription(it->second.get(), entityCategoryID.Value());
     }
   }
 
@@ -67,7 +69,8 @@ std::string CEntityEnumerations::GetEntityCategory(SisoEntityCategoryID entityCa
 
 std::string CEntityEnumerations::GetEntityKind(SisoEntityKindID entityKindID)
 {
-  return m_EntityEnums[SISO_ENTITY_KIND]->entityDescriptions[entityKindID.Value()].sDescription;
+  const auto it = m_EntityEnums.find(SISO_ENTITY_KIND);
+  return it != m_EntityEnums.end() ? GetEnumerationDescription(it->second.get(), entityKindID.Value()) : "";
 }
 
 std::string CEntityEnumerations::GetDescription(SEntityKindDomainCountry ekdc, SisoEntityCategoryID entityCategoryID, SisoEntitySubCategoryID entitySubCategoryID, SisoEntitySpecificID entitySpecificID)
@@ -103,7 +106,20 @@ std::string CEntityEnumerations::GetDescription(SEntityKindDomainCountry ekdc, S
 
 std::string CEntityEnumerations::GetEntityDomain(SisoEntityDomainID entityDomainID)
 {
-  return m_EntityEnums[SISO_ENTITY_PLATFORM]->entityDescriptions[entityDomainID.Value()].sDescription;
+  const auto it = m_EntityEnums.find(SISO_ENTITY_PLATFORM);
+  return it != m_EntityEnums.end() ? GetEnumerationDescription(it->second.get(), entityDomainID.Value()) : "";
+}
+
+
+std::string CEntityEnumerations::GetEnumerationDescription(const SEntityEnumeration* pEnumeration, int value) const
+{
+  if (pEnumeration == nullptr)
+  {
+    return "";
+  }
+
+  const auto it = pEnumeration->entityDescriptions.find(value);
+  return it != pEnumeration->entityDescriptions.end() ? it->second.sDescription : "";
 }
 
 void ParseEntityTypes(XMLElement* pEntityTypesXml, std::map<SEntityKindDomainCountry, std::unique_ptr<CEntityType>>& entityTypes)

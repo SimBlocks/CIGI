@@ -92,7 +92,7 @@ void CCigiSymbol::SetColor(const SColor32& color)
 
 void CCigiSymbol::SetFlash(float fFlashDutyCycle, float fFlashPeriod)
 {
-  //ignore if values are equal
+  // ignore if values are equal
   if (fequals(m_fFlashDutyCycle, fFlashDutyCycle) && fequals(m_fFlashPeriod, fFlashPeriod))
   {
     return;
@@ -101,19 +101,19 @@ void CCigiSymbol::SetFlash(float fFlashDutyCycle, float fFlashPeriod)
   m_fFlashDutyCycle = fFlashDutyCycle;
   m_fFlashPeriod = fFlashPeriod;
 
-  //If a symbol�s flash period or duty cycle is changed, then that symbol�s flash cycle will be restarted.
+  // If a symbol�s flash period or duty cycle is changed, then that symbol�s flash cycle will be restarted.
   RestartFlash();
 
   if (fequals(m_fFlashDutyCycle, 1))
   {
-    //The Flash Duty Cycle Percentage parameter specifies the percentage of each flash cycle that the symbol is visible.
-    //If this parameter is set to 100%, then no flashing occurs and the symbol is always visible.
+    // The Flash Duty Cycle Percentage parameter specifies the percentage of each flash cycle that the symbol is visible.
+    // If this parameter is set to 100%, then no flashing occurs and the symbol is always visible.
   }
   else
   {
-    //If a symbol�s duty cycle is less than 100%, then any descendents (child symbols, grandchildren, etc.) will inherit the symbol�s duty cycle and flash period.
-    //The Flash Duty Cycle Percentage and Flash Period attributes of the descendents will be ignored.
-    //If a symbol flashes, then any descendents will flash in synchronization with that symbol.
+    // If a symbol�s duty cycle is less than 100%, then any descendents (child symbols, grandchildren, etc.) will inherit the symbol�s duty cycle and flash period.
+    // The Flash Duty Cycle Percentage and Flash Period attributes of the descendents will be ignored.
+    // If a symbol flashes, then any descendents will flash in synchronization with that symbol.
 
     // Perform a breadth-first traversal of the symbol tree rooted at this symbol, applying flash parameters to each descendant.
     std::vector<CCigiSymbol*> symbolsToVisit = {this};

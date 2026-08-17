@@ -22,6 +22,7 @@ CEntityManager::CEntityManager()
 
 CEntityManager::~CEntityManager()
 {
+  Reset();
 }
 
 bool CEntityManager::HasEntity(EntityID entityID) const
@@ -36,6 +37,29 @@ bool CEntityManager::HasEntity(EntityID entityID) const
 
 void CEntityManager::AddEntity(EntityID entityID, unique_ptr<CEntity> pEntity)
 {
+  // Validate the entity pointer before adding it to the manager
+  if (pEntity == nullptr)
+  {
+    if (g_EntityLibSettings.pLogger != nullptr)
+    {
+      const string sError = string("Cannot add a null entity with ID ") + to_string(entityID.Value()) + ".";
+      g_EntityLibSettings.pLogger->LogError(sError);
+    }
+    return;
+  }
+
+  // Validate that the entity ID matches the key used to store it
+  if (pEntity->GetEntityID() != entityID)
+  {
+    if (g_EntityLibSettings.pLogger != nullptr)
+    {
+      const string sError = string("Cannot add entity with ID ") + to_string(pEntity->GetEntityID().Value()) + " using map key " + to_string(entityID.Value()) + ".";
+      g_EntityLibSettings.pLogger->LogError(sError);
+    }
+    return;
+  }
+
+  // Check if the entity already exists in the manager
   if (HasEntity(entityID))
   {
     if (g_EntityLibSettings.pLogger != nullptr)
@@ -47,6 +71,7 @@ void CEntityManager::AddEntity(EntityID entityID, unique_ptr<CEntity> pEntity)
     RemoveEntity(entityID);
   }
 
+  // Add the entity to the manager
   m_Entities[entityID] = move(pEntity);
 }
 

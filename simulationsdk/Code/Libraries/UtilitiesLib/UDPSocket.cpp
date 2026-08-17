@@ -84,6 +84,11 @@ int CUDPSocket::GetPort() const
   return m_nPort;
 }
 
+bool CUDPSocket::IsOpen() const
+{
+  return m_pDatagramSocket != nullptr;
+}
+
 // Sets the blocking mode of the UDP socket.
 void CUDPSocket::SetBlocking(bool bBlocking)
 {

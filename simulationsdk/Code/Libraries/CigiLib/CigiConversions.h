@@ -163,6 +163,12 @@ namespace sbio
     /// @{
     /**
      * @brief Converts alpha to percentage.
+     * @param nAlpha Alpha byte value.
+     * @return Converted value.
+     */
+    sbio::Percentage ConvertAlphaToPercentage(uint8_t nAlpha);
+    /**
+     * @brief Converts alpha to percentage.
      * @param fAlpha Alpha floating-point value.
      * @return Converted value.
      */
@@ -651,22 +657,22 @@ namespace sbio
 
     /**
      * @brief Converts an SDK IG mode to the CIGI 4.0 start-of-frame representation.
-      * @param igMode Ig mode value.
-      * @return Converted value.
+     * @param igMode Ig mode value.
+     * @return Converted value.
      */
     CIGI::V40::SoF::IGMode ConvertFrom(EIGMode igMode);
 
     /**
      * @brief Converts a CIGI 3.3 IG control mode to the SDK enum.
-      * @param eIGMode Igmode enumeration value.
-      * @return Converted value.
+     * @param eIGMode Igmode enumeration value.
+     * @return Converted value.
      */
     sbio::cigi::EIGMode ConvertToIGMode33(CIGI::V33::IGCtrl::IGMode eIGMode);
 
     /**
      * @brief Converts a CIGI 3.3 start-of-frame mode to the SDK enum.
-      * @param eIGMode Igmode enumeration value.
-      * @return Converted value.
+     * @param eIGMode Igmode enumeration value.
+     * @return Converted value.
      */
     sbio::cigi::EIGMode ConvertToIGMode33(CIGI::V33::SoF::IGMode eIGMode);
 
@@ -762,6 +768,8 @@ namespace sbio
      * @return Converted value.
      */
     std::string ConvertCigiSynchronizationModeToString(ECigiSynchronizationMode eSynchronizationMode);
+
+    float ClampPercentageValue(sbio::Percentage percentage);
   }
 }
 

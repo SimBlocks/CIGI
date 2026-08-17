@@ -108,7 +108,7 @@ namespace sbio
 
         /**
          * @brief Reports whether packets have recently been received from the IG.
-          * @return `true` when the condition is met; otherwise `false`.
+         * @return `true` when the condition is met; otherwise `false`.
          */
         bool IsConnected() const;
 
@@ -146,29 +146,29 @@ namespace sbio
 
         /**
          * @brief Enables or disables packet logging for this session.
-          * @param bEnabled Whether enabled.
+         * @param bEnabled Whether enabled.
          */
         void SetLoggingEnabled(bool bEnabled);
 
         /**
          * @brief Configures whether packet byte swapping is required for this session.
-          * @param bEnabled Whether enabled.
+         * @param bEnabled Whether enabled.
          */
         void SetByteSwapEnabled(bool bEnabled);
 
         /**
          * @brief Assigns the logical identifier used to reference this session.
-          * @param sessionID Session id value.
+         * @param sessionID Session id value.
          */
         void SetSessionID(sbio::SessionID sessionID);
 
         /**
          * @brief Updates the desired IG mode and database-selection state for the session.
          * @return `true` when the request changed the tracked session state.
-          * @param databaseNumber Database number value.
-          * @param bEntityTypeSubstitutionEnabled Whether entity type substitution enabled.
-          * @param eIGMode Igmode enumeration value.
-          * @param bSmoothingEnabled Whether smoothing enabled.
+         * @param databaseNumber Database number value.
+         * @param bEntityTypeSubstitutionEnabled Whether entity type substitution enabled.
+         * @param eIGMode Igmode enumeration value.
+         * @param bSmoothingEnabled Whether smoothing enabled.
          */
         virtual bool SetIGControl(sbio::cigi::CigiDatabaseNumber databaseNumber, bool bEntityTypeSubstitutionEnabled, sbio::cigi::EIGMode eIGMode, bool bSmoothingEnabled);
 
@@ -260,10 +260,10 @@ namespace sbio
 
         /**
          * @brief Appends a base packet followed by its record payload to the send buffer.
-          * @param basePacket CIGI packet value.
-          * @param nBasePacketSize Base packet size numeric value.
-          * @param recordsPpacket CIGI packet value.
-          * @param nRecordsPacketSize Records packet size numeric value.
+         * @param basePacket CIGI packet value.
+         * @param nBasePacketSize Base packet size numeric value.
+         * @param recordsPpacket CIGI packet value.
+         * @param nRecordsPacketSize Records packet size numeric value.
          */
         void Pack(const void* basePacket, int nBasePacketSize, const void* recordsPpacket, int nRecordsPacketSize);
 
@@ -273,15 +273,15 @@ namespace sbio
       protected:
         /**
          * @brief Remembers the requested response coordinate system for a line-of-sight request.
-          * @param requestID Request id value.
-          * @param eResponseCoordinateSystem Response coordinate system enumeration value.
+         * @param requestID Request id value.
+         * @param eResponseCoordinateSystem Response coordinate system enumeration value.
          */
         void StoreLineOfSightRequestCoordinateSystem(sbio::LineOfSightRequestID requestID, sbio::ETopLevelCoordinateSystem eResponseCoordinateSystem);
 
         /**
          * @brief Looks up the coordinate system previously associated with a line-of-sight request.
-          * @param requestID Request id value.
-          * @return Line of sight request coordinate system value.
+         * @param requestID Request id value.
+         * @return Line of sight request coordinate system value.
          */
         sbio::ETopLevelCoordinateSystem GetLineOfSightRequestCoordinateSystem(sbio::LineOfSightRequestID requestID) const;
 
@@ -292,8 +292,8 @@ namespace sbio
 
         /**
          * @brief Queues a packet for later transmission when it does not fit in the active send buffer.
-          * @param packet CIGI packet value.
-          * @param nSize Size numeric value.
+         * @param packet CIGI packet value.
+         * @param nSize Size numeric value.
          */
         void QueueOverflowPacket(const void* packet, int nSize);
 
@@ -305,7 +305,7 @@ namespace sbio
         bool m_bConnected = false;
         bool m_bHasReportedWaitingForConnection = false;
         std::unique_ptr<sbio::utils::CStopWatch> m_pDisconnectedTimer;
-        sbio::FrameNumber m_HostFrameNumber = sbio::FrameNumber(0);//host frame number is unique to each session
+        sbio::FrameNumber m_HostFrameNumber = sbio::FrameNumber(0);// host frame number is unique to each session
         sbio::SessionID m_SessionID = sbio::SessionID(0);
 
         sbio::cigi::EIGMode m_DesiredIGMode = sbio::cigi::EIGMode::UNKNOWN;
@@ -314,7 +314,7 @@ namespace sbio
         EHostSessionDatabaseState m_eDatabaseState = EHostSessionDatabaseState::NO_DATABASE;
 
         int m_nSendBufferLength = 0;
-        char m_sendBuffer[MAX_UDP_SIZE];//holds packed packets to be sent
+        char m_sendBuffer[MAX_UDP_SIZE];// holds packed packets to be sent
         std::list<std::unique_ptr<sbio::utils::TBuffer<char>>> m_OverflowBuffers;
 
         sbio::cigi::CigiDatabaseNumber m_DatabaseNumber = sbio::cigi::UnknownCigiDatabaseNumber;

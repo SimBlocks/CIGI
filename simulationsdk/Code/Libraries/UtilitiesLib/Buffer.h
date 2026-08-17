@@ -15,6 +15,8 @@
 #define SIMBLOCKS_UTILITIES_BUFFER_H
 
 #include <limits>
+#include <cstdint>
+#include <vector>
 
 namespace sbio
 {
@@ -46,6 +48,12 @@ namespace sbio
        * @failurecases Allocation may throw if `new[]` fails.
        */
       CBuffer(int nSize);
+
+      /**
+       * @brief Takes ownership of an existing byte vector without copying its contents.
+       * @param buffer Byte vector whose storage is retained by this instance.
+       */
+      CBuffer(std::vector<std::uint8_t>&& buffer);
 
       /**
        * @brief Wraps an existing byte buffer.
@@ -143,6 +151,7 @@ namespace sbio
       bool m_own_Buffer = true;///< `true` when this object is responsible for deleting `m_buffer` with `delete[]`.
       int m_nSize = 0;///< Buffer size in bytes.
       char* m_buffer = nullptr;///< Pointer to the first byte of the represented buffer, or `nullptr` when empty.
+      std::vector<std::uint8_t> m_ownedBytes;///< Vector storage retained when constructed from a byte vector.
     };
 
     /**
@@ -244,7 +253,7 @@ namespace sbio
       {
         const int nNewSize = GetCheckedByteSize(nNumElements);
 
-        //clears out buffer
+        // clears out buffer
         if (m_own_Buffer)
         {
           delete[] m_buffer;

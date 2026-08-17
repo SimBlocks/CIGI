@@ -14,7 +14,7 @@ CViewGroup::~CViewGroup()
 
 void CViewGroup::AddViewID(sbio::ViewID viewID)
 {
-  //Do not accept UnknownViewID as a valid viewID. (Things will definitely break)
+  // Do not accept UnknownViewID as a valid viewID. (Things will definitely break)
   if (viewID == UnknownViewID)
   {
     return;
@@ -31,7 +31,7 @@ void CViewGroup::AddViewID(sbio::ViewID viewID)
 
 void CViewGroup::RemoveViewID(sbio::ViewID viewID)
 {
-  //Do not accept UnknownViewID as a valid viewID. (Things will definitely break)
+  // Do not accept UnknownViewID as a valid viewID. (Things will definitely break)
   if (viewID == UnknownViewID)
   {
     return;
@@ -39,7 +39,7 @@ void CViewGroup::RemoveViewID(sbio::ViewID viewID)
 
   m_ViewIDs.erase(viewID);
 
-  //If the center view was removed, one of the remaining views in this group becomes the new center
+  // If the center view was removed, one of the remaining views in this group becomes the new center
   if (viewID == m_CenterViewID)
   {
     auto it = m_ViewIDs.begin();

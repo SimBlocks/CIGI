@@ -135,7 +135,7 @@ void CCigiSymbolHandler::Handle(const SEntitySymbolSurfaceDefinition& entitySymb
     g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(entitySymbolSurfaceDefinition);
   }
 
-  //if the entity does not exist, then the entity symbol surface definition is ignored
+  // if the entity does not exist, then the entity symbol surface definition is ignored
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(entitySymbolSurfaceDefinition.entityID))
   {
     stringstream ss;
@@ -164,8 +164,8 @@ void CCigiSymbolHandler::Handle(const SEntitySymbolSurfaceDefinition& entitySymb
     return;
   }
 
-  //For non - billboard surfaces attached to an entity, the X Offset, Y Offset, Z Offset, Yaw, Pitch, and Roll parameters specify the position
-  //and attitude of the surface in relation to the entity to which it is attached.
+  // For non - billboard surfaces attached to an entity, the X Offset, Y Offset, Z Offset, Yaw, Pitch, and Roll parameters specify the position
+  // and attitude of the surface in relation to the entity to which it is attached.
 
   CigiBodyCoordinates cigiBodyCoordinates;
   cigiBodyCoordinates[0] = entitySymbolSurfaceDefinition.offsetToSurface[0];
@@ -181,9 +181,9 @@ void CCigiSymbolHandler::Handle(const SEntitySymbolSurfaceDefinition& entitySymb
   data.uvMax.U = entitySymbolSurfaceDefinition.uvMax.x();
   data.uvMax.V = entitySymbolSurfaceDefinition.uvMax.y();
   data.Offset = bodyCoordinates;
-  data.Roll = entitySymbolSurfaceDefinition.roll.Value();
-  data.Pitch = entitySymbolSurfaceDefinition.pitch.Value();
-  data.Yaw = entitySymbolSurfaceDefinition.yaw.Value();
+  data.Roll = static_cast<float>(entitySymbolSurfaceDefinition.roll.Value());
+  data.Pitch = static_cast<float>(entitySymbolSurfaceDefinition.pitch.Value());
+  data.Yaw = static_cast<float>(entitySymbolSurfaceDefinition.yaw.Value());
   data.Width = entitySymbolSurfaceDefinition.width;
   data.Height = entitySymbolSurfaceDefinition.height;
 
@@ -197,7 +197,7 @@ void CCigiSymbolHandler::Handle(const SEntityBillboardSymbolSurfaceDefinition& e
     g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(entityBillboardSurfaceDefinition);
   }
 
-  //if the entity does not exist, then the entity billboard surface definition is ignored
+  // if the entity does not exist, then the entity billboard surface definition is ignored
   if (!g_CigiLibGlobals.pEntityManager->HasEntity(entityBillboardSurfaceDefinition.entityID))
   {
     stringstream ss;
@@ -225,9 +225,9 @@ void CCigiSymbolHandler::Handle(const SEntityBillboardSymbolSurfaceDefinition& e
     return;
   }
 
-  //For a billboard surface attached to an entity, offset specifies the distance along the surface�s axes from the center of the surface to the
-  //entity�s reference point(see Section 3.4.4.2).
-  //billboard will be facing camera and be independent of entity's rotation
+  // For a billboard surface attached to an entity, offset specifies the distance along the surface�s axes from the center of the surface to the
+  // entity�s reference point(see Section 3.4.4.2).
+  // billboard will be facing camera and be independent of entity's rotation
 
   // The given offset given is surface->entity, but we want the offset from entity->surface, so the vector is reversed to fix this
   CigiBodyCoordinates cigiBodyCoordinates;
@@ -257,7 +257,7 @@ void CCigiSymbolHandler::Handle(const SViewSymbolSurfaceDefinition& viewSymbolSu
     g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(viewSymbolSurfaceDefinition);
   }
 
-  //if the view does not exist, then the view symbol surface definition is ignored
+  // if the view does not exist, then the view symbol surface definition is ignored
   if (!g_CigiLibGlobals.pViewManager->HasView(viewSymbolSurfaceDefinition.viewID))
   {
     stringstream ss;
@@ -285,9 +285,9 @@ void CCigiSymbolHandler::Handle(const SViewSymbolSurfaceDefinition& viewSymbolSu
     return;
   }
 
-  //A symbol surface that is attached to a view is overlaid onto the view�s viewport.
-  //The size and position of the symbol surface are defined in terms of the width and height of the viewport.
-  //The coordinates (0, 0) and (1.0, 1.0) are mapped to the lower-left and upper-right corners of the viewport, respectively.
+  // A symbol surface that is attached to a view is overlaid onto the view�s viewport.
+  // The size and position of the symbol surface are defined in terms of the width and height of the viewport.
+  // The coordinates (0, 0) and (1.0, 1.0) are mapped to the lower-left and upper-right corners of the viewport, respectively.
   SUpdateViewSymbolSurfaceMessage data;
   data.SurfaceID = viewSymbolSurfaceDefinition.surfaceID;
   data.ViewID = viewSymbolSurfaceDefinition.viewID;
@@ -310,7 +310,7 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
     g_CigiLibGlobals.pCigiMessageLogger->LogMessageFromHostToIG(symbolControl);
   }
 
-  //ignore if symbol does not exist
+  // ignore if symbol does not exist
   if (!g_CigiLibGlobals.pSymbolSurfaceManager->HasSymbol(symbolControl.symbolID))
   {
     return;
@@ -320,8 +320,8 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
 
   if (symbolControl.eSymbolState == ESymbolState::VISIBLE)
   {
-    //When a symbol is created, that symbol is hidden until the Host sends a Symbol Control packet with the Symbol State field set to Visible.
-    //Any immediate children of that symbol either remain hidden or become visible depending upon their individual states.
+    // When a symbol is created, that symbol is hidden until the Host sends a Symbol Control packet with the Symbol State field set to Visible.
+    // Any immediate children of that symbol either remain hidden or become visible depending upon their individual states.
     if (!pSymbol->GetEffectiveVisibility())
     {
       g_CigiLibGlobals.pSymbolSurfaceManager->SetSymbolTreeVisible(symbolControl.symbolID, true);
@@ -329,13 +329,13 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
   }
   else if (symbolControl.eSymbolState == ESymbolState::HIDDEN)
   {
-    //The symbol and all of its children can be hidden at any time by setting Symbol State to Hidden(0).
+    // The symbol and all of its children can be hidden at any time by setting Symbol State to Hidden(0).
     g_CigiLibGlobals.pSymbolSurfaceManager->SetSymbolTreeVisible(symbolControl.symbolID, false);
   }
   else if (symbolControl.eSymbolState == ESymbolState::DESTROYED)
   {
-    //When the Symbol is no longer needed, Symbol State can be set to Destroyed (2) to direct the IG to unload the symbol and free any associated resources.
-    //Any children attached to the symbol are also destroyed.
+    // When the Symbol is no longer needed, Symbol State can be set to Destroyed (2) to direct the IG to unload the symbol and free any associated resources.
+    // Any children attached to the symbol are also destroyed.
     DestroySymbolTree(symbolControl.symbolID);
     return;
   }
@@ -432,7 +432,7 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
 
       if (symbolControl.bSetColor)
       {
-        //If the Inherit Color parameter is set to Inherited (1), then the Red, Blue, Green, and Alpha parameters are ignored and the values of the parent are used.
+        // If the Inherit Color parameter is set to Inherited (1), then the Red, Blue, Green, and Alpha parameters are ignored and the values of the parent are used.
         if (symbolControl.bInheritColor)
         {
           pSymbol->SetColor(pParentSymbol->GetColor());
@@ -465,7 +465,7 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
     }
     if (symbolControl.bSetColor)
     {
-      //The Inherit Color parameter is ignored for top-level (i.e., root) symbols.
+      // The Inherit Color parameter is ignored for top-level (i.e., root) symbols.
       pSymbol->SetColor(symbolControl.color);
     }
   }
@@ -498,7 +498,7 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
     g_CigiLibGlobals.pEventMessenger->SendUpdateSymbolMessage(data);
   }
 
-  //If the Flash Control parameter is set to Reset, then the symbol�s flash cycle will be restarted from the beginning.
+  // If the Flash Control parameter is set to Reset, then the symbol�s flash cycle will be restarted from the beginning.
   if (symbolControl.eFlashControl == EFlashControl::RESET)
   {
     pSymbol->RestartFlash();
@@ -522,12 +522,12 @@ void CCigiSymbolHandler::Handle(const SSymbolTextDefinition& symbolTextDefinitio
 
     if (pSymbol->GetSymbolType() == ESymbolType::TEXT)
     {
-      //Once a Symbol Text Definition packet describing a text symbol is sent to the IG, that symbol�s type may not be changed.
+      // Once a Symbol Text Definition packet describing a text symbol is sent to the IG, that symbol�s type may not be changed.
     }
     else
     {
-      //If a Symbol Circle Definition, Symbol Line Definition, or Symbol Clone packet is received specifying the same Symbol ID but a different type,
-      //then the existing text symbol will be destroyed along with any children and a new symbol will be created using the new definition packet.
+      // If a Symbol Circle Definition, Symbol Line Definition, or Symbol Clone packet is received specifying the same Symbol ID but a different type,
+      // then the existing text symbol will be destroyed along with any children and a new symbol will be created using the new definition packet.
       DestroySymbolTree(symbolTextDefinition.symbolID);
 
       std::unique_ptr<CCigiSymbol> pCigiSymbol = std::make_unique<CCigiSymbol>(symbolTextDefinition.symbolID, ESymbolType::TEXT);
@@ -541,7 +541,7 @@ void CCigiSymbolHandler::Handle(const SSymbolTextDefinition& symbolTextDefinitio
     g_CigiLibGlobals.pSymbolSurfaceManager->AddSymbol(symbolTextDefinition.symbolID, std::move(pCigiSymbol));
     pSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(symbolID);
 
-    //All symbols are initially hidden
+    // All symbols are initially hidden
     pSymbol->SetVisible(false, true);
   }
 
@@ -566,10 +566,10 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolTexturedCircle& symbo
 
     if (pSymbol->GetSymbolType() != ESymbolType::TEXTURED_CIRCLE)
     {
-      //Once a Symbol Textured Circle Definition packet describing a circle symbol is sent to the IG, that symbol�s type may not be changed.
-      //If a Symbol Textured Polygon Definition is received specifying the same Symbol ID but a different type,
-      //then the existing circle symbol shall be destroyed along with any children and a new symbol shall be created
-      //using the new definition packet.
+      // Once a Symbol Textured Circle Definition packet describing a circle symbol is sent to the IG, that symbol�s type may not be changed.
+      // If a Symbol Textured Polygon Definition is received specifying the same Symbol ID but a different type,
+      // then the existing circle symbol shall be destroyed along with any children and a new symbol shall be created
+      // using the new definition packet.
       DestroySymbolTree(symbolID);
 
       pSymbol = nullptr;
@@ -582,7 +582,7 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolTexturedCircle& symbo
     g_CigiLibGlobals.pSymbolSurfaceManager->AddSymbol(symbolID, std::move(pCigiSymbol));
     pSymbol = dynamic_cast<CCigiSymbol*>(g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(symbolID));
 
-    //All symbols are initially hidden
+    // All symbols are initially hidden
     pSymbol->SetVisible(false, true);
   }
 
@@ -607,9 +607,9 @@ void CCigiSymbolHandler::Handle(const SSymbolCircle& symbolCircle)
 
     if (pSymbol->GetSymbolType() != ESymbolType::CIRCLE)
     {
-      //If a Symbol Circle Definition packet is received specifying the same Symbol ID but a different type,
-      //then the existing text symbol shall be destroyed along with any children and a new symbol shall be created
-      //using the new definition packet.
+      // If a Symbol Circle Definition packet is received specifying the same Symbol ID but a different type,
+      // then the existing text symbol shall be destroyed along with any children and a new symbol shall be created
+      // using the new definition packet.
       DestroySymbolTree(symbolID);
 
       pSymbol = nullptr;
@@ -622,7 +622,7 @@ void CCigiSymbolHandler::Handle(const SSymbolCircle& symbolCircle)
     g_CigiLibGlobals.pSymbolSurfaceManager->AddSymbol(symbolID, std::move(pCigiSymbol));
     pSymbol = dynamic_cast<CCigiSymbol*>(g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(symbolID));
 
-    //All symbols are initially hidden
+    // All symbols are initially hidden
     pSymbol->SetVisible(false, true);
   }
 
@@ -647,9 +647,9 @@ void CCigiSymbolHandler::Handle(const SSymbolPolygon& symbolPolygon)
 
     if (pSymbol->GetSymbolType() != ESymbolType::POLYGON)
     {
-      //Once a Symbol Polygon Definition packet describing a circle symbol is sent to the IG, that symbol�s type may not be changed.
-      //If a Symbol Polygon Definition packet is received specifying the same Symbol ID but a different type, then the existing circle symbol shall
-      //be destroyed along with any children and a new symbol shall be created using the new definition packet.
+      // Once a Symbol Polygon Definition packet describing a circle symbol is sent to the IG, that symbol�s type may not be changed.
+      // If a Symbol Polygon Definition packet is received specifying the same Symbol ID but a different type, then the existing circle symbol shall
+      // be destroyed along with any children and a new symbol shall be created using the new definition packet.
       DestroySymbolTree(symbolID);
 
       pSymbol = nullptr;
@@ -662,7 +662,7 @@ void CCigiSymbolHandler::Handle(const SSymbolPolygon& symbolPolygon)
     g_CigiLibGlobals.pSymbolSurfaceManager->AddSymbol(symbolID, std::move(pCigiSymbol));
     pSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(symbolID);
 
-    //All symbols are initially hidden
+    // All symbols are initially hidden
     pSymbol->SetVisible(false, true);
   }
 
@@ -687,9 +687,9 @@ void CCigiSymbolHandler::Handle(const SSymbolTexturedPolygon& symbolPolygon)
 
     if (pSymbol->GetSymbolType() != ESymbolType::TEXTURED_POLYGON)
     {
-      //Once a Symbol Textured Polygon Definition packet describing a circle symbol is sent to the IG, that symbol�s type may not be changed.
-      //If a Symbol Textured Polygon Definition packet is received specifying the same Symbol ID but a different type, then the existing circle symbol shall
-      //be destroyed along with any children and a new symbol shall be created using the new definition packet.
+      // Once a Symbol Textured Polygon Definition packet describing a circle symbol is sent to the IG, that symbol�s type may not be changed.
+      // If a Symbol Textured Polygon Definition packet is received specifying the same Symbol ID but a different type, then the existing circle symbol shall
+      // be destroyed along with any children and a new symbol shall be created using the new definition packet.
       DestroySymbolTree(symbolID);
 
       pSymbol = nullptr;
@@ -702,7 +702,7 @@ void CCigiSymbolHandler::Handle(const SSymbolTexturedPolygon& symbolPolygon)
     g_CigiLibGlobals.pSymbolSurfaceManager->AddSymbol(symbolID, std::move(pCigiSymbol));
     pSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(symbolID);
 
-    //All symbols are initially hidden
+    // All symbols are initially hidden
     pSymbol->SetVisible(false, true);
   }
 
@@ -725,7 +725,7 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolClone& symbolClone)
   {
     if (!g_CigiLibGlobals.pSymbolSurfaceManager->HasSymbol(symbolClone.sourceID))
     {
-      //source symbol is missing
+      // source symbol is missing
       return;
     }
 
@@ -737,8 +737,8 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolClone& symbolClone)
 
       if (pSymbol->GetSymbolType() != pSymbolSource->GetSymbolType())
       {
-        //If a symbol with the specified identifier already exists, and if that symbol is of a different type,
-        //then the IG shall destroy the existing symbol and any children and shall create a new symbol.
+        // If a symbol with the specified identifier already exists, and if that symbol is of a different type,
+        // then the IG shall destroy the existing symbol and any children and shall create a new symbol.
         DestroySymbolTree(symbolID);
 
         pSymbol = nullptr;
@@ -819,21 +819,33 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolClone& symbolClone)
 
 void sbio::cigi::ig::CCigiSymbolHandler::Reset()
 {
+  std::vector<SymbolID> symbolIDs;
   for (const auto& symbolKeyValuePair : g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbols())
   {
-    SDestroySymbolMessage data;
-    data.SymbolID = symbolKeyValuePair.first;
-    g_CigiLibGlobals.pEventMessenger->SendDestroySymbolMessage(data);
+    symbolIDs.push_back(symbolKeyValuePair.first);
   }
+
+  std::vector<SymbolSurfaceID> surfaceIDs;
+  for (auto surfaceID : g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbolSurfaces())
+  {
+    surfaceIDs.push_back(surfaceID);
+  }
+
   g_CigiLibGlobals.pSymbolSurfaceManager->ClearSymbols();
 
-  for (auto surfaceID : g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbolSurfaces())
+  for (auto symbolID : symbolIDs)
+  {
+    SDestroySymbolMessage data;
+    data.SymbolID = symbolID;
+    g_CigiLibGlobals.pEventMessenger->SendDestroySymbolMessage(data);
+  }
+
+  for (auto surfaceID : surfaceIDs)
   {
     SDestroySymbolSurfaceMessage data;
     data.SurfaceID = surfaceID;
     g_CigiLibGlobals.pEventMessenger->SendDestroySymbolSurfaceMessage(data);
   }
-  g_CigiLibGlobals.pSymbolSurfaceManager->ClearSymbolSurfaces();
 }
 
 //The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.

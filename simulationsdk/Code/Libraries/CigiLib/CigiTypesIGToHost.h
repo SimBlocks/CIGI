@@ -26,8 +26,8 @@ namespace sbio
      *
      * The numeric assignments are IG-specific and are typically resolved to user-facing text by
      * higher-level application code.
-      * @param ImageGeneratorMessageID Message text or payload.
-      * @param uint16_t Uint16 t value.
+     * @param ImageGeneratorMessageID Message text or payload.
+     * @param uint16_t Uint16 t value.
      */
     STRONG_TYPE(ImageGeneratorMessageID, uint16_t);///< Strong type for Image Generator Message ID. Event ID assignments are IG-specific.
 
@@ -35,19 +35,14 @@ namespace sbio
      * @brief Strong type for image-generator-defined event identifiers.
      *
      * The numeric assignments are IG-specific and are preserved exactly as reported by the IG.
-      * @param ImageGeneratorEventID Image generator event id value.
-      * @param uint16_t Uint16 t value.
+     * @param ImageGeneratorEventID Image generator event id value.
+     * @param uint16_t Uint16 t value.
      */
     STRONG_TYPE(ImageGeneratorEventID, uint16_t);///< Strong type for Event ID. Event ID assignments are IG-specific.
 
     // Start Of Frame
     /**
      * @brief Stores the IG state reported in a start-of-frame packet.
-     *
-     * Invariants:
-     * - `eVersion` identifies the CIGI version used to interpret this packet.
-     * - `databaseID`, `eIGMode`, and frame fields are stored exactly as supplied by the IG.
-     * - Status flags mirror the packet state without additional validation.
      */
     struct SCigiStartOfFrame
     {
@@ -66,10 +61,6 @@ namespace sbio
 
     /**
      * @brief Base data shared by HAT, HOT, and extended HAT/HOT responses.
-     *
-     * Invariants:
-     * - `HATHOTID` identifies the originating request.
-     * - `hostFrameLSN` preserves the low-significance host frame number carried by the protocol.
      */
     struct SBaseHATHOTResponse
     {
@@ -80,9 +71,6 @@ namespace sbio
 
     /**
      * @brief Reports height above terrain for a HAT request.
-     *
-     * Invariants:
-     * - `heightAboveTerrain` is stored exactly as supplied by the IG and may be negative when the test point is below terrain.
      */
     struct SHeightAboveTerrainResponse : SBaseHATHOTResponse
     {
@@ -91,9 +79,6 @@ namespace sbio
 
     /**
      * @brief Reports terrain height relative to the test point for a HOT request.
-     *
-     * Invariants:
-     * - `heightOfTerrain` is stored exactly as supplied by the IG.
      */
     struct SHeightOfTerrainResponse : SBaseHATHOTResponse
     {
@@ -102,10 +87,7 @@ namespace sbio
 
     /**
      * @brief Reports the extended HAT/HOT response that carries both heights and surface details.
-     *
-     * Invariants:
-     * - Height and surface members are stored exactly as supplied by the IG.
-     * - Surface fields are meaningful only when `bValid` is `true`.
+     * @note Surface fields are meaningful only when `bValid` is `true`.
      */
     struct SHATHOTExtendedResponse : SBaseHATHOTResponse
     {
@@ -118,11 +100,6 @@ namespace sbio
 
     /**
      * @brief Stores the basic line-of-sight response payload.
-     *
-     * Invariants:
-     * - `lineOfSightRequestID` identifies the originating request.
-     * - `entityID` is meaningful only when `bEntityIDValid` is `true`.
-     * - `responseCount` preserves the count reported by the IG for repeated responses.
      */
     struct SLineOfSightResponse
     {
@@ -135,10 +112,7 @@ namespace sbio
 
     /**
      * @brief Stores the basic line-of-sight response when the hit result identifies an entity.
-     *
-     * Invariants:
-     * - `entityID` identifies the hit entity when `bValid` is `true`.
-     * - `bVisible` mirrors the visibility flag returned by the IG.
+     * @note `entityID` identifies the hit entity when `bValid` is `true`.
      */
     struct SLineOfSightEntityResponse
     {
@@ -149,19 +123,16 @@ namespace sbio
       double dRange = 0;
       EntityID entityID = UnknownEntityID;
 
-      //The IG should set the visible parameter to false if the segment intersected one or more polygons before reaching the destination point.
+      // The IG should set the visible parameter to false if the segment intersected one or more polygons before reaching the destination point.
       // If the LOS segment destination point is within the body of a target entity model,
       // then the IG should set this parameter to false and the Entity ID parameter to the ID of that entity.
-      //The IG should set the visible parameter to true if the segment did not intersect with any polygons before reaching the destination point.
+      // The IG should set the visible parameter to true if the segment did not intersect with any polygons before reaching the destination point.
       bool bVisible = false;
     };
 
     /**
      * @brief Base data shared by extended line-of-sight responses.
-     *
-     * Invariants:
-     * - `dRange` is meaningful only when `bRangeValid` is `true`.
-     * - Surface and normal-vector members are stored exactly as supplied by the IG.
+     * @note `dRange` is meaningful only when `bRangeValid` is `true`.
      */
     struct SBaseLineOfSightExtendedResponse
     {
@@ -181,7 +152,7 @@ namespace sbio
     /**
      * @brief Extended line-of-sight response whose hit location is expressed in geodetic coordinates.
      * SLineOfSightExtendedGeodeticCoordinatesResponse will be the response type for an extended line-of-sight request
-     if no entity entity is hit, regardless of the requested response coordinate system. 
+     if no entity entity is hit, regardless of the requested response coordinate system.
      */
     struct SLineOfSightExtendedGeodeticCoordinatesResponse : SBaseLineOfSightExtendedResponse
     {
@@ -203,9 +174,6 @@ namespace sbio
      * @brief Extended line-of-sight response whose hit location is expressed relative to an entity.
      * SLineOfSightExtendedEntityCoordinatesResponse will be the response type for an extended line-of-sight request
      if an entity is hit and the requested response coordinate system is relative to an entity.
-     *
-     * Invariants:
-     * - `entityID` identifies the reference entity for `offset`.
      */
     struct SLineOfSightExtendedEntityCoordinatesResponse : SBaseLineOfSightExtendedResponse
     {
@@ -215,10 +183,6 @@ namespace sbio
 
     /**
      * @brief Reports the current state of a basic sensor response.
-     *
-     * Invariants:
-     * - `sensorID` identifies the reporting sensor.
-     * - `gateSize` and `gatePosition` are stored exactly as supplied by the IG.
      */
     struct SSensorResponse
     {
@@ -246,9 +210,6 @@ namespace sbio
 
     /**
      * @brief Reports the current state of an extended sensor response associated with an entity.
-     *
-     * Invariants:
-     * - `entityID` identifies the tracked entity reference.
      */
     struct SSensorExtendedEntityResponse
     {
@@ -275,10 +236,6 @@ namespace sbio
 
     /**
      * @brief Base data shared by all position response variants.
-     *
-     * Invariants:
-     * - `eObjectClass` and `objectID` identify the responding object.
-     * - `rotation` stores the reported orientation exactly as supplied by the IG.
      */
     struct SBasePositionResponse
     {
@@ -305,9 +262,6 @@ namespace sbio
 
     /**
      * @brief Position response expressed as an offset from an articulated part.
-     *
-     * Invariants:
-     * - `articulatedPartID` identifies the articulated part that provides the reference frame for `offset`.
      */
     struct SPositionResponseArticulatedPartCoordinates : SBasePositionResponse
     {
@@ -317,10 +271,6 @@ namespace sbio
 
     /**
      * @brief Reports weather conditions at the location requested by the host.
-     *
-     * Invariants:
-     * - `requestID` correlates this response with the originating request.
-     * - Atmospheric members are stored exactly as supplied by the IG.
      */
     struct SWeatherConditionsResponse
     {
@@ -335,9 +285,6 @@ namespace sbio
 
     /**
      * @brief Reports aerosol concentration for one weather layer.
-     *
-     * Invariants:
-     * - `layerID` identifies the returned layer within the IG-specific weather model.
      */
     struct SAerosolConcentrationResponse
     {
@@ -348,23 +295,17 @@ namespace sbio
 
     /**
      * @brief Reports maritime surface conditions at the location requested by the host.
-     *
-     * Invariants:
-     * - `requestID` correlates this response with the originating request.
      */
     struct SMaritimeSurfaceConditionsResponse
     {
       uint8_t requestID = 0;
       sbio::math::HeightRelativeToWGS84Ellipsoid fSeaSurfaceHeight = sbio::math::UnknownHeightRelativeToWGS84Ellipsoid;
       sbio::TemperatureCelsius fSurfaceWaterTemperature = sbio::UnknownTemperatureCelsius;
-      Percentage surfaceClarity = UnknownPercentage;//0-1. A value of 100% indicates pristine water. A value of 0% indicates extremely turbid water.
+      Percentage surfaceClarity = UnknownPercentage;// 0-1. A value of 100% indicates pristine water. A value of 0% indicates extremely turbid water.
     };
 
     /**
      * @brief Reports the terrestrial surface condition at the requested location.
-     *
-     * Invariants:
-     * - `surfaceConditionID` is the IG-reported surface condition identifier for the sample point.
      */
     struct STerrestrialSurfaceConditionsResponse
     {
@@ -374,9 +315,6 @@ namespace sbio
 
     /**
      * @brief Reports a non-entity collision detected by a collision segment.
-     *
-     * Invariants:
-     * - `entityID` and `segmentID` identify the segment that generated the notification.
      */
     struct SCollisionDetectionSegmentNotification
     {
@@ -388,9 +326,6 @@ namespace sbio
 
     /**
      * @brief Reports an entity collision detected by a collision segment.
-     *
-     * Invariants:
-     * - `contactedEntityID` identifies the contacted entity.
      */
     struct SCollisionDetectionSegmentEntityNotification
     {
@@ -403,9 +338,6 @@ namespace sbio
 
     /**
      * @brief Reports a non-entity collision detected by a collision volume.
-     *
-     * Invariants:
-     * - `entityID` and `volumeID` identify the volume that generated the notification.
      */
     struct SCollisionDetectionVolumeNotification
     {
@@ -416,9 +348,6 @@ namespace sbio
 
     /**
      * @brief Reports an entity collision detected by a collision volume.
-     *
-     * Invariants:
-     * - `contactedEntityID` identifies the contacted entity.
      */
     struct SCollisionDetectionVolumeEntityNotification
     {
@@ -430,9 +359,6 @@ namespace sbio
 
     /**
      * @brief Reports that an entity animation has stopped.
-     *
-     * Invariants:
-     * - `entityID` identifies the entity whose animation stopped.
      */
     struct SAnimationStopNotification
     {
@@ -441,9 +367,6 @@ namespace sbio
 
     /**
      * @brief Reports an IG-defined event notification.
-     *
-     * Invariants:
-     * - Event identifier and payload words are preserved exactly as emitted by the IG.
      */
     struct SEventNotification
     {
@@ -455,10 +378,6 @@ namespace sbio
 
     /**
      * @brief Reports an IG-defined message notification.
-     *
-     * Invariants:
-     * - `MessageID` identifies the message kind.
-     * - `sData` contains any implementation-defined message payload text.
      */
     struct SImageGeneratorNotification
     {

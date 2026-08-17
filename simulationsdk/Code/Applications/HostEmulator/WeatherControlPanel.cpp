@@ -185,7 +185,7 @@ void CWeatherControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
 
   condition.HorizontalWindSpeed = GetFloat("Horizontal Wind Speed");
   condition.VerticalWindSpeed = GetFloat("Vertical Wind Speed");
-  condition.WindDirection = GetFloat("Wind Direction");
+  condition.WindDirection = Degrees360(GetFloat("Wind Direction"));
 
   if (condition.HorizontalWindSpeed < horizontalWindMin)
   {
@@ -196,14 +196,14 @@ void CWeatherControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     wxLogError("Horizontal Wind Speed: Enter number greater than or equal to 0");
     condition.HorizontalWindSpeed = ResetFloat("Horizontal Wind Speed");
   }
-  if (condition.WindDirection < windDirectionMin || condition.WindDirection > windDirectionMax)
+  if (condition.WindDirection.Value() < windDirectionMin || condition.WindDirection.Value() > windDirectionMax)
   {
     HostCigiErrorEventArgs args;
     args.sError = "Wind Direction: Enter number between 0.0 and 360.0";
     Event::Raise<HostCigiEvent>(args);
 
     wxLogError("Wind Direction: Enter number between 0.0 and 360.0");
-    condition.WindDirection = ResetFloat("Wind Direction");
+    condition.WindDirection = Degrees360(ResetFloat("Wind Direction"));
   }
   if (condition.fBarometricPressure < barometricMin)
   {

@@ -65,8 +65,9 @@ namespace sbio
         /// @{
         /**
          * @brief Sends a start-of-frame packet.
+         * @param frameNumber Frame number to serialize in the packet.
          */
-        virtual void SendStartOfFramePacket() = 0;
+        virtual void SendStartOfFramePacket(FrameNumber frameNumber) = 0;
         /**
          * @brief Sends an animation stop notification.
          * @param response Animation stop notification data.

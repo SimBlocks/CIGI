@@ -92,8 +92,8 @@ void CHostSession::Initialize()
        << "  IG IP setting: " << hostSetupOptions.igIPAddress << "\n"
        << "  CIGI Version: " << ConvertCigiVersionToString(hostSetupOptions.eCigiVersion) << "\n"
        << "  Synchronization Mode: " << ConvertCigiSynchronizationModeToString(hostSetupOptions.eSynchronizationMode);
-    HostCigiErrorEventArgs args;
-    args.sError = ss.str();
+    HostCigiMessageEventArgs args;
+    args.sMessage = ss.str();
     Event::Raise<HostCigiEvent>(args);
   }
 
@@ -102,10 +102,23 @@ void CHostSession::Initialize()
     m_pSocketHostToIG = make_unique<CUDPSendSocket>(hostSetupOptions.igIPAddress, hostSetupOptions.hostToIGPort);
     m_pSocketIGToHost = make_unique<CUDPReceiveSocket>(hostSetupOptions.igToHostPort);
 
+    if (!m_pSocketHostToIG->IsOpen() || !m_pSocketIGToHost->IsOpen())
+    {
+      m_pSocketHostToIG.reset();
+      m_pSocketIGToHost.reset();
+
+      stringstream ss;
+      ss << "Failed to initialize sockets for Host session " << m_SessionID.Value() << ". Target IG endpoint: " << hostSetupOptions.igIPAddress << ":" << hostSetupOptions.hostToIGPort << ", local receive port: " << hostSetupOptions.igToHostPort << ".";
+      HostCigiErrorEventArgs args;
+      args.sError = ss.str();
+      Event::Raise<HostCigiEvent>(args);
+      return;
+    }
+
     stringstream ss;
     ss << "Host session " << m_SessionID.Value() << " sockets created. Waiting for IG packets on local UDP port " << hostSetupOptions.igToHostPort << " while sending IG Control to " << hostSetupOptions.igIPAddress << ":" << hostSetupOptions.hostToIGPort << ".";
-    HostCigiErrorEventArgs args;
-    args.sError = ss.str();
+    HostCigiMessageEventArgs args;
+    args.sMessage = ss.str();
     Event::Raise<HostCigiEvent>(args);
   }
   catch (const Poco::IOException& ex)
@@ -274,8 +287,8 @@ bool CHostSession::ProcessPackets()
   else
   {
     bDataReceived = true;
-    //a message has been received from the client
-    //process each packet in the message
+    // a message has been received from the client
+    // process each packet in the message
     int nRemainingBytes = n;
     uint8_t* pBuf = buffer.data();
 
@@ -305,8 +318,8 @@ bool CHostSession::ProcessPackets()
 
       stringstream ss;
       ss << "Connected to IG for Host session " << m_SessionID.Value() << ". Received IG traffic on local port " << hostSetupOptions.igToHostPort << " after sending Host traffic to " << hostSetupOptions.igIPAddress << ":" << hostSetupOptions.hostToIGPort << ".";
-      HostCigiErrorEventArgs args;
-      args.sError = ss.str();
+      HostCigiMessageEventArgs args;
+      args.sMessage = ss.str();
       Event::Raise<HostCigiEvent>(args);
     }
 
@@ -328,8 +341,8 @@ bool CHostSession::ProcessPackets()
       stringstream ss;
       ss << "Disconnected from IG for Host session " << m_SessionID.Value() << ". No IG packets were received for more than 2 seconds on local port " << hostSetupOptions.igToHostPort << ". Expected IG target endpoint is " << hostSetupOptions.hostIPAddress << ":" << hostSetupOptions.igToHostPort
          << ", and Host continues sending IG Control to " << hostSetupOptions.igIPAddress << ":" << hostSetupOptions.hostToIGPort << ".";
-      HostCigiErrorEventArgs args;
-      args.sError = ss.str();
+      HostCigiMessageEventArgs args;
+      args.sMessage = ss.str();
       Event::Raise<HostCigiEvent>(args);
       m_bHasReportedWaitingForConnection = false;
     }
@@ -414,17 +427,17 @@ void CHostSession::SendPackets()
   }
   else if ((pBuffer - buffer) + m_nSendBufferLength > MAX_UDP_SIZE)
   {
-    //send IG Control
+    // send IG Control
     int64_t bufferSize = pBuffer - buffer;
     m_pSocketHostToIG->Send((char*)buffer, (int)bufferSize);
 
-    //send other packets
+    // send other packets
     memcpy(buffer, m_sendBuffer, m_nSendBufferLength);
     m_pSocketHostToIG->Send((char*)buffer, m_nSendBufferLength);
   }
   else
   {
-    //send other packets in addition to IG Control packets
+    // send other packets in addition to IG Control packets
     memcpy(pBuffer, m_sendBuffer, m_nSendBufferLength);
     pBuffer += m_nSendBufferLength;
 
@@ -432,7 +445,7 @@ void CHostSession::SendPackets()
     m_pSocketHostToIG->Send((char*)buffer, (int)bufferSize);
   }
 
-  //always reset send buffer length
+  // always reset send buffer length
   m_nSendBufferLength = 0;
   MoveQueuedPacketsToSendBuffer();
 

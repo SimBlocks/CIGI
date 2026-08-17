@@ -42,7 +42,7 @@ using namespace sbio::cigi::ig;
 
 extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
-const CigiDatabaseNumber DefaultDatabaseNumber(0);//Default Database Number from CIGI ICD
+const CigiDatabaseNumber DefaultDatabaseNumber(0);// Default Database Number from CIGI ICD
 
 CCigiImageGenerator::CCigiImageGenerator(const sbio::cigi::ig::SIGSetupOptions& setupOptions) :
   m_SetupOptions(setupOptions), m_eDatabaseState(EIGDatabaseState::NO_DATABASE), m_eOperationMode(EIGMode::RESET), m_LastHostFrameNumber(0), m_ImageGeneratorFrameNumber(0), m_DatabaseNumber(DefaultDatabaseNumber), m_bTimeStampValid(false), m_eEarthReferenceModel(EEarthReferenceModel::WGS84)
@@ -195,7 +195,7 @@ double CCigiImageGenerator::GetTimeInSeconds() const
 
 uint32_t CCigiImageGenerator::GetTimeStamp() const
 {
-  //timestamp is in 10 microseconds
+  // timestamp is in 10 microseconds
   return static_cast<uint32_t>(m_PlayTimer->GetElapsedMicroseconds() / 10);
 }
 
@@ -265,7 +265,7 @@ void CCigiImageGenerator::Initialize()
 
   LoadCigiToSisoEntityEnumerationConversionFile();
 
-  SendPackets();//send start of frame packet
+  SendPackets();// send start of frame packet
 }
 
 bool CCigiImageGenerator::IsTimeStampValid() const
@@ -376,6 +376,7 @@ void CCigiImageGenerator::Update(double fTimeStepSeconds)
   g_CigiLibGlobals.pViewManager->Update();
   g_CigiLibGlobals.pSymbolSurfaceManager->Update();
   SetIgControlReceived(false);
+  ++m_ImageGeneratorFrameNumber;
 
   if (m_SetupOptions.eSynchronizationMode == ECigiSynchronizationMode::SYNCHRONOUS)
   {
@@ -395,8 +396,6 @@ void CCigiImageGenerator::Update(double fTimeStepSeconds)
     m_bTimeStampValid = true;
     SendPackets();
   }
-
-  ++m_ImageGeneratorFrameNumber;
 }
 
 void CCigiImageGenerator::SetOperationMode(EIGMode eOperationMode)

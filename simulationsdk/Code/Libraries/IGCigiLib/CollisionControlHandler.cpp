@@ -113,13 +113,13 @@ sbio::ig::physics::SSetCollisionVolumeMessage CreateCollisionVolumeMessage(const
   data.Width = collisionVolumeDefinition.fWidth;
   data.Depth = collisionVolumeDefinition.fDepth;
 
-  //rotate clockwise around z (yaw)
+  // rotate clockwise around z (yaw)
   Eigen::AngleAxisd yawAngleAxis(DegreesToRadians(collisionVolumeDefinition.rotation.yaw).Value(), Vec3::UnitZ());
 
-  //rotate clockwise around y (pitch)
+  // rotate clockwise around y (pitch)
   Eigen::AngleAxisd pitchAngleAxis(DegreesToRadians(collisionVolumeDefinition.rotation.pitch).Value(), Vec3::UnitY());
 
-  //rotate clockwise around x (roll)
+  // rotate clockwise around x (roll)
   Eigen::AngleAxisd rollAngleAxis(DegreesToRadians(collisionVolumeDefinition.rotation.roll).Value(), Vec3::UnitX());
   Eigen::Quaterniond q = rollAngleAxis * pitchAngleAxis * yawAngleAxis;
 

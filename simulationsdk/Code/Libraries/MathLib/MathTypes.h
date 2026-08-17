@@ -60,11 +60,11 @@ namespace sbio
 
     /// @name Strong Angle Types
     ///@{
-    RANGED_STRONG_FLOAT(Degrees, float, 0, 360)///< Degrees in [0, 360]
-    RANGED_STRONG_FLOAT(Degrees90, float, -90, 90)///< Degrees in [-90, 90]
-    RANGED_STRONG_FLOAT(Degrees180, float, -180, 180)///< Degrees in [-180, 180]
-    RANGED_STRONG_FLOAT(Degrees360, float, -360, 360)///< Degrees in [-360, 360]
-    RANGED_STRONG_FLOAT(Radians, float, 0, 2 * SBIO_SINGLE_PI)///< Radians in [0, 2*PI]
+    RANGED_STRONG_FLOAT(Degrees, double, 0, 360)///< Degrees in [0, 360]
+    RANGED_STRONG_FLOAT(Degrees90, double, -90, 90)///< Degrees in [-90, 90]
+    RANGED_STRONG_FLOAT(Degrees180, double, -180, 180)///< Degrees in [-180, 180]
+    RANGED_STRONG_FLOAT(Degrees360, double, -360, 360)///< Degrees in [-360, 360]
+    RANGED_STRONG_FLOAT(Radians, double, 0, 2 * SBIO_DOUBLE_PI)///< Radians in [0, 2*PI]
     ///@}
   }
 }
@@ -287,6 +287,7 @@ namespace sbio
     {
       TPositionCoordinates pos;///< Position
       TRotation<TRotationFromCoordinates, TRotationToCoordinates> rotation;///< Rotation
+      Vec3 scale = Vec3::Ones();///< Non-uniform scale
 
       /**
        * @brief Constructs a transform with an identity rotation.
@@ -415,8 +416,8 @@ namespace sbio
      *
      * Represents a specific EPSG geodetic parameter dataset code for a coordinate reference systems.
      * Used to identify geospatial reference systems in a strongly typed manner.
-      * @param EPSG Psg enumeration value.
-      * @param int Int value.
+     * @param EPSG Psg enumeration value.
+     * @param int Int value.
      */
     STRONG_TYPE_WITH_CUSTOM_UNKNOWN_VALUE(EPSG, int, -1);
 

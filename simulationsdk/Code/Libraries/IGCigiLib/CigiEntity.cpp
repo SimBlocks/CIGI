@@ -51,8 +51,8 @@ CCigiEntity::CCigiEntity(EntityID entityID, const SEntityControl& entityControl)
 
   m_AttachState = entityControl.bHasParent ? EAttachState::ATTACH : EAttachState::DETACH;
 
-  //A value of zero(0) corresponds to fully transparent; a value of 255 corresponds to fully opaque.
-  //TODO: handle inherit alpha
+  // A value of zero(0) corresponds to fully transparent; a value of 255 corresponds to fully opaque.
+  // TODO: handle inherit alpha
   float fAlpha = entityControl.alpha / (float)255;
   SetAlpha(fAlpha);
   SetCollisionDetectionEnabled(entityControl.bCollisionReportingEnabled);
@@ -319,7 +319,7 @@ void CCigiEntity::Interpolate(double deltaTime)
     m_CigiWorldTransformationRate.angularVelocity.roll += (m_CigiWorldAccelerationRate.angularAcceleration.roll * static_cast<float>(deltaTime));
     m_CigiWorldTransformationRate.angularVelocity.pitch += (m_CigiWorldAccelerationRate.angularAcceleration.pitch * static_cast<float>(deltaTime));
 
-    //If the Host sets all rate components to zero, the entity or articulated part will become stationary.
+    // If the Host sets all rate components to zero, the entity or articulated part will become stationary.
     if (m_CigiWorldTransformationRate.angularVelocity.pitch.IsZero() && m_CigiWorldTransformationRate.angularVelocity.roll.IsZero() && m_CigiWorldTransformationRate.angularVelocity.yaw.IsZero() && m_CigiWorldTransformationRate.linearVelocity.isZero())
     {
       return;
@@ -348,7 +348,7 @@ void CCigiEntity::Interpolate(double deltaTime)
   m_LocalBodyTransformationRate.angularVelocity.roll += (m_LocalBodyAccelerationRate.angularAcceleration.roll * static_cast<float>(deltaTime));
   m_LocalBodyTransformationRate.angularVelocity.pitch += (m_LocalBodyAccelerationRate.angularAcceleration.pitch * static_cast<float>(deltaTime));
 
-  //If the Host sets all rate components to zero, the entity or articulated part will become stationary.
+  // If the Host sets all rate components to zero, the entity or articulated part will become stationary.
   if (m_LocalBodyTransformationRate.angularVelocity.pitch.IsZero() && m_LocalBodyTransformationRate.angularVelocity.roll.IsZero() && m_LocalBodyTransformationRate.angularVelocity.yaw.IsZero() && m_LocalBodyTransformationRate.linearVelocity.isZero())
   {
     return;
@@ -377,7 +377,7 @@ void CCigiEntity::Interpolate(double deltaTime)
   }
   else if (m_TransformationRateCoordinateSystem == EObjectCoordinateSystem::LOCAL)
   {
-    //the rates are defined relative to the entity�s local coordinate system
+    // the rates are defined relative to the entity�s local coordinate system
     if (IsTopLevel())
     {
       // For top-level entities in local coordinate system, the offset is provided in body coordinates but needs to be applied in world coordinates.

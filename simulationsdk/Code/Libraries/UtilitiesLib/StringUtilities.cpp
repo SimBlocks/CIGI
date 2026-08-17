@@ -27,7 +27,7 @@ namespace sbio
      * @param sizeOfBufferInBytes Size of the input buffer in bytes.
      * @return Pointer to a string containing the hexadecimal representation.
      */
-    string ConvertToHex(unsigned char* inBuffer, int sizeOfBufferInBytes)
+    string ConvertToHex(const unsigned char* inBuffer, int sizeOfBufferInBytes)
     {
       if (inBuffer == nullptr || sizeOfBufferInBytes <= 0)
       {

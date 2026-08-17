@@ -70,6 +70,8 @@ namespace sbio
     bool IsFileLocked(const std::filesystem::path& filePath);
     /** @brief Checks if a path is a directory. */
     bool IsDirectory(const std::filesystem::path& filePath);
+    /** @brief Checks if a path lexically contains a parent directory component. */
+    bool HasDirectoryPath(const std::filesystem::path& filePath);
     /** @brief Checks if a file has an extension. */
     bool HasExtension(const std::filesystem::path& filePath);
     /** @brief Deletes a file. */

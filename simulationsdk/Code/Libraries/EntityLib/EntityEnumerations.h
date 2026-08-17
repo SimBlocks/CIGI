@@ -104,6 +104,9 @@ namespace sbio
        */
       std::string GetDescription(SEntityKindDomainCountry ekdc, sbio::SisoEntityCategoryID entityCategoryID, sbio::SisoEntitySubCategoryID entitySubCategoryID, sbio::SisoEntitySpecificID entitySpecificID);
 
+    protected:
+      std::string GetEnumerationDescription(const SEntityEnumeration* pEnumeration, int value) const;
+
     private:
       std::unordered_map<SisoEnumSetID, std::unique_ptr<SEntityEnumeration>, StrongTypeHash<SisoEnumSetID>> m_EntityEnums;///< Map of entity enumerations
       std::map<SEntityKindDomainCountry, std::unique_ptr<CEntityType>> m_EntityTypes;///< Map of entity types

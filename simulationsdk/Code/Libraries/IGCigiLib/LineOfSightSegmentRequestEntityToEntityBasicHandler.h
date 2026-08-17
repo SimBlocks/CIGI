@@ -45,7 +45,7 @@ public:
   bool ResolveEndPoint(GeocentricCoordinates& point);
 
 protected:
-  //virtual const sbio::cigi::SLineOfSightSegmentRequestEntity& GetEntityRequest() const override;
+  // virtual const sbio::cigi::SLineOfSightSegmentRequestEntity& GetEntityRequest() const override;
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const override;
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() override;
 

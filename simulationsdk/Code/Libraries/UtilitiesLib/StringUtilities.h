@@ -25,7 +25,7 @@ namespace sbio
      * @param sizeOfBuffer Size of the input buffer in bytes.
      * @return Pointer to a string containing the hexadecimal representation.
      */
-    std::string ConvertToHex(unsigned char* inBuffer, int sizeOfBuffer);
+    std::string ConvertToHex(const unsigned char* inBuffer, int sizeOfBuffer);
 
     /**
      * @brief Finds the longest prefix shared by all given strings.

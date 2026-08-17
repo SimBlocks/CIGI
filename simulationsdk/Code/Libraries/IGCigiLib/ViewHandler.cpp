@@ -157,9 +157,9 @@ void CCigiViewHandler::Handle(const SCigiViewDefinition& viewDefinition)
   CCigiView* pView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(viewDefinition.viewID));
   if (pView == nullptr)
   {
-    //View definition is used to override the default parameters for a view.
-    //The standard does not specify that a new view should be created if the view does not already exist.
-    //Assume that it is the IG's responsibility to setup and assign views to channels
+    // View definition is used to override the default parameters for a view.
+    // The standard does not specify that a new view should be created if the view does not already exist.
+    // Assume that it is the IG's responsibility to setup and assign views to channels
     stringstream ss;
     ss.str("");
     ss.clear();

@@ -205,6 +205,7 @@ namespace sbio
          */
         typedef std::unordered_map<EntityID, std::unique_ptr<CCigiEnvironmentalRegion>, StrongTypeHash<EntityID>> TEnvironmentalRegionEntities;
         TEnvironmentalRegionEntities m_EnvironmentalEntities;
+        uint64_t m_NextRegionUpdateSequence = 1;
         /**
          * @brief Globally scoped environmental region.
          */

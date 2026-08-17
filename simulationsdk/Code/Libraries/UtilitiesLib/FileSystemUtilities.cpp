@@ -24,6 +24,7 @@
 #include "GlobalHeaders/CommonTypes.h"
 #include "GlobalHeaders/Globals.h"
 #include "Buffer.h"
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
@@ -134,6 +135,11 @@ namespace sbio
       return std::filesystem::is_directory(filePath, errorCode) && !errorCode;
     }
 
+    bool HasDirectoryPath(const std::filesystem::path& filePath)
+    {
+      return filePath.has_parent_path();
+    }
+
     std::string GetExtension(const std::filesystem::path& filePath)
     {
       return filePath.extension().string();
@@ -156,7 +162,7 @@ namespace sbio
       // if the environment variable is not set
       if (thirdPartyPath.empty())
       {
-        //iterate through drive letters to find the first available drive
+        // iterate through drive letters to find the first available drive
         for (char drive = 'C'; drive <= 'Z'; ++drive)
         {
           std::string path = std::string(1, drive) + ":\\";
@@ -594,38 +600,44 @@ namespace sbio
 
     std::unique_ptr<CBuffer> ReadBinaryFileContents(const std::filesystem::path& filePath)
     {
+      std::string filePathString;
       if (g_UtilitiesGlobals.pLogger != nullptr)
       {
-        g_UtilitiesGlobals.pLogger->LogDebug("ReadBinaryFileContents: " + filePath.string());
+        filePathString = filePath.string();
+        g_UtilitiesGlobals.pLogger->LogDebug("ReadBinaryFileContents: " + filePathString);
       }
 
-      std::ifstream fin(filePath, std::ios::binary);
+      // Open the file in binary mode and seek to the end to determine its size
+      constexpr std::size_t StreamBufferSize = 64 * 1024;
+      auto streamBuffer = std::make_unique<char[]>(StreamBufferSize);
+      std::ifstream fin;
+      fin.rdbuf()->pubsetbuf(streamBuffer.get(), static_cast<std::streamsize>(StreamBufferSize));
+      fin.open(filePath, std::ios::binary | std::ios::ate);
       if (!fin.is_open())
       {
         return nullptr;
       }
 
-      //get length of file
-      fin.seekg(0, std::ios::end);
-      const std::ifstream::pos_type endPosition = fin.tellg();
+      const std::streampos endPosition = fin.tellg();
       if (endPosition < 0)
       {
         return nullptr;
       }
 
       const std::uintmax_t fileSize = static_cast<std::uintmax_t>(endPosition);
+
       if (fileSize > static_cast<std::uintmax_t>(std::numeric_limits<int>::max()))
       {
         if (g_UtilitiesGlobals.pLogger != nullptr)
         {
-          g_UtilitiesGlobals.pLogger->LogError("ReadBinaryFileContents file too large: " + filePath.string());
+          g_UtilitiesGlobals.pLogger->LogError("ReadBinaryFileContents file too large: " + filePathString);
         }
 
         return nullptr;
       }
 
       fin.seekg(0, std::ios::beg);
-      if (!fin.good())
+      if (!fin)
       {
         return nullptr;
       }
@@ -637,13 +649,12 @@ namespace sbio
         return pBuf;
       }
 
-      //read contents of file into buffer
-      fin.read(pBuf->GetBuffer(), static_cast<std::streamsize>(size));
-      if (!fin || fin.gcount() != static_cast<std::streamsize>(size))
+      // read contents of file into buffer
+      if (!fin.read(pBuf->GetBuffer(), static_cast<std::streamsize>(size)))
       {
         if (g_UtilitiesGlobals.pLogger != nullptr)
         {
-          g_UtilitiesGlobals.pLogger->LogError("ReadBinaryFileContents failed to read full file: " + filePath.string());
+          g_UtilitiesGlobals.pLogger->LogError("ReadBinaryFileContents failed to read full file: " + filePathString);
         }
 
         return nullptr;
@@ -690,7 +701,7 @@ namespace sbio
         return;
       }
 
-      //read contents of buffer into file
+      // read contents of buffer into file
       fout.seekp(0, std::ios::beg);
       if (!fout.good())
       {

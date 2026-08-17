@@ -373,11 +373,13 @@ void CCigiMessageLogger::LogMessageFromHostToIG(const SAtmosphere& message) cons
 
 void CCigiMessageLogger::LogMessageFromHostToIG(const SCelestialSphere& message) const
 {
-  LogExtractedFields("SCelestialSphere", {{"bEphemerisEnabled", ToLogString(message.bEphemerisEnabled)},
-                                          {"bSunEnabled", ToLogString(message.bSunEnabled)},
-                                          {"bMoonEnabled", ToLogString(message.bMoonEnabled)},
-                                          {"bStarsEnabled", ToLogString(message.bStarsEnabled)},
-                                          {"fStarIntensity", ToLogString(message.fStarIntensity)}});
+  LogExtractedFields(
+    "SCelestialSphere",
+    { {"bEphemerisEnabled", ToLogString(message.bEphemerisEnabled)}, 
+    {"bSunEnabled", ToLogString(message.bSunEnabled)},
+    {"bMoonEnabled", ToLogString(message.bMoonEnabled)},
+    {"bStarsEnabled", ToLogString(message.bStarsEnabled)},
+    {"fStarIntensity", ToLogString(message.fStarIntensity)} });
 }
 
 void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiArticulatedPart& message) const
@@ -413,9 +415,7 @@ void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiComponentControl& mes
 
 void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiEarthReferenceModel& message) const
 {
-  LogExtractedFields("SCigiEarthReferenceModel", {{"eEarthReferenceModel", EnumValueToLogString(message.eEarthReferenceModel)},
-                                                  {"fEquatorialRadius", ToLogString(message.fEquatorialRadius)},
-                                                  {"fFlattening", ToLogString(message.fFlattening)}});
+  LogExtractedFields("SCigiEarthReferenceModel", {{"eEarthReferenceModel", EnumValueToLogString(message.eEarthReferenceModel)}, {"fEquatorialRadius", ToLogString(message.fEquatorialRadius)}, {"fFlattening", ToLogString(message.fFlattening)}});
 }
 
 void CCigiMessageLogger::LogMessageFromHostToIG(const SCigiEnvironmentalRegion& message) const
@@ -730,9 +730,11 @@ void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolCircle& message) co
 
 void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolClone& message) const
 {
-  LogExtractedFields("SSymbolClone", {{"symbolID", ToLogString(message.symbolID)},
-                                      {"sourceID", ToLogString(message.sourceID)},
-                                      {"eSymbolSourceType", EnumValueToLogString(message.eSymbolSourceType)}});
+  LogExtractedFields("SSymbolClone", 
+    {{"symbolID", 
+    ToLogString(message.symbolID)}, 
+    {"sourceID", ToLogString(message.sourceID)}, 
+    {"eSymbolSourceType", EnumValueToLogString(message.eSymbolSourceType)}});
 }
 
 void CCigiMessageLogger::LogMessageFromHostToIG(const SSymbolControl& message) const
@@ -861,12 +863,20 @@ void CCigiMessageLogger::LogMessageFromIGToHost(const SAnimationStopNotification
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SHeightAboveTerrainResponse& message) const
 {
-  LogExtractedFields("SHeightAboveTerrainResponse", {{"HATHOTID", ToLogString(message.HATHOTID)}, {"bValid", ToLogString(message.bValid)}, {"hostFrameLSN", std::to_string(message.hostFrameLSN)}, {"heightAboveTerrain", std::to_string(message.heightAboveTerrain)}});
+  LogExtractedFields("SHeightAboveTerrainResponse", 
+    {{"HATHOTID", ToLogString(message.HATHOTID)}, 
+    {"bValid", ToLogString(message.bValid)}, 
+    {"hostFrameLSN", std::to_string(message.hostFrameLSN)},
+    {"heightAboveTerrain", std::to_string(message.heightAboveTerrain)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SHeightOfTerrainResponse& message) const
 {
-  LogExtractedFields("SHeightOfTerrainResponse", {{"HATHOTID", ToLogString(message.HATHOTID)}, {"bValid", ToLogString(message.bValid)}, {"hostFrameLSN", std::to_string(message.hostFrameLSN)}, {"heightOfTerrain", ToLogString(message.heightOfTerrain)}});
+  LogExtractedFields("SHeightOfTerrainResponse", 
+    {{"HATHOTID", ToLogString(message.HATHOTID)}, 
+    {"bValid", ToLogString(message.bValid)}, 
+    {"hostFrameLSN", std::to_string(message.hostFrameLSN)},
+    {"heightOfTerrain", ToLogString(message.heightOfTerrain)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SHATHOTExtendedResponse& message) const
@@ -883,40 +893,64 @@ void CCigiMessageLogger::LogMessageFromIGToHost(const SHATHOTExtendedResponse& m
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SCollisionDetectionSegmentNotification& message) const
 {
-  LogExtractedFields("SCollisionDetectionSegmentNotification", {{"entityID", ToLogString(message.entityID)}, {"segmentID", ToLogString(message.segmentID)}, {"materialCode", ToLogString(message.materialCode)}, {"fIntersectionDistance", std::to_string(message.fIntersectionDistance)}});
+  LogExtractedFields("SCollisionDetectionSegmentNotification", 
+    {{"entityID", ToLogString(message.entityID)},
+    {"segmentID", ToLogString(message.segmentID)}, 
+    {"materialCode", ToLogString(message.materialCode)}, 
+    {"fIntersectionDistance", std::to_string(message.fIntersectionDistance)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SCollisionDetectionSegmentEntityNotification& message) const
 {
   LogExtractedFields(
     "SCollisionDetectionSegmentEntityNotification",
-    {{"entityID", ToLogString(message.entityID)}, {"contactedEntityID", ToLogString(message.contactedEntityID)}, {"segmentID", ToLogString(message.segmentID)}, {"materialCode", ToLogString(message.materialCode)}, {"fIntersectionDistance", std::to_string(message.fIntersectionDistance)}});
+    {{"entityID", ToLogString(message.entityID)}, 
+    {"contactedEntityID", ToLogString(message.contactedEntityID)},
+    {"segmentID", ToLogString(message.segmentID)}, 
+    {"materialCode", ToLogString(message.materialCode)}, 
+    {"fIntersectionDistance", std::to_string(message.fIntersectionDistance)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SCollisionDetectionVolumeNotification& message) const
 {
-  LogExtractedFields("SCollisionDetectionVolumeNotification", {{"entityID", ToLogString(message.entityID)}, {"volumeID", ToLogString(message.volumeID)}, {"contactedVolumeID", ToLogString(message.contactedVolumeID)}});
+  LogExtractedFields("SCollisionDetectionVolumeNotification",
+    {{"entityID", ToLogString(message.entityID)}, 
+    {"volumeID", ToLogString(message.volumeID)},
+    {"contactedVolumeID", ToLogString(message.contactedVolumeID)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SCollisionDetectionVolumeEntityNotification& message) const
 {
-  LogExtractedFields("SCollisionDetectionVolumeEntityNotification", {{"entityID", ToLogString(message.entityID)}, {"volumeID", ToLogString(message.volumeID)}, {"contactedVolumeID", ToLogString(message.contactedVolumeID)}, {"contactedEntityID", ToLogString(message.contactedEntityID)}});
+  LogExtractedFields("SCollisionDetectionVolumeEntityNotification", 
+    {{"entityID", ToLogString(message.entityID)}, 
+    {"volumeID", ToLogString(message.volumeID)}, {"contactedVolumeID", 
+    ToLogString(message.contactedVolumeID)}, 
+    {"contactedEntityID", ToLogString(message.contactedEntityID)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SEventNotification& message) const
 {
-  LogExtractedFields("SEventNotification", {{"EventID", ToLogString(message.EventID)}, {"EventData1", std::to_string(message.EventData1)}, {"EventData2", std::to_string(message.EventData2)}, {"EventData3", std::to_string(message.EventData3)}});
+  LogExtractedFields("SEventNotification",
+    {{"EventID", ToLogString(message.EventID)}, 
+    {"EventData1", std::to_string(message.EventData1)}, 
+    {"EventData2", std::to_string(message.EventData2)}, 
+    {"EventData3", std::to_string(message.EventData3)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SImageGeneratorNotification& message) const
 {
-  LogExtractedFields("SImageGeneratorNotification", {{"MessageID", ToLogString(message.MessageID)}, {"sData", message.sData}});
+  LogExtractedFields("SImageGeneratorNotification",
+    {{"MessageID", ToLogString(message.MessageID)},
+    {"sData", message.sData}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SLineOfSightResponse& message) const
 {
   LogExtractedFields("SLineOfSightResponse",
-                     {{"lineOfSightRequestID", ToLogString(message.lineOfSightRequestID)}, {"bValid", ToLogString(message.bValid)}, {"hostFrameLSN", std::to_string(message.hostFrameLSN)}, {"responseCount", std::to_string(message.responseCount)}, {"dRange", std::to_string(message.dRange)}});
+    {{"lineOfSightRequestID", ToLogString(message.lineOfSightRequestID)},
+    {"bValid", ToLogString(message.bValid)}, {"hostFrameLSN", std::to_string(message.hostFrameLSN)}, 
+    {"responseCount", std::to_string(message.responseCount)},
+    {"dRange", std::to_string(message.dRange)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SLineOfSightEntityResponse& message) const
@@ -992,9 +1026,12 @@ void CCigiMessageLogger::LogMessageFromIGToHost(const SPositionResponseGeodeticC
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SPositionResponseParentEntityCoordinates& message) const
 {
-  LogExtractedFields(
-    "SPositionResponseParentEntityCoordinates",
-    {{"eObjectClass", ConvertEObjectClassToString(message.eObjectClass)}, {"objectID", std::to_string(message.objectID)}, {"yaw", ToLogString(message.rotation.yaw)}, {"pitch", ToLogString(message.rotation.pitch)}, {"roll", ToLogString(message.rotation.roll)}, {"offset", ToLogString(message.offset)}});
+  LogExtractedFields("SPositionResponseParentEntityCoordinates", {{"eObjectClass", ConvertEObjectClassToString(message.eObjectClass)},
+                                                                  {"objectID", std::to_string(message.objectID)},
+                                                                  {"yaw", ToLogString(message.rotation.yaw)},
+                                                                  {"pitch", ToLogString(message.rotation.pitch)},
+                                                                  {"roll", ToLogString(message.rotation.roll)},
+                                                                  {"offset", ToLogString(message.offset)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SPositionResponseArticulatedPartCoordinates& message) const
@@ -1022,18 +1059,26 @@ void CCigiMessageLogger::LogMessageFromIGToHost(const SWeatherConditionsResponse
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SAerosolConcentrationResponse& message) const
 {
-  LogExtractedFields("SAerosolConcentrationResponse", {{"requestID", std::to_string(message.requestID)}, {"layerID", std::to_string(message.layerID)}, {"fAerosolConcentration", std::to_string(message.fAerosolConcentration)}});
+  LogExtractedFields("SAerosolConcentrationResponse",
+    {{"requestID", std::to_string(message.requestID)}, 
+    {"layerID", std::to_string(message.layerID)}, 
+    {"fAerosolConcentration", std::to_string(message.fAerosolConcentration)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SMaritimeSurfaceConditionsResponse& message) const
 {
   LogExtractedFields("SMaritimeSurfaceConditionsResponse",
-                     {{"requestID", std::to_string(message.requestID)}, {"fSeaSurfaceHeight", ToLogString(message.fSeaSurfaceHeight)}, {"fSurfaceWaterTemperature", ToLogString(message.fSurfaceWaterTemperature)}, {"surfaceClarity", ToLogString(message.surfaceClarity)}});
+    {{"requestID", std::to_string(message.requestID)}, 
+    {"fSeaSurfaceHeight", ToLogString(message.fSeaSurfaceHeight)}, 
+    {"fSurfaceWaterTemperature", ToLogString(message.fSurfaceWaterTemperature)},
+    {"surfaceClarity", ToLogString(message.surfaceClarity)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const STerrestrialSurfaceConditionsResponse& message) const
 {
-  LogExtractedFields("STerrestrialSurfaceConditionsResponse", {{"requestID", std::to_string(message.requestID)}, {"surfaceConditionID", std::to_string(message.surfaceConditionID)}});
+  LogExtractedFields("STerrestrialSurfaceConditionsResponse",
+    {{"requestID", std::to_string(message.requestID)},
+    {"surfaceConditionID", std::to_string(message.surfaceConditionID)}});
 }
 
 void CCigiMessageLogger::LogMessageFromIGToHost(const SSensorResponse& message) const
@@ -1083,6 +1128,36 @@ std::string CCigiMessageLogger::GetTimestampString() const
   std::ostringstream ss;
   ss << std::put_time(&localTime, "%Y-%m-%d %H:%M:%S");
   return ss.str();
+}
+
+std::string CCigiMessageLogger::NormalizeNameValueSpacing(const std::string& value) const
+{
+  std::string result;
+  result.reserve(value.size());
+
+  for (char ch : value)
+  {
+    if (ch == '=')
+    {
+      while (!result.empty() && (result.back() == ' ' || result.back() == '\t'))
+      {
+        result.pop_back();
+      }
+
+      result += " = ";
+    }
+    else
+    {
+      if (!result.empty() && result.size() >= 3 && result.compare(result.size() - 3, 3, " = ") == 0 && (ch == ' ' || ch == '\t'))
+      {
+        continue;
+      }
+
+      result += ch;
+    }
+  }
+
+  return result;
 }
 
 std::string CCigiMessageLogger::ToHexString(const uint8_t* pBuffer, int nSize) const

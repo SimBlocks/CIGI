@@ -156,10 +156,10 @@ namespace sbio
      */
     sbio::math::TBodyEulerRotation ConvertBodyRotationToBodyEulerRotation(const sbio::math::TBodyRotation& bodyRotation)
     {
-      //            NED     enu
-      //  forward   x        y
-      //  right     y        x
-      //  down     -z       -z
+      // NED     enu
+      // forward   x        y
+      // right     y        x
+      // down     -z       -z
       Quaternion4d q = Quaternion4d(bodyRotation.w(), bodyRotation.y(), bodyRotation.x(), -bodyRotation.z());
       TBodyEulerRotation rotation;
 
@@ -195,7 +195,7 @@ namespace sbio
       double fLatitude = 0;
       double fLongitude = 0;
       double altitude = 0;
-      GeographicLib::Geocentric::WGS84().Reverse(geocentricPos[0], geocentricPos[1], geocentricPos[2], fLatitude, fLongitude, altitude);//lat, long, and alt passed by reference
+      GeographicLib::Geocentric::WGS84().Reverse(geocentricPos[0], geocentricPos[1], geocentricPos[2], fLatitude, fLongitude, altitude);// lat, long, and alt passed by reference
       geodeticCoords.altitude = HeightRelativeToWGS84Ellipsoid(altitude);
       geodeticCoords.latitude = Latitude(fLatitude);
       geodeticCoords.longitude = Longitude(fLongitude);
