@@ -35,7 +35,7 @@
       <DisableSpecificWarnings>4127;4100</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SBIO_THIRD_PARTY)\$(POCO_LIB_DIR);$(SolutionDir)Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration);$(SBIO_THIRD_PARTY)\$(BOOST_DIR)\stage\$(Platform)\lib;$(SBIO_THIRD_PARTY)\build\$(GEOGRAPHIC_DIR)\vs2022-x64\lib\Debug;$(SBIO_THIRD_PARTY)\build\$(TINYXML_DIR)\vs2022-x64\Debug;$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\lib\vc_x64_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SBIO_THIRD_PARTY)\build\$(POCO_DIR)\vs2022-x64\lib;$(SolutionDir)Bin\vc$(PlatformToolsetVersion)\$(Platform)\$(Configuration);$(SBIO_THIRD_PARTY)\$(BOOST_DIR)\stage\$(Platform)\lib;$(SBIO_THIRD_PARTY)\build\$(GEOGRAPHIC_DIR)\vs2022-x64\lib\Debug;$(SBIO_THIRD_PARTY)\build\$(TINYXML_DIR)\vs2022-x64\Debug;$(SBIO_THIRD_PARTY)\$(WXWIDGETS_DIR)\lib\vc_x64_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>

@@ -10,7 +10,7 @@ Version 4.0 has been approved by the Simulation Interoperability Standards Organ
 - https://www.sisostandards.org/page/StandardsProducts
 - https://www.sisostandards.org/resource/resmgr/standards_products/siso-std-013-2014_standard_f.pdf
 
-## Prerequisites  
+## Prerequisites
 - Windows 11
 - Microsoft Visual Studio Professional 2022
 
