@@ -1,3 +1,6 @@
 [submodule "thirdparty"]
 	path = thirdparty
 	url = https://github.com/SimBlocks/thirdparty
+[submodule "CIGI-Unreal-Plugin"]
+	path = CIGI-Unreal-Plugin
+	url = https://github.com/SimBlocks/CIGI-Unreal-Plugin.git
