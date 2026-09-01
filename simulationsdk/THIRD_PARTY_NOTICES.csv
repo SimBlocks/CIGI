@@ -6,4 +6,4 @@ Native third-party components,GeographicLib,geographiclib-2.7,MIT,LICENSE.txt.
 Native third-party components,libCIGI,libcigi,MIT,"LICENSE.txt, REFERENCED_LICENSES.txt."
 Native third-party components,POCO C++ Libraries,poco-1.14.2,Boost Software License 1.0,LICENSE.
 Native third-party components,TinyXML2,tinyxml2-11.0.0,zlib license,LICENSE.txt.
-Native third-party components,wxWidgets,wxWidgets-3.3.3,"wxWindows Library Licence 3.1, LGPL-2.0-or-later with exception",README.md and upstream wxWidgets license files; comply with wxWindows exception terms.
+Native third-party components,wxWidgets,wxWidgets-3.3.3,"wxWindows Library Licence 3.1, LGPL-2.0-or-later with exception",README.md and upstream wxWidgets license files;

@@ -1,0 +1,794 @@
+
+// Full Test: Symbol Definition
+// Also uses: IG Control, Entity Control, Entity Position, Velocity,
+//            View Control, Symbol Polygon, Symbol Control
+
+
+
+// --------------
+// HOST FUNCTIONS
+// --------------
+
+def Start()
+{
+  logMessage("STARTING: Symbol Definition - Full Test");
+  prevSeconds = -1.0;
+  symSpinSpeed = 0.0;
+  symSpinAcc = 0.0;
+  symSpinCurr = 0.0;
+  
+  ResetIG();
+  Wait(1, "LoadDatabase");
+}
+
+def OnDatabaseLoaded()
+{
+  logMessage("Database loaded");
+  
+  Wait(1, "AfterInitializeObjects");
+}
+
+def AfterInitializeObjects()
+{
+  InitializeObjects();
+  Wait(4, "AfterMoveEntityForwards");
+}
+
+def AfterMoveEntityForwards()
+{
+  MoveEntityForwards();
+  Wait(3, "AfterMoveEntityBackwards");
+}
+
+def AfterMoveEntityBackwards()
+{
+  MoveEntityBackwards();
+  Wait(3, "AfterMoveEntityForwardsReturn");
+}
+
+def AfterMoveEntityForwardsReturn()
+{
+  MoveEntityForwardsReturn();
+  Wait(3, "AfterStopEntityVelocity");
+}
+
+def AfterStopEntityVelocity()
+{
+  StopEntityVelocity();
+  Wait(3, "AfterOrbitCamera1");
+}
+
+def AfterOrbitCamera1()
+{
+  OrbitCamera1();
+  Wait(4, "AfterStopCamera1");
+}
+
+def AfterStopCamera1()
+{
+  StopCamera1();
+  Wait(4, "AfterSwitchToBillboardSurface");
+}
+
+def AfterSwitchToBillboardSurface()
+{
+  SwitchToBillboardSurface();
+  Wait(3, "AfterOrbitCamera2");
+}
+
+def AfterOrbitCamera2()
+{
+  OrbitCamera2();
+  Wait(4, "AfterStopCamera2");
+}
+
+def AfterStopCamera2()
+{
+  StopCamera2();
+  Wait(3, "AfterSwitchToViewSurfaceOrbit3");
+}
+
+def AfterSwitchToViewSurfaceOrbit3()
+{
+  SwitchToViewSurfaceOrbit3();
+  Wait(5, "AfterViewLeftHalf");
+}
+
+def AfterViewLeftHalf()
+{
+  ViewLeftHalf();
+  Wait(5, "AfterViewCenter");
+}
+
+def AfterViewCenter()
+{
+  ViewCenter();
+  Wait(5, "AfterViewBottomRightCornerOrbitFaster");
+}
+
+def AfterViewBottomRightCornerOrbitFaster()
+{
+  ViewBottomRightCornerOrbitFaster();
+  Wait(5, "FinishSymbolDefinitionTest");
+}
+
+def FinishSymbolDefinitionTest()
+{
+  StopCamera3SpinAccel();
+  logMessage("FINISHED: Symbol Definition - Full Test");
+}
+
+global prevSeconds = 0.0;
+def OnUpdate()
+{
+  var deltaSeconds = 0.0;
+  if (prevSeconds > 0) { deltaSeconds = getHostSeconds() - prevSeconds; }
+  prevSeconds = getHostSeconds();
+  
+  SymbolSpin(deltaSeconds);
+}
+
+
+
+// ---------------
+// STATE FUNCTIONS
+// ---------------
+
+// If symSpinSpeed!=0, rotates the symbol with id=55 (called from Update())
+global symSpinSpeed = 0.0;
+global symSpinAcc = 0.0;
+global symSpinCurr = 0.0;
+def SymbolSpin(deltaSeconds)
+{
+  symSpinSpeed = symSpinSpeed + (symSpinAcc * deltaSeconds);
+  if(symSpinSpeed!=0 && deltaSeconds > 0)
+  {
+    symSpinCurr = modulo(symSpinCurr + (symSpinSpeed * deltaSeconds),360);
+    
+    var symbolControl = SymbolControl();
+    symbolControl.SymbolID = 55;
+    symbolControl.ParentSymbolID = 0;
+    symbolControl.SymbolState = "Visible";
+    symbolControl.AttachState = "Detach";
+    symbolControl.SurfaceID = 20;
+    symbolControl.PositionU = 0;
+    symbolControl.PositionV = 0;
+    symbolControl.Rotation = symSpinCurr;
+    symbolControl.Red = 255;
+    symbolControl.Green = 0;
+    symbolControl.Blue = 0;
+    symbolControl.Alpha = 127;
+    symbolControl.ScaleU = 1;
+    symbolControl.ScaleV = 1;
+    symbolControl.FlashControl = "Continue";
+    symbolControl.FlashPeriod = 0;
+    symbolControl.FlashDutyCyclePercentage = 0;
+    symbolControl.InheritColor = false;
+    symbolControl.Layer = 0;
+    sendSymbolControl(symbolControl);
+  }
+}
+
+def ResetIG()
+{
+  logMessage("Resetting...");
+  
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 0;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Reset";
+  igControl.SmoothingEnable = true;
+  
+  sendIGControl(igControl);
+}
+
+def LoadDatabase()
+{
+  logMessage("Loading database...");
+  
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  
+  sendIGControl(igControl);
+}
+
+def InitializeObjects()
+{
+  logMessage("Initializing");
+  
+  // Box Entity with surface
+  
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 0;
+  entityControl.EntityDomain = 0;
+  entityControl.EntityCountry = 0;
+  entityControl.EntityCategory = 0;
+  entityControl.EntitySubCategory = 0;
+  entityControl.EntitySpecific = 1;
+  entityControl.EntityExtra = 1;
+  entityControl.EntityID = 10;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  var entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 10;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = 0;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 0;
+  sendTopLevelEntityPosition(entityPosition);
+  
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 20;
+  surfaceDefinition.EntityViewID = 10;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "Entity";
+  surfaceDefinition.Billboard = "Non-Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = 0;
+  surfaceDefinition.YOffsetRight = -1;
+  surfaceDefinition.ZOffsetTop = -1;
+  surfaceDefinition.YawBottom = 180;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 4;
+  surfaceDefinition.Height = 4;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+  
+  // Camera arm (rotating this orbits camera)
+  
+  var entityControl2 = EntityControl();
+  entityControl2.ExtendedEntityType = true;
+  entityControl2.EntityKind = 0;
+  entityControl2.EntityDomain = 0;
+  entityControl2.EntityCountry = 0;
+  entityControl2.EntityCategory = 0;
+  entityControl2.EntitySubCategory = 0;
+  entityControl2.EntitySpecific = 9;
+  entityControl2.EntityExtra = 0;
+  entityControl2.EntityID = 2;
+  entityControl2.State = "Active";
+  entityControl2.CollisionReportingEnable = true;
+  entityControl2.InheritAlpha = true;
+  entityControl2.SmoothingEnable = true;
+  entityControl2.Alpha = 255;
+  sendEntityControl(entityControl2);
+  
+  var entityPositionChild = ChildEntityPosition();
+  entityPositionChild.EntityID = 2;
+  entityPositionChild.AttachState = "Attach";
+  entityPositionChild.Yaw = 0;
+  entityPositionChild.Pitch = 0;
+  entityPositionChild.Roll = 0;
+  entityPositionChild.ParentID = 10;
+  entityPositionChild.XOffset = 0;
+  entityPositionChild.YOffset = 0;
+  entityPositionChild.ZOffset = 0;
+  sendChildEntityPosition(entityPositionChild);
+  
+  // Camera entity with view
+  
+  var entityControl3 = EntityControl();
+  entityControl3.ExtendedEntityType = true;
+  entityControl3.EntityKind = 0;
+  entityControl3.EntityDomain = 0;
+  entityControl3.EntityCountry = 0;
+  entityControl3.EntityCategory = 0;
+  entityControl3.EntitySubCategory = 0;
+  entityControl3.EntitySpecific = 9;
+  entityControl3.EntityExtra = 0;
+  entityControl3.EntityID = 1;
+  entityControl3.State = "Active";
+  entityControl3.CollisionReportingEnable = true;
+  entityControl3.InheritAlpha = true;
+  entityControl3.SmoothingEnable = true;
+  entityControl3.Alpha = 255;
+  sendEntityControl(entityControl3);
+  
+  var entityPositionChild2 = ChildEntityPosition();
+  entityPositionChild2.EntityID = 1;
+  entityPositionChild2.AttachState = "Attach";
+  entityPositionChild2.Yaw = 15;
+  entityPositionChild2.Pitch = 0;
+  entityPositionChild2.Roll = 0;
+  entityPositionChild2.ParentID = 2;
+  entityPositionChild2.XOffset = -7;
+  entityPositionChild2.YOffset = -2;
+  entityPositionChild2.ZOffset = 0;
+  sendChildEntityPosition(entityPositionChild2);
+  
+  var viewControl = ViewControl();
+  viewControl.ViewID = 0;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = 1;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = 0;
+  viewControl.YOffset = 0;
+  viewControl.ZOffset = 0;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = 0;
+  viewControl.Pitch = 0;
+  viewControl.Roll = 0;
+  sendViewControl(viewControl);
+  
+  // Rect to show borders of surface
+  var vertices = VertexList();
+  
+  var vertex_1 = VertexUV();
+  vertex_1.U = -100;
+  vertex_1.V = 100;
+  vertices.push_back(vertex_1);
+  
+  var vertex_2 = VertexUV();
+  vertex_2.U = 100;
+  vertex_2.V = 100;
+  vertices.push_back(vertex_2);
+  
+  var vertex_3 = VertexUV();
+  vertex_3.U = -100;
+  vertex_3.V = -100;
+  vertices.push_back(vertex_3);
+  
+  var vertex_4 = VertexUV();
+  vertex_4.U = 100;
+  vertex_4.V = -100;
+  vertices.push_back(vertex_4);
+  
+  var symbolPolygon = SymbolPolygonDefinition();
+  symbolPolygon.SymbolID = 30;
+  symbolPolygon.PrimitiveType = "Triangle Strip";
+  symbolPolygon.LineWidth = 0;
+  symbolPolygon.StipplePattern = 0;
+  symbolPolygon.StipplePatternLength = 0;
+  symbolPolygon.Vertices = vertices;
+  sendSymbolPolygonDefinition(symbolPolygon);
+  
+  var symbolControl = SymbolControl();
+  symbolControl.SymbolID = 30;
+  symbolControl.ParentSymbolID = 0;
+  symbolControl.SymbolState = "Visible";
+  symbolControl.AttachState = "Detach";
+  symbolControl.SurfaceID = 20;
+  symbolControl.PositionU = 0;
+  symbolControl.PositionV = 0;
+  symbolControl.Rotation = symSpinCurr;
+  symbolControl.Red = 0;
+  symbolControl.Green = 255;
+  symbolControl.Blue = 0;
+  symbolControl.Alpha = 127;
+  symbolControl.ScaleU = 1;
+  symbolControl.ScaleV = 1;
+  symbolControl.FlashControl = "Continue";
+  symbolControl.FlashPeriod = 0;
+  symbolControl.FlashDutyCyclePercentage = 0;
+  symbolControl.InheritColor = false;
+  symbolControl.Layer = 0;
+  sendSymbolControl(symbolControl);
+  
+  // Triangle to spin in middle of surface
+  var vertices2 = VertexList();
+  
+  var vertex2_1 = VertexUV();
+  vertex2_1.U = -50;
+  vertex2_1.V = -50;
+  vertices2.push_back(vertex2_1);
+  
+  var vertex2_2 = VertexUV();
+  vertex2_2.U = 0;
+  vertex2_2.V = 80;
+  vertices2.push_back(vertex2_2);
+  
+  var vertex2_3 = VertexUV();
+  vertex2_3.U = 0;
+  vertex2_3.V = -35;
+  vertices2.push_back(vertex2_3);
+  
+  var vertex2_4 = VertexUV();
+  vertex2_4.U = 50;
+  vertex2_4.V = -50;
+  vertices2.push_back(vertex2_4);
+  
+  var symbolPolygon2 = SymbolPolygonDefinition();
+  symbolPolygon2.SymbolID = 55;
+  symbolPolygon2.PrimitiveType = "Triangle Strip";
+  symbolPolygon2.LineWidth = 0;
+  symbolPolygon2.StipplePattern = 0;
+  symbolPolygon2.StipplePatternLength = 0;
+  symbolPolygon2.Vertices = vertices2;
+  sendSymbolPolygonDefinition(symbolPolygon2);
+  
+  var symbolControl2 = SymbolControl();
+  symbolControl2.SymbolID = 55;
+  symbolControl2.ParentSymbolID = 0;
+  symbolControl2.SymbolState = "Visible";
+  symbolControl2.AttachState = "Detach";
+  symbolControl2.SurfaceID = 20;
+  symbolControl2.PositionU = 0;
+  symbolControl2.PositionV = 0;
+  symbolControl2.Rotation = symSpinCurr;
+  symbolControl2.Red = 255;
+  symbolControl2.Green = 0;
+  symbolControl2.Blue = 0;
+  symbolControl2.Alpha = 127;
+  symbolControl2.ScaleU = 1;
+  symbolControl2.ScaleV = 1;
+  symbolControl2.FlashControl = "Continue";
+  symbolControl2.FlashPeriod = 0;
+  symbolControl2.FlashDutyCyclePercentage = 0;
+  symbolControl2.InheritColor = false;
+  symbolControl2.Layer = 0;
+  sendSymbolControl(symbolControl);
+  
+  symSpinSpeed = 30;
+}
+
+def MoveEntityForwards() 
+{
+  logMessage("Entity Forwards");
+  
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 10;
+  velocityControl.XLinearVelocity = 10;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def MoveEntityBackwards()
+{
+  logMessage("Entity Backwards");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 10;
+  velocityControl.XLinearVelocity = -20;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 30;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def MoveEntityForwardsReturn()
+{
+  logMessage("Entity Forwards (return)");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 10;
+  velocityControl.XLinearVelocity = 10;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 90;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def StopEntityVelocity()
+{
+  logMessage("Entity Velocity stop");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 10;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def OrbitCamera1()
+{
+  logMessage("Camera orbit 1");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 90;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def StopCamera1()
+{
+  logMessage("Camera stop 1");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+  
+  var entityPositionChild = ChildEntityPosition();
+  entityPositionChild.EntityID = 2;
+  entityPositionChild.AttachState = "Attach";
+  entityPositionChild.Yaw = 0;
+  entityPositionChild.Pitch = 0;
+  entityPositionChild.Roll = 0;
+  entityPositionChild.ParentID = 10;
+  entityPositionChild.XOffset = 0;
+  entityPositionChild.YOffset = 0;
+  entityPositionChild.ZOffset = 0;
+  sendChildEntityPosition(entityPositionChild);
+}
+
+def SwitchToBillboardSurface()
+{
+  logMessage("Switch to Billboard Surface");
+  
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 20;
+  surfaceDefinition.EntityViewID = 10;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "Entity";
+  surfaceDefinition.Billboard = "Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = 0;
+  surfaceDefinition.YOffsetRight = 0;
+  surfaceDefinition.ZOffsetTop = 0;
+  surfaceDefinition.YawBottom = 0;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 5;
+  surfaceDefinition.Height = 5;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+}
+
+def OrbitCamera2()
+{
+  logMessage("Camera orbit 2");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 90;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def StopCamera2()
+{
+  logMessage("Camera stop 2");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+  
+  var entityPositionChild = ChildEntityPosition();
+  entityPositionChild.EntityID = 2;
+  entityPositionChild.AttachState = "Attach";
+  entityPositionChild.Yaw = 0;
+  entityPositionChild.Pitch = 0;
+  entityPositionChild.Roll = 0;
+  entityPositionChild.ParentID = 10;
+  entityPositionChild.XOffset = 0;
+  entityPositionChild.YOffset = 0;
+  entityPositionChild.ZOffset = 0;
+  sendChildEntityPosition(entityPositionChild);
+}
+
+def SwitchToViewSurfaceOrbit3()
+{
+  logMessage("Switch to View Surface, Orbit 3");
+  
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 20;
+  surfaceDefinition.EntityViewID = 0;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "View";
+  surfaceDefinition.Billboard = "Non-Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = 0;
+  surfaceDefinition.YOffsetRight = 1;
+  surfaceDefinition.ZOffsetTop = 1;
+  surfaceDefinition.YawBottom = 0;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 0;
+  surfaceDefinition.Height = 0;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = -15;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def ViewLeftHalf()
+{
+  logMessage("View Left Half");
+  
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 20;
+  surfaceDefinition.EntityViewID = 0;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "View";
+  surfaceDefinition.Billboard = "Non-Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = 0;
+  surfaceDefinition.YOffsetRight = 0.5;
+  surfaceDefinition.ZOffsetTop = 1;
+  surfaceDefinition.YawBottom = 0;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 0;
+  surfaceDefinition.Height = 0;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+}
+
+def ViewCenter()
+{
+  logMessage("View Center");
+  
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 20;
+  surfaceDefinition.EntityViewID = 0;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "View";
+  surfaceDefinition.Billboard = "Non-Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = 0.3;
+  surfaceDefinition.YOffsetRight = 0.7;
+  surfaceDefinition.ZOffsetTop = 0.7;
+  surfaceDefinition.YawBottom = 0.3;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 0;
+  surfaceDefinition.Height = 0;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+}
+
+def ViewBottomRightCornerOrbitFaster()
+{
+  logMessage("View Bottom-Right Corner, Orbit faster");
+  
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = 20;
+  surfaceDefinition.EntityViewID = 0;
+  surfaceDefinition.SurfaceState = "Active";
+  surfaceDefinition.AttachType = "View";
+  surfaceDefinition.Billboard = "Non-Billboard";
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = 0.7;
+  surfaceDefinition.YOffsetRight = 1;
+  surfaceDefinition.ZOffsetTop = 0.3;
+  surfaceDefinition.YawBottom = 0;
+  surfaceDefinition.Pitch = 0;
+  surfaceDefinition.Roll = 0;
+  surfaceDefinition.Width = 0;
+  surfaceDefinition.Height = 0;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = -27;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+}
+
+def StopCamera3SpinAccel()
+{
+  logMessage("Camera stop 3, Spin accel");
+    
+  var velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 2;
+  velocityControl.XLinearVelocity = 0;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "World/Parent";
+  sendEntityVelocityControl(velocityControl);
+  
+  
+  var entityPositionChild = ChildEntityPosition();
+  entityPositionChild.EntityID = 2;
+  entityPositionChild.AttachState = "Attach";
+  entityPositionChild.Yaw = 0;
+  entityPositionChild.Pitch = 0;
+  entityPositionChild.Roll = 0;
+  entityPositionChild.ParentID = 10;
+  entityPositionChild.XOffset = 0;
+  entityPositionChild.YOffset = 0;
+  entityPositionChild.ZOffset = 0;
+  sendChildEntityPosition(entityPositionChild);
+  
+  symSpinAcc = -10.0;
+}
+
+// -----------------
+// SUPPORT FUNCTIONS
+// -----------------
+
+def addVertex(vertices,u,v)
+{
+  var vertex = VertexUV();
+  vertex.U = u;
+  vertex.V = v;
+  vertices.push_back(vertex);
+}
+
+
+
+

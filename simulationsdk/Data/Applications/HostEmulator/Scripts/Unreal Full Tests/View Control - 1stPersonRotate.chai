@@ -1,0 +1,169 @@
+//
+// Sent Packets:
+//      IG Control
+//      Entity Control
+//      Entity Position 
+//      View Control
+//      View Definition
+//      Velocity Control
+//
+// Translates the view to rotate to look around while in flight
+//
+def Start()
+{
+
+// ----- IG Control ----------
+
+  var igControl = IGControl();
+  igControl.DatabaseNumber = 2;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = "Operate";
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def OnDatabaseLoaded()
+{
+
+// ----- Generic Fighter Aircraft ----------
+
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = 1;
+  entityControl.EntityDomain = 2;
+  entityControl.EntityCountry = 225;
+  entityControl.EntityCategory = 1;
+  entityControl.EntitySubCategory = 5;
+  entityControl.EntitySpecific = 3;
+  entityControl.EntityExtra = 0;
+  entityControl.EntityID = 1;
+  entityControl.State = "Active";
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+  
+  global entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = 1;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = 0;
+  entityPosition.Pitch = 0;
+  entityPosition.Roll = 0;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = -0.009;
+  entityPosition.Longitude = 0;
+  entityPosition.Altitude = 50;
+  sendTopLevelEntityPosition(entityPosition);
+
+// ----- Generic Spotlight ----------
+
+  var entityControlChildLight = EntityControl();
+  entityControlChildLight.ExtendedEntityType = true;
+  entityControlChildLight.EntityKind = 3;
+  entityControlChildLight.EntityDomain = 1;
+  entityControlChildLight.EntityCountry = 0;
+  entityControlChildLight.EntityCategory = 130;
+  entityControlChildLight.EntitySubCategory = 152;
+  entityControlChildLight.EntitySpecific = 6;
+  entityControlChildLight.EntityExtra = 1;
+  entityControlChildLight.EntityID = 2;
+  entityControlChildLight.State = "Active";
+  entityControlChildLight.CollisionReportingEnable = true;
+  entityControlChildLight.InheritAlpha = true;
+  entityControlChildLight.SmoothingEnable = true;
+  entityControlChildLight.Alpha = 255;
+  sendEntityControl(entityControlChildLight);
+
+  global entityPositionChildLight = ChildEntityPosition();
+  entityPositionChildLight.EntityID = 2;
+  entityPositionChildLight.AttachState = "Attach";
+  entityPositionChildLight.Yaw = 90;
+  entityPositionChildLight.Pitch = 0;
+  entityPositionChildLight.Roll = 0;
+  entityPositionChildLight.ParentID = 1;
+  entityPositionChildLight.XOffset = 0;
+  entityPositionChildLight.YOffset = 0;
+  entityPositionChildLight.ZOffset = 0;
+  sendChildEntityPosition(entityPositionChildLight);
+
+// ----- View ----------
+  
+  global viewControl = ViewControl();
+  viewControl.ViewID = 0;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = 1;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = -0.2;
+  viewControl.YOffset = 0;
+  viewControl.ZOffset = -2;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = 0;
+  viewControl.Pitch = 0;
+  viewControl.Roll = 0;
+  sendViewControl(viewControl);
+
+  var viewDefinition = ViewDefinition();
+  viewDefinition.ViewID = 0;
+  viewDefinition.NearEnable = true;
+  viewDefinition.FarEnable = true;
+  viewDefinition.Near = 1;
+  viewDefinition.Far = 100000;
+  viewDefinition.ProjectionMode = "Perspective";
+  sendViewDefinition(viewDefinition);
+
+// ----- Velocity ----------
+
+  global velocityControl = EntityVelocityControl();
+  velocityControl.EntityID = 1;
+  velocityControl.XLinearVelocity = 50;
+  velocityControl.YLinearVelocity = 0;
+  velocityControl.ZLinearVelocity = 0;
+  velocityControl.RollAngularVelocity = 0;
+  velocityControl.PitchAngularVelocity = 0;
+  velocityControl.YawAngularVelocity = 0;
+  velocityControl.CoordinateSystem = "Local";
+  sendEntityVelocityControl(velocityControl);
+}
+
+global lookLeft = false;
+global lookRight = false;
+global increment = 0.0f;
+
+def OnUpdate()
+{
+  if(viewControl.Yaw == 0.0f && (!lookLeft) && (!lookRight))
+  {
+    increment = 0.5f;
+    lookRight = true;
+  }
+  else if(viewControl.Yaw == 45.0f && lookRight)
+  {
+	  increment = -0.5;
+    lookRight = false;
+    lookLeft = true;
+  }
+  else if(viewControl.Yaw == 0.0f && lookLeft)
+  {
+	  viewControl.Yaw = 360.0f;
+    increment = -0.5;
+  }
+  else if(viewControl.Yaw == 315.0f && lookLeft)
+  {
+    increment = 0.5;
+    lookRight = true;
+    lookLeft = false;
+  }
+  else if(viewControl.Yaw == 360.0f && lookRight)
+  {
+  	viewControl.Yaw = 0.0f;
+    increment = 0.5;
+  }
+
+ 	viewControl.Yaw += increment;
+  sendViewControl(viewControl);
+}

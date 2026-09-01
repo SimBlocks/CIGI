@@ -1,0 +1,343 @@
+
+// Full Test: Symbol Circle 
+// Also uses: IG Control, Entity Control, Entity Position, View Control,
+//            Symbol Definition, Symbol Control
+
+
+
+// --------------
+// HOST FUNCTIONS
+// --------------
+
+def Start()
+{
+  logMessage("STARTING: Symbol Circle - Full Test");
+  prevSeconds = -1.0;
+  smState = 0.0;
+  symSpinSpeed = 0.0;
+  symSpinAcc = 0.0;
+  symSpinCurr = 0.0;
+  StateMachine();
+}
+
+def OnDatabaseLoaded()
+{
+  // Resume the state machine
+  StateMachine();
+}
+
+global prevSeconds = 0.0;
+def OnUpdate()
+{
+  var deltaSeconds = 0.0;
+  if (prevSeconds > 0) { deltaSeconds = getHostSeconds() - prevSeconds; }
+  prevSeconds = getHostSeconds();
+  
+  SymbolSpin(deltaSeconds);
+}
+
+
+
+// ---------------
+// STATE FUNCTIONS
+// ---------------
+
+global smState = 0;
+def StateMachine()
+{
+  var circles = CircleList();
+  circles.clear();
+
+  // How long to wait until running the next state
+  // If this is negative, there will be no timer for the next state
+  // Call "StateMachine()" to manually trigger the next state (useful when waiting for a database to load)
+  var smDelay = 0;
+  
+  // Automatically increment the state.
+  // From this point onwards, "smState" determines the next state (can be manually changed)
+  smState += 1;
+  logMessage("Running state machine with state: "+(smState-1).to_string());
+  switch(smState-1)
+  {
+    case (0) {
+      logMessage("0 Resetting...");
+      pkIGControl(0,"Reset");
+      // Wait 1 sec for reset
+      smDelay = 1;
+      break;
+    }
+    case (1) {
+      logMessage("1 Loading database...");
+      pkIGControl(2,"Operate");
+      // Wait for the database to finish loading
+      smDelay = -1;
+      break;
+    }
+    case (2) {
+      logMessage("2 Database loaded");
+      // Wait 1 extra second just to be safe
+      smDelay = 1;
+      break;
+        
+    }
+    case (3) {
+      logMessage("3 Initializing");
+      
+      // Box Entity with surface
+      pkEntityControl(10,"Active",0,0,0,0,0,1,1);
+      pkTopLevelEntityPosition(10,0,0,0,0,0,0);
+      pkSurfaceDefinitionWorld(20,10,0,0,-2,0,0,180,4,4);
+      
+      // Camera arm (rotating this orbits camera)
+      pkEntityControl(2,"Active",0,0,0,0,0,9,0);
+      pkChildEntityPosition(2,10,0,0,0,0,0,0);
+      
+      // Camera entity with view
+      pkEntityControl(1,"Active",0,0,0,0,0,9,0);
+      pkChildEntityPosition(1,2,-7,0,-2,0,0,0);
+      pkViewControl(0,1,0,0,0,0,0,0);
+      
+      // Circle touching borders of the surface
+      circles.clear();
+      addCircle(circles,0,0,100,90,0,360);
+      pkSymbolCircle(30, circles, "Fill", 0, 0, 0);
+      pkSymbolControlSimple(30,20,0,0,0,0,0,255,127);
+      
+      smDelay = 4;
+      break;
+    }
+    case (4) {
+      logMessage("Draw Stipple Circle 31");
+      circles.clear();
+      addCircle(circles,0,0,80,0,0,360);
+      pkSymbolCircle(31, circles, "Line", 20, 10, 61680);
+      pkSymbolControlSimple(31,20,0,0,0,0,255,0,127);
+      smDelay = 3;
+      break;
+    }
+    case (5) {
+      logMessage("Draw Double-Half Circle 32");
+      circles.clear();
+      addCircle(circles,-30,0,30,10,90,270);
+      addCircle(circles,30,0,30,10,270,90);
+      pkSymbolCircle(32, circles, "Fill", 0, 0, 0);
+      pkSymbolControlSimple(32,20,0,0,0,255,0,0,127);
+      smDelay = 3;
+      break;
+    }
+    case (6) {
+      logMessage("Spin both circles");
+      symSpinSpeed = 30.0;
+      smDelay = 6;
+      break;
+    }
+    case (7) {
+      logMessage("Add inner circle to symbol 31");
+      circles.clear();
+      addCircle(circles,0,0,80,0,0,360);
+      addCircle(circles,0,0,15,0,90,0);
+      pkSymbolCircle(31, circles, "Line", 20, 10, 61680);
+      smDelay = 3;
+      break;
+    }
+    
+    default {
+      logMessage("FINISHED: Symbol Clone - Full Test");
+      // Stop the state machine
+      smDelay = -1;
+      break;
+    }
+  }
+  
+  // If there is a valid delay, set the timer for the next state
+  if(smDelay>=0) {
+    Wait(smDelay,"StateMachine");
+  }
+}
+
+// If symSpinSpeed!=0, rotates the symbol with id=31 and id=32 (called from Update())
+global symSpinSpeed = 0.0;
+global symSpinAcc = 0.0;
+global symSpinCurr = 0.0;
+def SymbolSpin(deltaSeconds)
+{
+  symSpinSpeed = symSpinSpeed + (symSpinAcc * deltaSeconds);
+  if(symSpinSpeed!=0 && deltaSeconds > 0)
+  {
+    symSpinCurr = modulo(symSpinCurr + (symSpinSpeed * deltaSeconds),360);
+    pkSymbolControlSimple(31,20,0,0,symSpinCurr,0,255,0,127);
+    pkSymbolControlSimple(32,20,0,0,360-symSpinCurr,255,0,0,127);
+  }
+}
+
+
+// -----------------
+// SUPPORT FUNCTIONS
+// -----------------
+
+
+
+def pkIGControl(db,mode)
+{
+  var igControl = IGControl();
+  igControl.DatabaseNumber = db;
+  igControl.EntityTypeSubstitutionEnabled = false;
+  igControl.IGMode = mode;
+  igControl.SmoothingEnable = true;
+  sendIGControl(igControl);
+}
+
+def pkEntityControl(id,state,ki,do,co,ca,su,sp,ex)
+{
+  var entityControl = EntityControl();
+  entityControl.ExtendedEntityType = true;
+  entityControl.EntityKind = ki;
+  entityControl.EntityDomain = do;
+  entityControl.EntityCountry = co;
+  entityControl.EntityCategory = ca;
+  entityControl.EntitySubCategory = su;
+  entityControl.EntitySpecific = sp;
+  entityControl.EntityExtra = ex;
+  entityControl.EntityID = id;
+  entityControl.State = state;
+  entityControl.CollisionReportingEnable = true;
+  entityControl.InheritAlpha = true;
+  entityControl.SmoothingEnable = true;
+  entityControl.Alpha = 255;
+  sendEntityControl(entityControl);
+}
+
+def pkViewControl(vid,eid,x,y,z,rol,pit,yaw)
+{
+  var viewControl = ViewControl();
+  viewControl.ViewID = vid;
+  viewControl.ViewGroupID = 0;
+  viewControl.EntityID = eid;
+  viewControl.XOffsetEnabled = true;
+  viewControl.YOffsetEnabled = true;
+  viewControl.ZOffsetEnabled = true;
+  viewControl.XOffset = x;
+  viewControl.YOffset = y;
+  viewControl.ZOffset = z;
+  viewControl.YawEnabled = true;
+  viewControl.PitchEnabled = true;
+  viewControl.RollEnabled = true;
+  viewControl.Yaw = yaw;
+  viewControl.Pitch = rol;
+  viewControl.Roll = pit;
+  sendViewControl(viewControl);
+}
+
+def pkTopLevelEntityPosition(id,lat,lon,alt,rol,pit,yaw)
+{
+  var entityPosition = TopLevelEntityPosition();
+  entityPosition.EntityID = id;
+  entityPosition.AttachState = "Unattach";
+  entityPosition.Yaw = yaw;
+  entityPosition.Pitch = pit;
+  entityPosition.Roll = rol;
+  entityPosition.Clamp = "No Clamp";
+  entityPosition.Latitude = lat;
+  entityPosition.Longitude = lon;
+  entityPosition.Altitude = alt;
+  sendTopLevelEntityPosition(entityPosition);
+}
+
+def pkChildEntityPosition(cid,pid,x,y,z,rol,pit,yaw)
+{
+  var entityPositionChild = ChildEntityPosition();
+  entityPositionChild.EntityID = cid;
+  entityPositionChild.AttachState = "Attach";
+  entityPositionChild.Yaw = yaw;
+  entityPositionChild.Pitch = pit;
+  entityPositionChild.Roll = rol;
+  entityPositionChild.ParentID = pid;
+  entityPositionChild.XOffset = x;
+  entityPositionChild.YOffset = y;
+  entityPositionChild.ZOffset = z;
+  sendChildEntityPosition(entityPositionChild);
+}
+
+def pkSurfaceDefinition(sid,eid,state,type,billboard,xLeft,yRight,zTop,rol,pit,yawBottom,w,h)
+{
+  var surfaceDefinition = SymbolSurfaceDefinition();
+  surfaceDefinition.SurfaceID = sid;
+  surfaceDefinition.EntityViewID = eid;
+  surfaceDefinition.SurfaceState = state;
+  surfaceDefinition.AttachType = type;
+  surfaceDefinition.Billboard = billboard;
+  surfaceDefinition.PerspectiveGrowthEnable = false;
+  surfaceDefinition.XOffsetLeft = xLeft;
+  surfaceDefinition.YOffsetRight = yRight;
+  surfaceDefinition.ZOffsetTop = zTop;
+  surfaceDefinition.YawBottom = yawBottom;
+  surfaceDefinition.Pitch = pit;
+  surfaceDefinition.Roll = rol;
+  surfaceDefinition.Width = w;
+  surfaceDefinition.Height = h;
+  surfaceDefinition.MinU = -100;
+  surfaceDefinition.MaxU = 100;
+  surfaceDefinition.MinV = -100;
+  surfaceDefinition.MaxV = 100;
+  sendSymbolSurfaceDefinition(surfaceDefinition);
+}
+def pkSurfaceDefinitionWorld(sid,eid,x,y,z,rol,pit,yaw,w,h) {
+  pkSurfaceDefinition(sid,eid,"Active","Entity","Non-Billboard",x,y,z,rol,pit,yaw,w,h);
+}
+def pkSurfaceDefinitionBillboard(sid,eid,w,h) {
+  pkSurfaceDefinition(sid,eid,"Active","Entity","Billboard",0,0,0,0,0,0,w,h);
+}
+def pkSurfaceDefinitionView(sid,vid,l,r,t,b) {
+  pkSurfaceDefinition(sid,vid,"Active","View","Non-Billboard",l,r,t,0,0,b,0,0);
+}
+
+def pkSymbolControlSimple(id,sid,u,v,rot,r,g,b,a)
+{
+  var symbolControl = SymbolControl();
+  symbolControl.SymbolID = id;
+  symbolControl.ParentSymbolID = 0;
+  symbolControl.SymbolState = "Visible";
+  symbolControl.AttachState = "Detach";
+  symbolControl.SurfaceID = sid;
+  symbolControl.PositionU = u;
+  symbolControl.PositionV = v;
+  symbolControl.Rotation = rot;
+  symbolControl.Red = r;
+  symbolControl.Green = g;
+  symbolControl.Blue = b;
+  symbolControl.Alpha = a;
+  symbolControl.ScaleU = 1;
+  symbolControl.ScaleV = 1;
+  symbolControl.FlashControl = "Continue";
+  symbolControl.FlashPeriod = 0;
+  symbolControl.FlashDutyCyclePercentage = 0;
+  symbolControl.InheritColor = false;
+  symbolControl.Layer = 0;
+  sendSymbolControl(symbolControl);
+}
+
+def pkSymbolCircle(id, circles, style, lw, spl, sp)
+{
+  var symbolCircle = SymbolCircleDefinition();
+  symbolCircle.SymbolID = id;
+  symbolCircle.Circles = circles;
+  symbolCircle.DrawingStyle = style;
+  symbolCircle.LineWidth = lw;
+  symbolCircle.StipplePatternLength = spl;
+  symbolCircle.StipplePattern = sp;
+  sendSymbolCircleDefinition(symbolCircle);
+}
+def addCircle(circles,u,v,r,ir,start,end)
+{
+  var circle = SymbolCircle();
+  circle.CenterU = u;
+  circle.CenterV = v;
+  circle.Radius = r;
+  circle.InnerRadius = ir;
+  circle.StartAngle = start;
+  circle.EndAngle = end;
+  circles.push_back(circle);
+}
+
+
+
