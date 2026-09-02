@@ -44,6 +44,6 @@ All CIGI message content is logged to **simulationsdk\Data\Applications\CIGI Ima
 # Support
 For feature requests and to report issues for this product, please utilize the **GitHub Issues** page.
 
-For more custimized software development support, please reach out to our team at **sales@simblocks.io**
+For more customized software development support, please reach out to our team at **sales@simblocks.io**
 
 For general CIGI questions, please contact the CIGI Product Support Group at https://sisostandards.connectedcommunity.org/home
