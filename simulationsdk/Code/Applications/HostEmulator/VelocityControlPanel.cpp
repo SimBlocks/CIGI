@@ -59,9 +59,9 @@ void CVelocityControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     articulatedPartVelocityControl.linearVelocity[0] = GetFloat("X Linear Velocity");
     articulatedPartVelocityControl.linearVelocity[1] = GetFloat("Y Linear Velocity");
     articulatedPartVelocityControl.linearVelocity[2] = GetFloat("Z Linear Velocity");
-    articulatedPartVelocityControl.angularVelocity.roll = Degrees(GetFloat("Roll Angular Velocity"));
-    articulatedPartVelocityControl.angularVelocity.pitch = Degrees(GetFloat("Pitch Angular Velocity"));
-    articulatedPartVelocityControl.angularVelocity.yaw = Degrees(GetFloat("Yaw Angular Velocity"));
+    articulatedPartVelocityControl.angularVelocity.roll = DegreesPerSecond(GetFloat("Roll Angular Velocity"));
+    articulatedPartVelocityControl.angularVelocity.pitch = DegreesPerSecond(GetFloat("Pitch Angular Velocity"));
+    articulatedPartVelocityControl.angularVelocity.yaw = DegreesPerSecond(GetFloat("Yaw Angular Velocity"));
 
     pSession->SendVelocityControl(articulatedPartVelocityControl);
   }
@@ -72,9 +72,9 @@ void CVelocityControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     entityVelocityControl.linearVelocity[0] = GetFloat("X Linear Velocity");
     entityVelocityControl.linearVelocity[1] = GetFloat("Y Linear Velocity");
     entityVelocityControl.linearVelocity[2] = GetFloat("Z Linear Velocity");
-    entityVelocityControl.angularVelocity.roll = Degrees(GetFloat("Roll Angular Velocity"));
-    entityVelocityControl.angularVelocity.pitch = Degrees(GetFloat("Pitch Angular Velocity"));
-    entityVelocityControl.angularVelocity.yaw = Degrees(GetFloat("Yaw Angular Velocity"));
+    entityVelocityControl.angularVelocity.roll = DegreesPerSecond(GetFloat("Roll Angular Velocity"));
+    entityVelocityControl.angularVelocity.pitch = DegreesPerSecond(GetFloat("Pitch Angular Velocity"));
+    entityVelocityControl.angularVelocity.yaw = DegreesPerSecond(GetFloat("Yaw Angular Velocity"));
     entityVelocityControl.coordinateSystem = ConvertCigiStringToObjectCoordinateSystem(GetChoice("Coordinate System"));
 
     pSession->SendVelocityControl(entityVelocityControl);
@@ -85,10 +85,10 @@ void CVelocityControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
   linearVelocity[1] = GetFloat("Y Linear Velocity");
   linearVelocity[2] = GetFloat("Z Linear Velocity");
 
-  TCigiBodyEulerRotation rotation;
-  rotation.yaw = Degrees(GetFloat("Roll Angular Velocity"));
-  rotation.pitch = Degrees(GetFloat("Pitch Angular Velocity"));
-  rotation.roll = Degrees(GetFloat("Yaw Angular Velocity"));
+  TCigiBodyEulerVelocity rotation;
+  rotation.yaw = DegreesPerSecond(GetFloat("Roll Angular Velocity"));
+  rotation.pitch = DegreesPerSecond(GetFloat("Pitch Angular Velocity"));
+  rotation.roll = DegreesPerSecond(GetFloat("Yaw Angular Velocity"));
 }
 
 //The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.

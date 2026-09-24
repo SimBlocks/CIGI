@@ -12,70 +12,39 @@
 
 #include <iostream>
 #include <sstream>
+#include <type_traits>
 
 /**
- * @brief Stores a single underlying value behind a distinct type.
+ * @brief Stores a value for use by domain-specific strong types.
  *
  * `StrongType<T>` is the base used by the strong-type macros in `StrongTypes.h`. It gives derived
  * types a dedicated type identity while preserving a small set of arithmetic and streaming helpers.
  *
- * Invariants:
- * - `m_nValue` is always a directly stored `T` value.
- * - The template does not enforce domain-specific validation; any additional range or sentinel
- *   rules are the responsibility of derived strong types.
- *
- * Ownership:
- * - This type owns no dynamic resources and does not share ownership with other objects.
- *
- * Side effects:
- * - Constructors initialize `m_nValue`.
- * - `operator/=`, `operator*=`, and stream insertion modify only the destination object they act on.
- *
- * Failure cases:
- * - Arithmetic operators do not guard against overflow, underflow, or division by zero; behavior is
- *   the same as the corresponding operations on `T`.
- * - Stream insertion operators rely on the destination stream and may fail by setting the stream's
- *   error state.
- *
- * @tparam T Underlying stored value type. The template expects `T` to be default-constructible from
- * `0`, copyable, and usable with the arithmetic operations exposed below.
+ * @tparam T Stored type. Must support initialization from `0` for default construction,
+ * copying for value access, and the arithmetic or stream operations used by the caller.
+ * @see StrongTypeHash
  */
 template <typename T>
 struct StrongType
 {
 public:
   /**
-   * @brief Initializes the wrapper with an explicit underlying value.
-   *
-   * Side effects:
-   * - Stores `nValue` in `m_nValue`.
-   *
+   * @brief Initializes the stored value.
    * @param nValue Value to wrap.
    */
   explicit StrongType(T nValue) : m_nValue(nValue)
   {
   }
 
-  /**
-   * @brief Initializes the wrapper with the zero value of `T`.
-   *
-   * Invariants:
-   * - After construction, `Value()` returns `0` converted to `T`.
-   *
-   * Side effects:
-   * - Stores `0` in `m_nValue`.
-   */
+  /** @brief Initializes the stored value from `0`. */
   StrongType() : m_nValue(0)
   {
   }
 
   /**
-   * @brief Adds a raw value to the wrapped value.
-   *
-   * The result is returned as the underlying type rather than as another `StrongType` instance.
-   *
-   * @param rhs Value to add to the wrapped value.
-   * @return Sum of `m_nValue` and `rhs`.
+   * @brief Adds a raw value without modifying this instance.
+   * @param rhs Value to add.
+   * @return Sum converted to `T`, not a strong-type wrapper.
    */
   T operator+(const T& rhs) const
   {
@@ -83,15 +52,8 @@ public:
   }
 
   /**
-   * @brief Divides the wrapped value in place.
-   *
-   * Side effects:
-   * - Replaces `m_nValue` with `m_nValue / rhs`.
-   *
-   * Failure cases:
-   * - No validation is performed. Division by zero and numeric overflow follow the rules of `T`.
-   *
-   * @param rhs Divisor applied to the wrapped value.
+   * @brief Divides the stored value in place without validation.
+   * @param rhs Divisor
    */
   void operator/=(const T& rhs)
   {
@@ -99,15 +61,8 @@ public:
   }
 
   /**
-   * @brief Multiplies the wrapped value in place.
-   *
-   * Side effects:
-   * - Replaces `m_nValue` with `m_nValue * rhs`.
-   *
-   * Failure cases:
-   * - No overflow checking is performed.
-   *
-   * @param rhs Multiplier applied to the wrapped value.
+   * @brief Multiplies the stored value in place without overflow checking.
+   * @param rhs Multiplier applied to the stored value.
    */
   void operator*=(const T& rhs)
   {
@@ -115,12 +70,8 @@ public:
   }
 
   /**
-   * @brief Returns the stored underlying value.
-   *
-   * Ownership:
-   * - Returns a copy. The caller does not take ownership of internal storage.
-   *
-   * @return Current wrapped value.
+   * @brief Reads the underlying value.
+   * @return Copy of the stored value.
    */
   T Value() const
   {
@@ -128,13 +79,11 @@ public:
   }
 
   /**
-   * @brief Writes the wrapped value to an output stream.
+   * @brief Inserts the stored value into an output stream.
    *
-   * Side effects:
-   * - Appends the formatted numeric value to `stream`.
-   *
-   * Failure cases:
-   * - Any stream formatting or write failure is reflected in `stream`.
+   * `char`, `signed char`, and `unsigned char` are inserted as `int`, not characters.
+   * Other types use their own insertion operator. Stream formatting is respected;
+   * stream errors and exceptions are not intercepted.
    *
    * @param stream Destination stream.
    * @param t Strong value to write.
@@ -142,18 +91,25 @@ public:
    */
   friend std::ostream& operator<<(std::ostream& stream, StrongType<T> t)
   {
-    stream << std::to_string(t.Value());
+    // For character types, cast to int to avoid printing as a character.
+    if constexpr (std::is_same_v<T, char> || std::is_same_v<T, signed char> || std::is_same_v<T, unsigned char>)
+    {
+      stream << static_cast<int>(t.Value());
+    }
+    else
+    {
+      stream << t.Value();
+    }
+
     return stream;
   }
 
   /**
-   * @brief Writes the wrapped value to a string stream.
+   * @brief Inserts the stored value into a string stream.
    *
-   * Side effects:
-   * - Appends the formatted numeric value to `stream`.
-   *
-   * Failure cases:
-   * - Any stream formatting or write failure is reflected in `stream`.
+   * `char`, `signed char`, and `unsigned char` are inserted as `int`, not characters.
+   * Other types use their own insertion operator. Stream formatting is respected;
+   * stream errors and exceptions are not intercepted.
    *
    * @param stream Destination string stream.
    * @param t Strong value to write.
@@ -161,12 +117,21 @@ public:
    */
   friend std::stringstream& operator<<(std::stringstream& stream, StrongType<T> t)
   {
-    stream << std::to_string(t.Value());
+    // For character types, cast to int to avoid printing as a character.
+    if constexpr (std::is_same_v<T, char> || std::is_same_v<T, signed char> || std::is_same_v<T, unsigned char>)
+    {
+      stream << static_cast<int>(t.Value());
+    }
+    else
+    {
+      stream << t.Value();
+    }
+
     return stream;
   }
 
 protected:
-  T m_nValue = 0;///< Stored underlying value. No additional validation is enforced by this base template.
+  T m_nValue = 0;///< Stored underlying value
 };
 
 /**
@@ -175,20 +140,7 @@ protected:
  * This functor hashes a strong type by returning its underlying value, making it suitable for strong
  * types whose `Value()` is already a stable hashable integral value.
  *
- * Invariants:
- * - The hash depends only on `t.Value()`.
- *
- * Ownership:
- * - This stateless functor owns no resources.
- *
- * Side effects:
- * - None. Calling the functor reads the supplied strong type and returns a value.
- *
- * Failure cases:
- * - None are reported by the functor itself. Any narrowing or conversion behavior follows the rules
- *   of converting `t.Value()` to `size_t`.
- *
- * @tparam T Strong type that exposes `Value()`.
+ * @tparam T Type exposing a const `Value()` member with a result implicitly convertible to `size_t`.
  */
 template <typename T>
 struct StrongTypeHash

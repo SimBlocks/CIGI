@@ -47,28 +47,31 @@ namespace sbio
       public:
         /**
          * @brief Constructs a `CHost` instance.
+         *
+         * Creates the entity-type registry; sessions and scripting are created by `Initialize()`.
          */
         CHost();
         /**
-         * @brief Destroys CHost instances.
+         * @brief Destroys the owned sessions, script runtime, and entity-type registry.
          */
         ~CHost();
 
         /**
          * @brief Returns the entity-type conversion table used by the host.
-         * @return Non-owning pointer to the owned entity-type registry, or `nullptr` before initialization.
+         * @return Non-owning pointer to the registry created by the constructor, valid for this host's lifetime.
          */
         sbio::cigi::CCigiEntityTypes* GetEntityTypes() const;
 
         /**
          * @brief Returns the configuration used to initialize the host.
-          * @return Host setup options value.
+         * @return Reference to stored options, owned by this host; default options before initialization.
          */
         const SHostSetupOptions& GetHostSetupOptions() const;
 
         /**
          * @brief Returns the currently active session.
          * @return Non-owning pointer to the active session, or `nullptr` when no active session exists.
+         *         Reinitializing or destroying the host invalidates pointers to replaced sessions.
          */
         CHostSession* GetHostSession() const;
 
@@ -76,31 +79,34 @@ namespace sbio
          * @brief Returns a session by logical session identifier.
          * @param sessionID Session identifier to look up.
          * @return Non-owning pointer to the matching session, or `nullptr` if not found.
+         *         Reinitializing or destroying the host invalidates pointers to replaced sessions.
          */
         CHostSession* GetHostSession(sbio::SessionID sessionID) const;
 
         /**
          * @brief Lists all configured session identifiers.
-          * @return Session ids value.
+         * @return Copy of the session identifiers in ascending order; empty when no sessions exist.
          */
         std::vector<sbio::SessionID> GetSessionIDs() const;
 
         /**
          * @brief Returns the session identifier currently selected for UI and command routing.
-          * @return Active session id value.
+         * @return Selected identifier; initially zero, which need not identify an existing session.
          */
         sbio::SessionID GetActiveSessionID() const;
 
         /**
          * @brief Selects the session that subsequent host operations target.
          * @param sessionID Session identifier to activate.
-         * @return `true` when the session exists and becomes active; otherwise `false`.
+         * @return `true` when the session exists and becomes active; `false` if it does not exist
+         * or switching sessions would redirect a running script.
          */
         bool SetActiveSessionID(sbio::SessionID sessionID);
 
         /**
          * @brief Returns the scripting runtime associated with the host.
-         * @return Non-owning pointer to the owned script runtime, or `nullptr` when scripting is disabled.
+         * @return Non-owning runtime pointer, or `nullptr` before initialization or when scripting is disabled.
+         *         Reinitialization can replace the runtime and invalidate this pointer.
          */
         sbio::cigi::host::CScriptRuntime* GetScriptRuntime() const;
 
@@ -112,29 +118,38 @@ namespace sbio
          * - Creates protocol-specific session objects.
          * - Initializes optional scripting support.
          * - Stores `options` for later queries.
+         *
+         * An empty session list creates session zero from the top-level settings. Otherwise, zero ports,
+         * empty addresses, and unknown database IDs inherit the top-level values. Duplicate session IDs
+         * or duplicate nonzero effective receive ports raise an error event and leave existing state intact.
+         * Only CIGI 3.3 and 4.0 are supported; other versions raise an error after existing sessions are cleared.
+         * Replaces the script runtime and sessions on valid configuration; socket failures are reported by events.
+         * An unknown synchronization mode uses asynchronous host updates.
          */
         void Initialize(const SHostSetupOptions& options);
 
         /**
          * @brief Loads the optional CIGI-to-SISO entity conversion file configured for the host.
+         *
+         * Uses the stored CSV path. An empty path or a caught standard exception is reported to stdout.
          */
         void LoadCigiToSisoEntityEnumerationConversionFile();
 
         /**
-         * @brief Advances the host runtime by one application update step.
-         * @param fDeltaTime Elapsed simulation or wall-clock time in seconds.
+         * @brief Updates scripting, sends asynchronous traffic, and processes incoming traffic for all sessions.
+         * @param fDeltaTime Unused; script timing comes from the active session's stopwatch.
          */
         void Update(double fDeltaTime);
 
       protected:
         /**
-         * @brief Processes inbound packets for the configured sessions.
-         * @return `true` when packet processing succeeds for the current update step.
+         * @brief Processes up to 64 received datagrams per session to bound receive work.
+         * @return `true` if any session received a datagram, including malformed traffic; otherwise `false`.
          */
         bool ProcessPackets();
 
         /**
-         * @brief Flushes queued outbound packets for the configured sessions.
+         * @brief Calls `CHostSession::SendPackets()` once for each session; deferred packets may remain queued.
          */
         void SendPackets();
 

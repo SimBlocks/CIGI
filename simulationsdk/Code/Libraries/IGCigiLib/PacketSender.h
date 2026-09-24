@@ -3,7 +3,7 @@
  * @file PacketSender.h
  * @brief Declares the CCigiPacketSender class for SimBlocks CIGI IG packet sending and network communication.
  *
- * Provides the CCigiPacketSender class for sending simulation packets over UDP in the SimBlocks CIGI IG library.
+ * Provides the CCigiPacketSender class for sending simulation packets over UDP in the SimBlocks IGCigiLib library.
  * Inherits from IPacketSender and integrates with SimBlocks CIGI, image generator, and utility types for simulation messaging and network communication.
  * Supports packet sending, buffer management, and socket communication for simulation interoperability.
  *
@@ -20,8 +20,11 @@
 #include "IPacketSender.h"
 #include "UtilitiesLib/UDPSendSocket.h"
 #include "UtilitiesLib/BufferWriter.h"
+#include <cstddef>
+#include <deque>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace sbio
 {
@@ -51,18 +54,42 @@ namespace sbio
         virtual ~CCigiPacketSender();
 
         /**
-         * @brief Sends simulation packets over UDP.
+         * @brief Sends one UDP datagram containing Start of Frame and complete queued response packets.
          *
-         * Concrete subclasses determine which logical response packets are serialized before this
-         * transport step is invoked.
+         * Excess responses remain queued in FIFO order. A failed socket send retains all pending responses.
+         * Successful transmission removes only the response packets included in that datagram.
          */
         void SendPackets();
+
+        /** @brief Discards pending response packets at a session boundary. Call on the IG thread. */
+        void ClearPendingResponses();
+
+      protected:
+        /** @brief Copies a complete serialized response into the bounded pending queue.
+         * @param data Readable packet bytes; copied and not retained by pointer.
+         * @param size Number of bytes to copy.
+         * @return `true` if copied; `false` for null/empty data, a packet that cannot fit alongside the
+         *         larger supported Start of Frame packet in 65507 bytes, or exceeding the 4 MiB queue limit.
+         */
+        bool QueuePacket(const void* data, std::size_t size);
+
+        /** @brief Queues the object representation of a fixed-size packet.
+         * @tparam TPacket Wire packet type whose complete representation occupies `sizeof(TPacket)` bytes.
+         * @param packet Serialized packet to copy.
+         * @return Result of the byte-oriented `QueuePacket()` overload; not a delivery acknowledgment.
+         */
+        template <typename TPacket>
+        bool QueuePacket(const TPacket& packet)
+        {
+          return QueuePacket(&packet, sizeof(packet));
+        }
 
       protected:
         CCigiImageGenerator& m_ImageGenerator;///< Non-owning image generator supplying outbound state.
         std::unique_ptr<sbio::utils::CUDPSendSocket> m_pSocketIGToHost;///< Owned UDP socket used for IG-to-host traffic.
         std::unique_ptr<sbio::utils::CBufferWriter> m_pBuffer;///< Owned serialization buffer used to build outbound packets.
-        std::unique_ptr<sbio::utils::CBufferWriter> m_pMessageBuffer;///< Owned buffer used to prepend start-of-frame data to queued responses.
+        std::deque<std::vector<char>> m_PendingPackets;///< Complete response packets awaiting transmission.
+        std::size_t m_nPendingBytes = 0;
       };
     }
   }

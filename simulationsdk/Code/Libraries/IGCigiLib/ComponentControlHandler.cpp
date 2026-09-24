@@ -73,6 +73,15 @@ void CCigiComponentControlHandler::Handle(const SCigiComponentControl& component
     return;
   }
 
+  // Entity components are cached by the entity itself. Symbols and surfaces can be
+  // recreated with the same ID, so their updates must not use this handler-lifetime cache.
+  if (itFunction->second == &CCigiComponentControlHandler::HandleEntity || itFunction->second == &CCigiComponentControlHandler::HandleSymbol ||
+      itFunction->second == &CCigiComponentControlHandler::HandleSymbolSurface)
+  {
+    (this->*itFunction->second)(componentControl, pComponentDataParser);
+    return;
+  }
+
   // lookup cached component state based on component key
   TComponentStates::iterator itComponentState = m_ComponentStates.find(componentControl.key);
 

@@ -19,7 +19,7 @@ extern SViewLibSettings g_ViewLibSettings;
 void CViewManager::AddView(std::unique_ptr<CView> pView)
 {
   // Do not accept UnknownViewID as a valid viewID. (Things will definitely break)
-  if (pView->GetViewID() == UnknownViewID)
+  if (!pView || pView->GetViewID() == UnknownViewID)
   {
     return;
   }
@@ -30,12 +30,12 @@ void CViewManager::AddView(std::unique_ptr<CView> pView)
 void CViewManager::AddViewGroup(std::unique_ptr<CViewGroup> pViewGroup)
 {
   // Do not accept UnknownViewGroupID as a valid viewGroupID. (Things will definitely break)
-  if (pViewGroup->GetViewGroupID() == UnknownViewGroupID)
+  if (!pViewGroup || pViewGroup->GetViewGroupID() == UnknownViewGroupID)
   {
     return;
   }
 
-  m_ViewGroups[pViewGroup->GetViewGroupID()] = std::move(pViewGroup);
+  m_ViewGroups.try_emplace(pViewGroup->GetViewGroupID(), std::move(pViewGroup));
 }
 
 CView* CViewManager::GetView(ViewID viewID) const
@@ -95,7 +95,13 @@ bool CViewManager::RemoveView(ViewID viewID)
 
 void CViewManager::Reset()
 {
-  // don't clear view for now. just reset each one
+  // reset all view groups
+  for (auto& group : m_ViewGroups)
+  {
+    group.second->Reset();
+  }
+
+  // reset all views
   for (auto& v : m_Views)
   {
     v.second->Reset();
@@ -104,11 +110,13 @@ void CViewManager::Reset()
 
 void CViewManager::Update()
 {
+  // update all view groups
   for (auto& it : m_ViewGroups)
   {
     it.second->Update();
   }
 
+  // update all views
   for (auto& it : m_Views)
   {
     it.second->Update();

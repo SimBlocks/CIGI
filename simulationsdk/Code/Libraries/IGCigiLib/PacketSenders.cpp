@@ -21,6 +21,14 @@ void CCigiPacketSenders::AddHost(CCigiImageGenerator& imageGenerator, std::strin
   }
 }
 
+void CCigiPacketSenders::ClearPendingResponses()
+{
+  for (auto&& pPacketSender : m_pPacketSenders)
+  {
+    pPacketSender->ClearPendingResponses();
+  }
+}
+
 void CCigiPacketSenders::SendStartOfFramePacket(FrameNumber frameNumber)
 {
   for (auto&& pPacketSender : m_pPacketSenders)

@@ -25,21 +25,17 @@ CMenuBar::CMenuBar() : wxMenuBar()
   wxMenu* help = new wxMenu;
 
   wxMenuItem* setup = new wxMenuItem(file, wxID_SETUP, wxT("Setup"));
-  //setup->SetBackgroundColour(wxColor(*wxWHITE));
   file->Append(setup);
 
   wxMenuItem* exit = new wxMenuItem(file, wxID_EXIT, wxT("Exit"));
-  //exit->SetBackgroundColour(wxColor(*wxWHITE));
   file->Append(exit);
   Append(file, wxT("File"));
 
   wxMenuItem* launchIG = new wxMenuItem(file, ID_MENU_LAUNCH_IG, wxT("Launch IG"));
-  //launchIG->SetBackgroundColour(wxColor(*wxWHITE));
   test->Append(launchIG);
   Append(test, wxT("Test"));
 
   wxMenuItem* about = new wxMenuItem(help, wxID_ABOUT, wxT("About SimBlocks Host Emulator"));
-  //about->SetBackgroundColour(wxColor(*wxWHITE));
   help->Append(about);
   Append(help, wxT("Help"));
 }

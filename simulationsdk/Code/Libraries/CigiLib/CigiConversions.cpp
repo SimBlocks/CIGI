@@ -28,6 +28,24 @@ namespace sbio
       return bodyEulerRotation;
     }
 
+    TBodyEulerVelocity ConvertToBodyEulerRate(const TCigiBodyEulerVelocity& cigiBodyEulerRate)
+    {
+      TBodyEulerVelocity bodyEulerRate;
+      bodyEulerRate.pitch = cigiBodyEulerRate.pitch;
+      bodyEulerRate.roll = cigiBodyEulerRate.roll;
+      bodyEulerRate.yaw = cigiBodyEulerRate.yaw;
+      return bodyEulerRate;
+    }
+
+    TBodyEulerAcceleration ConvertToBodyEulerRate(const TCigiBodyEulerAcceleration& cigiBodyEulerRate)
+    {
+      TBodyEulerAcceleration bodyEulerRate;
+      bodyEulerRate.pitch = cigiBodyEulerRate.pitch;
+      bodyEulerRate.roll = cigiBodyEulerRate.roll;
+      bodyEulerRate.yaw = cigiBodyEulerRate.yaw;
+      return bodyEulerRate;
+    }
+
     TCigiBodyEulerRotation ConvertToCigiBodyEulerRotation(const TBodyEulerRotation& bodyEulerRotation)
     {
       TCigiBodyEulerRotation cigiBodyEulerRotation;
@@ -136,7 +154,7 @@ namespace sbio
       TBodyRotation bodyRotation;
       // Rotate about yaw, then pitch, then roll
       bodyRotation = ConvertCigiBodyRotationToBodyRotation(SetupCigiObjectRotation(rotation));
-      return GetGeocentricRotation(latitude, longitude) * bodyRotation;
+      return GetBodyGeocentricRotation(latitude, longitude) * bodyRotation;
     }
 
     EActiveState ConvertRegion(CIGI::V40::EnvironmentalRegionCtrl::RegionState eRegionState)
@@ -1728,6 +1746,8 @@ namespace sbio
         return EIGMode::DEBUG;
       case CIGI::V33::SoF::IGMode::eIGMode_Operate:
         return EIGMode::OPERATE;
+      case CIGI::V33::SoF::IGMode::eIGMode_OfflineMaintenance:
+        return EIGMode::MAINTENANCE;
       }
     }
 

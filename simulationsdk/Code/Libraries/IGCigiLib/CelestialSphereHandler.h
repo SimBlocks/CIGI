@@ -3,7 +3,7 @@
  * @file CelestialSphereHandler.h
  * @brief Declares the CCigiCelestialSphereHandler class for handling CIGI celestial sphere and date/time messages.
  *
- * Provides the CCigiCelestialSphereHandler class for processing celestial sphere and date/time messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiCelestialSphereHandler class for processing celestial sphere and date/time messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI and common types for simulation, celestial sphere, and date/time management.
  *
  * @see sbio::cigi::ig::CCigiCelestialSphereHandler

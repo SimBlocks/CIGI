@@ -3,7 +3,7 @@
  * @file EarthReferenceModelHandler.h
  * @brief Declares the CCigiEarthReferenceModelHandler class for handling CIGI earth reference model messages.
  *
- * Provides the CCigiEarthReferenceModelHandler class for processing earth reference model messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiEarthReferenceModelHandler class for processing earth reference model messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI types and math types for simulation and earth model management.
  *
  * @see sbio::cigi::ig::CCigiEarthReferenceModelHandler

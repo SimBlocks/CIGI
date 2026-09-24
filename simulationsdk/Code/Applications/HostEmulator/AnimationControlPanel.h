@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending animation control packets.
-   * @param event The command event.
+   * @brief Builds animation control from the editor and submits it to the active session.
+   * @param event Unused command event; alpha is converted with ConvertAlphaToPercentage().
+   * @pre An active host session is available. The callback does not report delivery or IG acceptance.
    */
   void OnSend(wxCommandEvent& event);
 

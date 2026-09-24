@@ -25,74 +25,92 @@ namespace sbio
   namespace view
   {
     /**
-     * @brief Manages a group of views for collective configuration and control.
+     * @brief Stores a group identifier, a set of view IDs, and a separately selected center view ID.
      *
-     * Supports adding/removing views, setting a center view, and updating or resetting the group.
+     * The base class neither owns nor resolves view objects. Membership is deduplicated and ordered by the set's
+     * comparator. The center may reference a view outside the set because `SetCenterViewID()` does not enforce
+     * membership. Derived classes provide group-specific update and reset behavior.
      */
     class CViewGroup
     {
     public:
       /**
        * @brief Constructs a view group with the specified group ID.
-       * @param viewGroupID The unique identifier for the view group.
+       * @param viewGroupID Identifier to store, without validation or registration.
+       *
+       * The group initially has no members and its center is `UnknownViewID`.
        */
       CViewGroup(sbio::ViewGroupID viewGroupID);
 
       /**
-       * @brief Virtual destructor for CViewGroup.
+       * @brief Destroys the group and its ID set without destroying any referenced views.
        */
       virtual ~CViewGroup();
 
       /**
        * @brief Adds a view ID to the group.
-       * @param viewID The view ID to add.
+       * @param viewID Identifier to record; `UnknownViewID` is ignored.
+       *
+       * Duplicate IDs do not add another member. If the center is unknown, it is set to this ID even when the ID
+       * was already present. The base implementation does not check whether the view exists in a manager.
        */
       virtual void AddViewID(sbio::ViewID viewID);
 
       /**
        * @brief Removes a view ID from the group.
-       * @param viewID The view ID to remove.
+       * @param viewID Identifier to erase; `UnknownViewID` is ignored.
+       *
+       * If the ID matches the center, the first remaining ID in set order becomes the center, or `UnknownViewID`
+       * if the set is empty. This center adjustment also applies when the ID was not a member. Other absent IDs
+       * have no effect. No view object is destroyed.
        */
       virtual void RemoveViewID(sbio::ViewID viewID);
 
       /**
        * @brief Gets the center view ID of the group.
-       * @return The center view ID.
+       * @return Stored center identifier, or `UnknownViewID` when unset; membership and view existence are not guaranteed.
        */
       sbio::ViewID GetCenterViewID() const;
 
       /**
        * @brief Gets the unique group ID.
-       * @return The view group ID.
+       * @return Copy of the identifier supplied at construction.
        */
       sbio::ViewGroupID GetViewGroupID() const;
 
       /**
        * @brief Gets the set of view IDs in the group.
-       * @return Reference to the set of view IDs.
+       * @return Borrowed const reference to the live, ordered membership set, valid for the group's lifetime.
+       * Later additions and removals are reflected in this set; it is not a snapshot.
        */
       const std::set<sbio::ViewID>& GetViewIDs() const;
 
       /**
-       * @brief Resets the view group to its default state.
+       * @brief Extension point for resetting derived group state.
+       *
+       * The base implementation does nothing; membership, center, and group ID are preserved.
        */
       virtual void Reset();
 
       /**
        * @brief Sets the center view ID for the group.
-       * @param centerViewID The center view ID to set.
+       * @param centerViewID Identifier to store; `UnknownViewID` is ignored and cannot clear the center.
+       *
+       * The ID need not be a member or resolve to an existing view. Setting it does not add a member.
        */
       void SetCenterViewID(sbio::ViewID centerViewID);
 
       /**
-       * @brief Updates the view group state.
+       * @brief Extension point for updating derived group state.
+       *
+       * The base implementation does nothing and does not update referenced views.
        */
       virtual void Update();
 
     protected:
-      sbio::ViewGroupID m_ViewGroupID = UnknownViewGroupID;///< Unique view group ID
-      std::set<sbio::ViewID> m_ViewIDs;///< Set of view IDs in the group
-      sbio::ViewID m_CenterViewID = UnknownViewID;///< Center view ID
+      sbio::ViewGroupID m_ViewGroupID = UnknownViewGroupID;///< Identifier supplied at construction.
+      std::set<sbio::ViewID> m_ViewIDs;///< Ordered, unique member IDs; referenced views are not owned.
+      sbio::ViewID m_CenterViewID = UnknownViewID;///< Center selection, independent of membership, or UnknownViewID when unset.
     };
   }
 }

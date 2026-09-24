@@ -3,9 +3,9 @@
  * @file LineOfSightVectorRequestGeodeticHandler.h
  * @brief Declares the CLineOfSightVectorRequestGeodeticHandler class for SimBlocks CIGI IG line of sight vector request handling for geodetic coordinates.
  *
- * Provides the CLineOfSightVectorRequestGeodeticHandler class for managing and processing line of sight vector requests for geodetic coordinates in the SimBlocks CIGI IG library.
- * Inherits from CLineOfSightRequestHandler and integrates with SimBlocks CIGI, math, and geodetic types for simulation and line of sight calculations.
- * Supports geodetic-specific request management, start point resolution, rotation retrieval, and entity coordinate system response handling for line of sight vector requests.
+ * Provides the CLineOfSightVectorRequestGeodeticHandler class for managing and processing line of sight vector requests for geodetic coordinates in the SimBlocks IGCigiLib
+ * library. Inherits from CLineOfSightRequestHandler and integrates with SimBlocks CIGI, math, and geodetic types for simulation and line of sight calculations. Supports
+ * geodetic-specific request management, start point resolution, rotation retrieval, and entity coordinate system response handling for line of sight vector requests.
  *
  * @see CLineOfSightVectorRequestGeodeticHandler
  * @see CLineOfSightRequestHandler
@@ -32,11 +32,14 @@ public:
    */
   CLineOfSightVectorRequestGeodeticBasicHandler(const sbio::cigi::SLineOfSightVectorRequestGeodeticBasic& lineOfSightRequest);
 
+  /** @brief Builds a basic vector query from a geodetic origin, azimuth/elevation, and range limits.
+   * @return `true` after dispatch; `false` when the event messenger is unavailable.
+   */
   virtual bool Handle() override;
 
   /**
    * @brief Gets the rotation for the vector request.
-   * @return Quaternion representing the rotation.
+   * @return Projected world basis when a projection is active; otherwise the geocentric body basis at the source.
    */
   sbio::math::Quaternion4d GetRotation() const;
   /**
@@ -47,7 +50,13 @@ public:
   bool ResolveStartPoint(sbio::math::GeocentricCoordinates& point);
 
 protected:
+  /** @brief Gets common request metadata.
+   * @return Const reference to this handler's stored request.
+   */
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const override;
+  /** @brief Gets mutable common request metadata.
+   * @return Reference to this handler's stored request.
+   */
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() override;
 
 private:

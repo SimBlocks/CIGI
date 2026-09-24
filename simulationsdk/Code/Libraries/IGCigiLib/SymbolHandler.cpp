@@ -61,14 +61,21 @@ void CCigiSymbolHandler::DestroySymbolTree(SymbolID symbolID)
   }
 
   // If the symbol is attached to a parent symbol, remove the symbol from its parent before destroying the tree
-  CSymbol* pParentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(pSymbol->GetParentSymbolID());
+  const auto parentSymbolID = pSymbol->GetParentSymbolID();
+  CSymbol* pParentSymbol = nullptr;
+
+  if (parentSymbolID)
+  {
+    pParentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(*parentSymbolID);
+  }
+
   if (pParentSymbol != nullptr)
   {
     pParentSymbol->RemoveChild(symbolID);
   }
 
-  // Set the parent symbol ID of the root symbol to UnknownSymbolID to detach it from any parent before destroying the tree
-  pSymbol->SetParentSymbolID(UnknownSymbolID);
+  // Clear the parent symbol ID of the root symbol to detach it from any parent before destroying the tree
+  pSymbol->SetParentSymbolID(std::nullopt);
 
   // Perform a depth-first traversal of the symbol tree to collect all symbol IDs to destroy.
   // The root symbol is visited first, then each child is visited recursively before moving to the next sibling.
@@ -104,11 +111,11 @@ void CCigiSymbolHandler::DestroySymbolTree(SymbolID symbolID)
     const auto children = pCurrentSymbol->GetChildren();
     for (auto childSymbolID : children)
     {
-      // Set the parent symbol ID of the child symbol to UnknownSymbolID to detach it from the parent before destroying the tree
+      // Clear the parent symbol ID of the child symbol to detach it from the parent before destroying the tree
       CSymbol* pChildSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(childSymbolID);
       if (pChildSymbol != nullptr)
       {
-        pChildSymbol->SetParentSymbolID(UnknownSymbolID);
+        pChildSymbol->SetParentSymbolID(std::nullopt);
       }
 
       // Add the child symbol ID to the list of symbols to visit
@@ -303,7 +310,84 @@ void CCigiSymbolHandler::Handle(const SViewSymbolSurfaceDefinition& viewSymbolSu
   g_CigiLibGlobals.pEventMessenger->SendUpdateViewSymbolSurfaceMessage(data);
 }
 
+void CCigiSymbolHandler::HandleShort(const SSymbolControl& incoming, EAttributeSelect attribute1, EAttributeSelect attribute2)
+{
+  CCigiSymbol* pSymbol = dynamic_cast<CCigiSymbol*>(g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(incoming.symbolID));
+  if (pSymbol == nullptr)
+  {
+    return;
+  }
+
+  const auto selected = [attribute1, attribute2](EAttributeSelect attribute)
+  {
+    return attribute1 == attribute || attribute2 == attribute;
+  };
+  SSymbolControl control = incoming;
+  if (!selected(EAttributeSelect::SURFACEID))
+  {
+    control.surfaceID = pSymbol->GetSymbolSurfaceID();
+  }
+  if (!selected(EAttributeSelect::PARENTSYMBOLID))
+  {
+    const auto parentSymbolID = pSymbol->GetParentSymbolID();
+    if (parentSymbolID)
+    {
+      control.parentSymbolID = *parentSymbolID;
+    }
+    else
+    {
+      // No parent was selected or previously attached; do not interpret ID 0 as an attachment.
+      control.eAttachState = EAttachState::DETACH;
+    }
+  }
+  if (!selected(EAttributeSelect::LAYER))
+  {
+    control.nLayerID = pSymbol->GetLayerID();
+  }
+  if (!selected(EAttributeSelect::FLASHDUTYCYCLEPERCENTAGE))
+  {
+    control.flashDutyCyclePercentage = Percentage(pSymbol->GetFlashDutyCycle());
+  }
+  if (!selected(EAttributeSelect::FLASHPERIOD))
+  {
+    control.fFlashPeriod = pSymbol->GetFlashPeriod();
+  }
+  if (!selected(EAttributeSelect::POSITIONU))
+  {
+    control.fPositionU = pSymbol->GetPosition().x();
+  }
+  if (!selected(EAttributeSelect::POSITIONV))
+  {
+    control.fPositionV = pSymbol->GetPosition().y();
+  }
+  if (!selected(EAttributeSelect::ROTATION))
+  {
+    control.fRotation = pSymbol->GetRotation();
+  }
+  if (!selected(EAttributeSelect::COLOR))
+  {
+    control.color = pSymbol->GetColor();
+  }
+  if (!selected(EAttributeSelect::SCALEU))
+  {
+    control.fScaleU = pSymbol->GetScale().x();
+  }
+  if (!selected(EAttributeSelect::SCALEV))
+  {
+    control.fScaleV = pSymbol->GetScale().y();
+  }
+  control.bPositionSet = selected(EAttributeSelect::POSITIONU) || selected(EAttributeSelect::POSITIONV);
+  control.bScaleSet = selected(EAttributeSelect::SCALEU) || selected(EAttributeSelect::SCALEV);
+  control.bSetColor = selected(EAttributeSelect::COLOR);
+  HandleControl(control, selected(EAttributeSelect::SURFACEID));
+}
+
 void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
+{
+  HandleControl(symbolControl, true);
+}
+
+void CCigiSymbolHandler::HandleControl(const SSymbolControl& symbolControl, bool bSetSurface)
 {
   if (g_CigiLibGlobals.pCigiMessageLogger != nullptr)
   {
@@ -403,14 +487,21 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
       if (bCreatesCycle)
       {
         stringstream ss;
-        ss << "Ignoring symbol attachment that would create a cycle. SymbolID: " << symbolControl.symbolID.Value() << ", ParentSymbolID: " << symbolControl.parentSymbolID.Value() << endl;
+        ss << "Ignoring symbol attachment that would create a cycle. SymbolID: " << symbolControl.symbolID.Value() << ", ParentSymbolID: " << symbolControl.parentSymbolID.Value()
+           << endl;
         g_CigiLibGlobals.pLogger->LogError(ss);
         return;
       }
 
       // If the symbol is currently attached to a different parent symbol, then the symbol will first be detached from its current parent
       // before being attached to the new parent.
-      CSymbol* pPreviousParentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(pSymbol->GetParentSymbolID());
+      const auto previousParentSymbolID = pSymbol->GetParentSymbolID();
+      CSymbol* pPreviousParentSymbol = nullptr;
+      if (previousParentSymbolID)
+      {
+        pPreviousParentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(*previousParentSymbolID);
+      }
+
       if (pPreviousParentSymbol != nullptr && pPreviousParentSymbol->GetSymbolID() != symbolControl.parentSymbolID)
       {
         pPreviousParentSymbol->RemoveChild(symbolControl.symbolID);
@@ -430,30 +521,31 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
         g_CigiLibGlobals.pEventMessenger->SendSetSymbolAttachedMessage(data);
       }
 
-      if (symbolControl.bSetColor)
+      pSymbol->SetInheritColor(symbolControl.bInheritColor);
+
+      // Inherited color ignores the packet's RGBA values.
+      if (symbolControl.bSetColor && !symbolControl.bInheritColor)
       {
-        // If the Inherit Color parameter is set to Inherited (1), then the Red, Blue, Green, and Alpha parameters are ignored and the values of the parent are used.
-        if (symbolControl.bInheritColor)
-        {
-          pSymbol->SetColor(pParentSymbol->GetColor());
-        }
-        else
-        {
-          pSymbol->SetColor(symbolControl.color);
-        }
+        pSymbol->SetColor(symbolControl.color);
       }
     }
   }
   else
   {
     // If the symbol is currently attached to a parent symbol, then the symbol will be detached from that parent symbol.
-    CSymbol* pParentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(pSymbol->GetParentSymbolID());
+    const auto parentSymbolID = pSymbol->GetParentSymbolID();
+    CSymbol* pParentSymbol = nullptr;
+    if (parentSymbolID)
+    {
+      pParentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(*parentSymbolID);
+    }
+
     if (pParentSymbol != nullptr)
     {
       pParentSymbol->RemoveChild(symbolControl.symbolID);
     }
 
-    pSymbol->SetParentSymbolID(UnknownSymbolID);
+    pSymbol->SetParentSymbolID(std::nullopt);
     g_CigiLibGlobals.pSymbolSurfaceManager->UpdateSymbolTreeHiddenByAncestor(symbolControl.symbolID);
 
     SSetSymbolUnattachedMessage data;
@@ -463,6 +555,7 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
     {
       g_CigiLibGlobals.pEventMessenger->SendSetSymbolUnattachedMessage(data);
     }
+    pSymbol->SetInheritColor(false);
     if (symbolControl.bSetColor)
     {
       // The Inherit Color parameter is ignored for top-level (i.e., root) symbols.
@@ -470,8 +563,13 @@ void CCigiSymbolHandler::Handle(const SSymbolControl& symbolControl)
     }
   }
 
-  pSymbol->SetSymbolSurfaceID(symbolControl.surfaceID);
+  if (bSetSurface)
+  {
+    pSymbol->SetSymbolSurfaceID(symbolControl.surfaceID);
+  }
+
   pSymbol->SetRotation(symbolControl.fRotation);
+  pSymbol->SetLayerID(symbolControl.nLayerID);
 
   if (symbolControl.bPositionSet)
   {
@@ -737,6 +835,42 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolClone& symbolClone)
 
       if (pSymbol->GetSymbolType() != pSymbolSource->GetSymbolType())
       {
+        // Reject a clone whose source would be destroyed with the destination tree.
+        std::vector<SymbolID> symbolsToVisit = {symbolID};
+        std::unordered_set<SymbolID, StrongTypeHash<SymbolID>> visitedSymbols;
+
+        // Perform a depth-first traversal of the symbol tree starting from the destination symbol
+        // to check if the source symbol is a descendant of the destination symbol.
+        while (!symbolsToVisit.empty())
+        {
+          // Get the next symbol ID to visit
+          const SymbolID currentSymbolID = symbolsToVisit.back();
+          symbolsToVisit.pop_back();
+
+          // Skip if the symbol has already been visited to prevent infinite loops
+          if (!visitedSymbols.insert(currentSymbolID).second)
+          {
+            continue;
+          }
+
+          // If the current symbol ID matches the source symbol ID specified in the packet,
+          if (currentSymbolID == symbolClone.sourceID)
+          {
+            g_CigiLibGlobals.pLogger->LogError("Ignoring symbol clone whose source would be destroyed with the destination tree.");
+            return;
+          }
+
+          // Get the symbol object for the current symbol ID
+          CSymbol* pCurrentSymbol = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(currentSymbolID);
+
+          // If the symbol object is valid, add its children to the list of symbols to visit
+          if (pCurrentSymbol != nullptr)
+          {
+            const auto children = pCurrentSymbol->GetChildren();
+            symbolsToVisit.insert(symbolsToVisit.end(), children.begin(), children.end());
+          }
+        }
+
         // If a symbol with the specified identifier already exists, and if that symbol is of a different type,
         // then the IG shall destroy the existing symbol and any children and shall create a new symbol.
         DestroySymbolTree(symbolID);
@@ -778,19 +912,35 @@ void CCigiSymbolHandler::Handle(const sbio::symbol::SSymbolClone& symbolClone)
 
     // Copy all properties from the source symbol to the symbol specified in the packet, including color, symbol surface ID, rotation, position, and scale.
     pSymbol->SetColor(pSymbolSource->GetColor());
-    pSymbol->SetSymbolSurfaceID(pSymbolSource->GetSymbolSurfaceID());
+
+    if (pSymbolSource->HasSymbolSurfaceID())
+    {
+      pSymbol->SetSymbolSurfaceID(pSymbolSource->GetSymbolSurfaceID());
+    }
+    else
+    {
+      pSymbol->ClearSymbolSurfaceID();
+    }
+
     pSymbol->SetRotation(pSymbolSource->GetRotation());
     pSymbol->SetPosition(pSymbolSource->GetPosition());
     pSymbol->SetScale(pSymbolSource->GetScale());
     pSymbol->SetVisible(pSymbolSource->IsVisible(), true);
+    if (auto* pCigiSymbol = dynamic_cast<CCigiSymbol*>(pSymbol))
+    {
+      pCigiSymbol->SetLayerID(0);
+    }
 
     if (g_CigiLibGlobals.pEventMessenger != nullptr)
     {
       // Send symbol surface assignment message to ensure the symbol is assigned to the same surface as the source symbol
-      SSetSymbolSurfaceMessage surfaceData;
-      surfaceData.SymbolID = pSymbol->GetSymbolID();
-      surfaceData.SurfaceID = pSymbol->GetSymbolSurfaceID();
-      g_CigiLibGlobals.pEventMessenger->SendSetSymbolSurfaceMessage(surfaceData);
+      if (pSymbol->HasSymbolSurfaceID())
+      {
+        SSetSymbolSurfaceMessage surfaceData;
+        surfaceData.SymbolID = pSymbol->GetSymbolID();
+        surfaceData.SurfaceID = pSymbol->GetSymbolSurfaceID();
+        g_CigiLibGlobals.pEventMessenger->SendSetSymbolSurfaceMessage(surfaceData);
+      }
 
       // Send update symbol message to ensure the symbol is updated with the same position, scale, and rotation as the source symbol
       SUpdateSymbolMessage data;

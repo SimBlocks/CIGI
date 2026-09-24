@@ -3,7 +3,7 @@
  * @file PacketHandler.h
  * @brief Declares the CCigiPacketHandler class for SimBlocks CIGI IG packet processing and handler management.
  *
- * Provides the CCigiPacketHandler class for managing packet processing, handler objects, and simulation state in the SimBlocks CIGI IG library.
+ * Provides the CCigiPacketHandler class for managing packet processing, handler objects, and simulation state in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, entity, terrain, animation, event, and utility types for simulation and packet management.
  * Supports packet logging, handler initialization, and simulation update routines.
  *
@@ -102,11 +102,13 @@ namespace sbio
 
         /**
          * @brief Emits the host-connected diagnostic message for one endpoint.
+         * @param sHostAddress Address reported for the connected host.
          */
         void SendConnectedToHostMessage(std::string sHostAddress);
 
         /**
          * @brief Emits the host-disconnected diagnostic message for one endpoint.
+         * @param sHostAddress Address reported for the disconnected host.
          */
         void SendDisconnectedFromHostMessage(std::string sHostAddress);
 
@@ -118,11 +120,14 @@ namespace sbio
       protected:
         /**
          * @brief Updates connectivity state for the host that produced the latest packet.
+         * @param sHostAddress Host address used to find or create the connectivity record.
+         * @param fCurrentTime Reception time in seconds on the connection-tracking clock.
          */
         void CheckHostConnection(std::string sHostAddress, double fCurrentTime);
 
         /**
          * @brief Detects hosts that have timed out and emits disconnect diagnostics.
+         * @param fCurrentTime Current time in seconds on the same clock used for reception timestamps.
          */
         void CheckHostDisconnection(double fCurrentTime);
 

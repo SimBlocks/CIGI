@@ -24,7 +24,8 @@ SIGCigiLibGlobals* InitIGCigiLib(const SGlobals& globals, const SIGCigiLibParams
     return nullptr;
   }
 
-  if (params.pEventMessenger == nullptr || globals.pEventDispatcher == nullptr || params.pEntityManager == nullptr || params.pViewManager == nullptr || params.pSymbolSurfaceManager == nullptr)
+  if (params.pEventMessenger == nullptr || globals.pEventDispatcher == nullptr || params.pEntityManager == nullptr || params.pViewManager == nullptr ||
+      params.pSymbolSurfaceManager == nullptr)
   {
     globals.pLogger->LogError("IGCigiLib initialization requires an event messenger, event dispatcher, entity manager, view manager, and symbol surface manager.");
     return nullptr;

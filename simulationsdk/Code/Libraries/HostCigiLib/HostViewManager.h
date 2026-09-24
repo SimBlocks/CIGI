@@ -36,12 +36,14 @@ namespace sbio
       {
       public:
         /**
-         * @brief Initializes the host view manager with a config file and view creator.
-         * @param viewsConfigFilePath Path to the views configuration file.
-         * @param pViewCreator Unique pointer to a custom view creator consumed by the manager.
+         * @brief Creates and adds views described by a JSON configuration file.
+         * @param viewsConfigFilePath Path to a JSON object containing a `Views` array of objects.
+         * @param pViewCreator Creator used during this call; ownership is consumed and it is not retained.
          *
-         * Ownership:
-         * - Ownership of `pViewCreator` is transferred to this call.
+         * Entries without `viewID` are skipped. Optional `projectionMode`, `near`, `far`, `left`, `right`,
+         * `top`, and `bottom` values are forwarded to the view's setters. Existing views are not cleared.
+         * Null creators, file/parse errors, invalid entries, and creation failures are logged when a logger
+         * is available. Processing stops on failure; views already added are not rolled back.
          */
         void Init(const std::filesystem::path& viewsConfigFilePath, std::unique_ptr<sbio::view::IViewCreator> pViewCreator);
 

@@ -67,6 +67,13 @@ std::unique_ptr<CImageGeneratorEventMessenger> g_ImageGeneratorEventMessenger;
 unique_ptr<CTestCigiEventHandler> g_pEventHandler;
 std::unique_ptr<CCigiImageGenerator> g_pImageGenerator;
 
+/**
+ * @brief Creates a CIGI view with test projection settings and offers ownership to the global view manager.
+ * @param viewID View identifier; the manager rejects unknown or duplicate identifiers.
+ *
+ * Uses near/far distances of 0.1/1000, left/right half angles of -45/45 degrees, and top/bottom half angles of
+ * 30/30 degrees. Requires initialized view-management and CIGI services.
+ */
 void CreateSingleView(ViewID viewID)
 {
   unique_ptr<CView> pCigiView = make_unique<CCigiView>(viewID);
@@ -79,6 +86,12 @@ void CreateSingleView(ViewID viewID)
   globals.pViewManager->AddView(std::move(pCigiView));
 }
 
+/**
+ * @brief Creates test views 0, 1, and 2 and a CIGI group with ID 1 and center view 1.
+ *
+ * Offers the views and group to the global manager, which retains existing objects for duplicate IDs. Requires
+ * initialized view-management and CIGI services; does not replace existing views or groups.
+ */
 void CreateViewGroup()
 {
   unique_ptr<CView> pCigiView0 = make_unique<CCigiView>(ViewID(0));
@@ -117,6 +130,15 @@ void CreateViewGroup()
   globals.pViewManager->AddViewGroup(std::move(pViewGroup));
 }
 
+/**
+ * @brief Creates nine test views, loads IG options, and runs the interactive play/stop loop.
+ * @return False if loading the options file fails. After successful setup the loop runs indefinitely; there is
+ * no normal true return or keyboard exit command. Initialization and update exceptions propagate.
+ *
+ * Requires the services and event handler initialized by main(). Publishes the owned IG through globals and
+ * IGCigiLib. Key '1' starts playback and key '2' stops it. While playing, updates the IG with a fixed 0.015-second
+ * step and polls simulated database completion, then sleeps for 15 milliseconds on every loop iteration.
+ */
 bool RunIG()
 {
   CStopWatch stopWatch;
@@ -205,6 +227,11 @@ bool RunIG()
   }
 }
 
+/**
+ * @brief Initializes application services and library integrations, then enters RunIG().
+ * @return 1 when RunIG() reports an options-loading failure. The trailing success return is 0, but the current
+ * RunIG() implementation does not return on successful startup. Exceptions are not caught here.
+ */
 int main()
 {
   std::filesystem::path dir = GetCurrentWorkingDirectory();

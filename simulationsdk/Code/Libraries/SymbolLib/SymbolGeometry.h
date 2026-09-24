@@ -4,8 +4,8 @@
  * @brief Declares the `CSymbolGeometry` base class for symbol geometry representation.
  *
  * Provides the abstract `CSymbolGeometry` base class used to hold the type-specific properties for a symbol. Concrete
- * subclasses store the property structures for circles, polygons, text, and textured variants while the base class
- * manages the interface for 2D/3D symbol rendering systems.
+ * subclasses store the property structures for circles, polygons, text, and textured variants. The base class
+ * provides type identification and a copying interface; it does not generate or render primitives.
  *
  * @see sbio::symbol::CSymbolGeometry
  * @see sbio::symbol::ESymbolType
@@ -28,6 +28,8 @@ namespace sbio
      *
      * `CSymbolGeometry` exposes the common interface used by symbols and geometry factories while leaving storage
      * and copy semantics to concrete subclasses.
+     * The built-in subclasses copy only compatible geometry, preserve the destination symbol ID, and ignore null
+     * or incompatible sources. A geometry object does not own a symbol or register it with a surface manager.
      *
      * @invariant `m_eSymbolType` remains the geometry type supplied at construction.
      */
@@ -47,11 +49,11 @@ namespace sbio
 
       /**
        * @brief Copies geometry-specific state from another geometry object.
-       * @param pSymbolGeometry Source geometry to copy from.
+       * @param pSymbolGeometry Borrowed source geometry; null and incompatible-source handling is defined by the implementation.
        *
        * Concrete implementations decide how incompatible source types are handled.
        *
-       * @ownership `pSymbolGeometry` remains owned by the caller.
+       * @ownership No ownership of `pSymbolGeometry` is transferred.
        */
       virtual void CopyFrom(CSymbolGeometry* pSymbolGeometry) = 0;
 

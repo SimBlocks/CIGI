@@ -57,6 +57,12 @@ bool CTestCigiEventHandler::IsPointInEntityVolume(const sbio::math::GeocentricCo
   return false;
 }
 
+bool CTestCigiEventHandler::GetMotionTrackerPosition(sbio::MotionTrackerID trackerID, sbio::math::Vec3& offset, sbio::math::TBodyEulerRotation& rotation) const
+{
+  // No motion tracker implementation provided
+  return false;
+}
+
 void CTestCigiEventHandler::OnCreateEntityMessage(const sbio::ig::entity::SCreateEntityMessage& data)
 {
   stringstream ss;
@@ -162,11 +168,16 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestBasicMessage(const sbio::
   globals.pLogger->LogDebug(ss.str());
 
   // simulate processing line of sight request asynchronously
-  auto lineOfSightLambda = [data]()
+  std::shared_ptr<CIGResponseEventDispatcher> dispatcher;
+  if (globals.pImageGenerator != nullptr)
+  {
+    dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcherHandle();
+  }
+  auto lineOfSightLambda = [data, dispatcher]()
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    if (globals.pImageGenerator == nullptr || globals.pImageGenerator->GetExportedFunctionsEventDispatcher() == nullptr)
+    if (dispatcher == nullptr)
     {
       return;
     }
@@ -177,25 +188,27 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestBasicMessage(const sbio::
     {
       sbio::cigi::SLineOfSightEntityResponse entityResponseData;
       entityResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+      entityResponseData.requestGeneration = data.RequestGeneration;
       entityResponseData.entityID = EntityID(2);
       entityResponseData.bValid = true;
       entityResponseData.bVisible = true;
-      entityResponseData.hostFrameLSN = 0;
+      entityResponseData.hostFrameLSN = data.HostFrameLSN;
       entityResponseData.responseCount = 1;
       entityResponseData.dRange = 100.0;
 
-      globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightEntityResponse(entityResponseData);
+      dispatcher->SendLineOfSightEntityResponse(entityResponseData);
     }
     else
     {
       sbio::cigi::SLineOfSightResponse responseData;
+      responseData.requestGeneration = data.RequestGeneration;
       responseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
       responseData.bValid = true;
-      responseData.hostFrameLSN = 0;
+      responseData.hostFrameLSN = data.HostFrameLSN;
       responseData.responseCount = 1;
       responseData.dRange = 100.0;
 
-      globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightResponse(responseData);
+      dispatcher->SendLineOfSightResponse(responseData);
     }
   };
 
@@ -210,11 +223,17 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
   globals.pLogger->LogDebug(ss.str());
 
   // simulate processing line of sight request asynchronously
-  auto lineOfSightLambda = [data]()
+  std::shared_ptr<CIGResponseEventDispatcher> dispatcher;
+  if (globals.pImageGenerator != nullptr)
+  {
+    dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcherHandle();
+  }
+
+  auto lineOfSightLambda = [data, dispatcher]()
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    if (globals.pImageGenerator == nullptr || globals.pImageGenerator->GetExportedFunctionsEventDispatcher() == nullptr)
+    if (dispatcher == nullptr)
     {
       return;
     }
@@ -227,11 +246,12 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
       {
         sbio::cigi::SLineOfSightExtendedEntityCoordinatesResponse entityCoordinatesResponseData;
         entityCoordinatesResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        entityCoordinatesResponseData.requestGeneration = data.RequestGeneration;
         entityCoordinatesResponseData.entityID = EntityID(2);
         entityCoordinatesResponseData.bValid = true;
         entityCoordinatesResponseData.bRangeValid = true;
         entityCoordinatesResponseData.bVisible = true;
-        entityCoordinatesResponseData.hostFrameLSN = 0;
+        entityCoordinatesResponseData.hostFrameLSN = data.HostFrameLSN;
         entityCoordinatesResponseData.responseCount = 1;
         entityCoordinatesResponseData.dRange = 100.0;
         entityCoordinatesResponseData.materialCode = MaterialID(1);
@@ -239,16 +259,17 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
         entityCoordinatesResponseData.offset[1] = 0;
         entityCoordinatesResponseData.offset[2] = 0;
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedEntityCoordinatesResponse(entityCoordinatesResponseData);
+        dispatcher->SendLineOfSightExtendedEntityCoordinatesResponse(entityCoordinatesResponseData);
       }
       else
       {
         sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse geodeticCoordinatesResponseData;
         geodeticCoordinatesResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        geodeticCoordinatesResponseData.requestGeneration = data.RequestGeneration;
         geodeticCoordinatesResponseData.bValid = true;
         geodeticCoordinatesResponseData.bRangeValid = true;
         geodeticCoordinatesResponseData.bVisible = true;
-        geodeticCoordinatesResponseData.hostFrameLSN = 0;
+        geodeticCoordinatesResponseData.hostFrameLSN = data.HostFrameLSN;
         geodeticCoordinatesResponseData.responseCount = 1;
         geodeticCoordinatesResponseData.dRange = 100.0;
         geodeticCoordinatesResponseData.materialCode = MaterialID(1);
@@ -256,7 +277,7 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
         geodeticCoordinatesResponseData.geodeticCoordinates.longitude = Longitude(0);
         geodeticCoordinatesResponseData.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(0);
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
+        dispatcher->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
       }
     }
     else
@@ -265,10 +286,11 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
       {
         sbio::cigi::SLineOfSightExtendedEntityGeodeticCoordinatesResponse entityGeodeticCoordinatesResponse;
         entityGeodeticCoordinatesResponse.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        entityGeodeticCoordinatesResponse.requestGeneration = data.RequestGeneration;
         entityGeodeticCoordinatesResponse.bValid = true;
         entityGeodeticCoordinatesResponse.bRangeValid = true;
         entityGeodeticCoordinatesResponse.bVisible = true;
-        entityGeodeticCoordinatesResponse.hostFrameLSN = 0;
+        entityGeodeticCoordinatesResponse.hostFrameLSN = data.HostFrameLSN;
         entityGeodeticCoordinatesResponse.responseCount = 1;
         entityGeodeticCoordinatesResponse.dRange = 100.0;
         entityGeodeticCoordinatesResponse.materialCode = MaterialID(1);
@@ -277,16 +299,17 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
         entityGeodeticCoordinatesResponse.geodeticCoordinates.longitude = Longitude(0);
         entityGeodeticCoordinatesResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(0);
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(entityGeodeticCoordinatesResponse);
+        dispatcher->SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(entityGeodeticCoordinatesResponse);
       }
       else
       {
         sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse geodeticCoordinatesResponseData;
         geodeticCoordinatesResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        geodeticCoordinatesResponseData.requestGeneration = data.RequestGeneration;
         geodeticCoordinatesResponseData.bValid = true;
         geodeticCoordinatesResponseData.bRangeValid = true;
         geodeticCoordinatesResponseData.bVisible = true;
-        geodeticCoordinatesResponseData.hostFrameLSN = 0;
+        geodeticCoordinatesResponseData.hostFrameLSN = data.HostFrameLSN;
         geodeticCoordinatesResponseData.responseCount = 1;
         geodeticCoordinatesResponseData.dRange = 100.0;
         geodeticCoordinatesResponseData.materialCode = MaterialID(1);
@@ -294,7 +317,7 @@ void CTestCigiEventHandler::OnLineOfSightSegmentRequestExtendedMessage(const sbi
         geodeticCoordinatesResponseData.geodeticCoordinates.longitude = Longitude(0);
         geodeticCoordinatesResponseData.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(0);
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
+        dispatcher->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
       }
     }
   };
@@ -309,11 +332,16 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestBasicMessage(const sbio::i
   ss << data << endl;
   globals.pLogger->LogDebug(ss.str());
 
-  auto lineOfSightLambda = [data]()
+  std::shared_ptr<CIGResponseEventDispatcher> dispatcher;
+  if (globals.pImageGenerator != nullptr)
+  {
+    dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcherHandle();
+  }
+  auto lineOfSightLambda = [data, dispatcher]()
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    if (globals.pImageGenerator == nullptr || globals.pImageGenerator->GetExportedFunctionsEventDispatcher() == nullptr)
+    if (dispatcher == nullptr)
     {
       return;
     }
@@ -324,25 +352,27 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestBasicMessage(const sbio::i
     {
       sbio::cigi::SLineOfSightEntityResponse entityResponseData;
       entityResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+      entityResponseData.requestGeneration = data.RequestGeneration;
       entityResponseData.entityID = EntityID(2);
       entityResponseData.bValid = true;
       entityResponseData.bVisible = true;
-      entityResponseData.hostFrameLSN = 0;
+      entityResponseData.hostFrameLSN = data.HostFrameLSN;
       entityResponseData.responseCount = 1;
       entityResponseData.dRange = 100.0;
 
-      globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightEntityResponse(entityResponseData);
+      dispatcher->SendLineOfSightEntityResponse(entityResponseData);
     }
     else
     {
       sbio::cigi::SLineOfSightResponse responseData;
       responseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+      responseData.requestGeneration = data.RequestGeneration;
       responseData.bValid = true;
-      responseData.hostFrameLSN = 0;
+      responseData.hostFrameLSN = data.HostFrameLSN;
       responseData.responseCount = 1;
       responseData.dRange = 100.0;
 
-      globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightResponse(responseData);
+      dispatcher->SendLineOfSightResponse(responseData);
     }
   };
 
@@ -356,11 +386,17 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
   ss << data << endl;
   globals.pLogger->LogDebug(ss.str());
 
-  auto lineOfSightLambda = [data]()
+  std::shared_ptr<CIGResponseEventDispatcher> dispatcher;
+  if (globals.pImageGenerator != nullptr)
+  {
+    dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcherHandle();
+  }
+
+  auto lineOfSightLambda = [data, dispatcher]()
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    if (globals.pImageGenerator == nullptr || globals.pImageGenerator->GetExportedFunctionsEventDispatcher() == nullptr)
+    if (dispatcher == nullptr)
     {
       return;
     }
@@ -373,11 +409,12 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
       {
         sbio::cigi::SLineOfSightExtendedEntityCoordinatesResponse entityCoordinatesResponseData;
         entityCoordinatesResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        entityCoordinatesResponseData.requestGeneration = data.RequestGeneration;
         entityCoordinatesResponseData.entityID = EntityID(2);
         entityCoordinatesResponseData.bValid = true;
         entityCoordinatesResponseData.bRangeValid = true;
         entityCoordinatesResponseData.bVisible = true;
-        entityCoordinatesResponseData.hostFrameLSN = 0;
+        entityCoordinatesResponseData.hostFrameLSN = data.HostFrameLSN;
         entityCoordinatesResponseData.responseCount = 1;
         entityCoordinatesResponseData.dRange = 100.0;
         entityCoordinatesResponseData.materialCode = MaterialID(1);
@@ -385,16 +422,17 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
         entityCoordinatesResponseData.offset[1] = 0;
         entityCoordinatesResponseData.offset[2] = 0;
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedEntityCoordinatesResponse(entityCoordinatesResponseData);
+        dispatcher->SendLineOfSightExtendedEntityCoordinatesResponse(entityCoordinatesResponseData);
       }
       else
       {
         sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse geodeticCoordinatesResponseData;
         geodeticCoordinatesResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        geodeticCoordinatesResponseData.requestGeneration = data.RequestGeneration;
         geodeticCoordinatesResponseData.bValid = true;
         geodeticCoordinatesResponseData.bRangeValid = true;
         geodeticCoordinatesResponseData.bVisible = true;
-        geodeticCoordinatesResponseData.hostFrameLSN = 0;
+        geodeticCoordinatesResponseData.hostFrameLSN = data.HostFrameLSN;
         geodeticCoordinatesResponseData.responseCount = 1;
         geodeticCoordinatesResponseData.dRange = 100.0;
         geodeticCoordinatesResponseData.materialCode = MaterialID(1);
@@ -402,7 +440,7 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
         geodeticCoordinatesResponseData.geodeticCoordinates.longitude = Longitude(0);
         geodeticCoordinatesResponseData.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(0);
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
+        dispatcher->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
       }
     }
     else
@@ -411,10 +449,11 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
       {
         sbio::cigi::SLineOfSightExtendedEntityGeodeticCoordinatesResponse entityGeodeticCoordinatesResponse;
         entityGeodeticCoordinatesResponse.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        entityGeodeticCoordinatesResponse.requestGeneration = data.RequestGeneration;
         entityGeodeticCoordinatesResponse.bValid = true;
         entityGeodeticCoordinatesResponse.bRangeValid = true;
         entityGeodeticCoordinatesResponse.bVisible = true;
-        entityGeodeticCoordinatesResponse.hostFrameLSN = 0;
+        entityGeodeticCoordinatesResponse.hostFrameLSN = data.HostFrameLSN;
         entityGeodeticCoordinatesResponse.responseCount = 1;
         entityGeodeticCoordinatesResponse.dRange = 100.0;
         entityGeodeticCoordinatesResponse.materialCode = MaterialID(1);
@@ -423,16 +462,17 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
         entityGeodeticCoordinatesResponse.geodeticCoordinates.longitude = Longitude(0);
         entityGeodeticCoordinatesResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(0);
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(entityGeodeticCoordinatesResponse);
+        dispatcher->SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(entityGeodeticCoordinatesResponse);
       }
       else
       {
         sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse geodeticCoordinatesResponseData;
         geodeticCoordinatesResponseData.lineOfSightRequestID = LineOfSightRequestID(data.LosID);
+        geodeticCoordinatesResponseData.requestGeneration = data.RequestGeneration;
         geodeticCoordinatesResponseData.bValid = true;
         geodeticCoordinatesResponseData.bRangeValid = true;
         geodeticCoordinatesResponseData.bVisible = true;
-        geodeticCoordinatesResponseData.hostFrameLSN = 0;
+        geodeticCoordinatesResponseData.hostFrameLSN = data.HostFrameLSN;
         geodeticCoordinatesResponseData.responseCount = 1;
         geodeticCoordinatesResponseData.dRange = 100.0;
         geodeticCoordinatesResponseData.materialCode = MaterialID(1);
@@ -440,7 +480,7 @@ void CTestCigiEventHandler::OnLineOfSightVectorRequestExtendedMessage(const sbio
         geodeticCoordinatesResponseData.geodeticCoordinates.longitude = Longitude(0);
         geodeticCoordinatesResponseData.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(0);
 
-        globals.pImageGenerator->GetExportedFunctionsEventDispatcher()->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
+        dispatcher->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticCoordinatesResponseData);
       }
     }
   };
@@ -462,7 +502,7 @@ void CTestCigiEventHandler::OnHeightAboveTerrainRequestMessage(const sbio::ig::t
     return;
   }
 
-  auto dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcher();
+  auto dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcherHandle();
 
   constexpr double TestTerrainAltitudeMeters = 0.0;
   constexpr float TestSurfaceNormalAzimuthDegrees = 0.0f;
@@ -473,6 +513,8 @@ void CTestCigiEventHandler::OnHeightAboveTerrainRequestMessage(const sbio::ig::t
   {
     SHATHOTExtendedResponse response;
     response.HATHOTID = data.HatHotID;
+    response.requestGeneration = data.RequestGeneration;
+    response.hostFrameLSN = data.HostFrameLSN;
     response.bValid = requestedAltitude >= TestTerrainAltitudeMeters;
     response.heightOfTerrain = HeightRelativeToWGS84Ellipsoid(TestTerrainAltitudeMeters);
     response.heightAboveTerrain = requestedAltitude - TestTerrainAltitudeMeters;
@@ -486,6 +528,8 @@ void CTestCigiEventHandler::OnHeightAboveTerrainRequestMessage(const sbio::ig::t
 
   SHeightAboveTerrainResponse response;
   response.HATHOTID = data.HatHotID;
+  response.requestGeneration = data.RequestGeneration;
+  response.hostFrameLSN = data.HostFrameLSN;
   response.bValid = requestedAltitude >= TestTerrainAltitudeMeters;
   response.heightAboveTerrain = requestedAltitude - TestTerrainAltitudeMeters;
 
@@ -504,7 +548,7 @@ void CTestCigiEventHandler::OnHeightOfTerrainRequestMessage(const sbio::ig::terr
     return;
   }
 
-  auto dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcher();
+  auto dispatcher = globals.pImageGenerator->GetExportedFunctionsEventDispatcherHandle();
 
   constexpr double TestTerrainAltitudeMeters = 0.0;
   constexpr float TestSurfaceNormalAzimuthDegrees = 0.0f;
@@ -514,6 +558,8 @@ void CTestCigiEventHandler::OnHeightOfTerrainRequestMessage(const sbio::ig::terr
   {
     SHATHOTExtendedResponse response;
     response.HATHOTID = data.HatHotID;
+    response.requestGeneration = data.RequestGeneration;
+    response.hostFrameLSN = data.HostFrameLSN;
     response.bValid = true;
     response.heightOfTerrain = HeightRelativeToWGS84Ellipsoid(TestTerrainAltitudeMeters);
     response.heightAboveTerrain = data.Point.altitude.Value() - TestTerrainAltitudeMeters;
@@ -530,6 +576,8 @@ void CTestCigiEventHandler::OnHeightOfTerrainRequestMessage(const sbio::ig::terr
   {
     SHeightAboveTerrainResponse response;
     response.HATHOTID = data.HatHotID;
+    response.requestGeneration = data.RequestGeneration;
+    response.hostFrameLSN = data.HostFrameLSN;
     response.bValid = true;
     response.heightAboveTerrain = requestedAltitude - TestTerrainAltitudeMeters;
 
@@ -539,6 +587,8 @@ void CTestCigiEventHandler::OnHeightOfTerrainRequestMessage(const sbio::ig::terr
 
   SHeightOfTerrainResponse response;
   response.HATHOTID = data.HatHotID;
+  response.requestGeneration = data.RequestGeneration;
+  response.hostFrameLSN = data.HostFrameLSN;
   response.bValid = true;
   response.heightOfTerrain = HeightRelativeToWGS84Ellipsoid(TestTerrainAltitudeMeters);
 
@@ -730,6 +780,14 @@ void CTestCigiEventHandler::OnSetCameraUnattachedMessage(const sbio::ig::view::S
   globals.pLogger->LogDebug(ss.str());
 }
 
+void CTestCigiEventHandler::OnBringCameraToTopMessage(const sbio::ig::view::SBringCameraToTopMessage& data)
+{
+  stringstream ss;
+  ss << "OnBringCameraToTopMessage:" << endl;
+  ss << data << endl;
+  globals.pLogger->LogDebug(ss.str());
+}
+
 void CTestCigiEventHandler::OnSetCameraProjectionMessage(const sbio::ig::view::SSetCameraProjectionMessage& data)
 {
   stringstream ss;
@@ -800,6 +858,14 @@ void CTestCigiEventHandler::OnSetAnimationSpeedMessage(const sbio::ig::animation
 {
   stringstream ss;
   ss << "OnSetAnimationSpeedMessage:" << endl;
+  ss << data << endl;
+  globals.pLogger->LogDebug(ss.str());
+}
+
+void CTestCigiEventHandler::OnSetAnimationAlphaMessage(const sbio::ig::animation::SSetAnimationAlphaMessage& data)
+{
+  stringstream ss;
+  ss << "OnSetAnimationAlphaMessage:" << endl;
   ss << data << endl;
   globals.pLogger->LogDebug(ss.str());
 }
@@ -1056,6 +1122,14 @@ void CTestCigiEventHandler::OnSetSymbolSurfaceMessage(const sbio::ig::symbol::SS
 {
   stringstream ss;
   ss << "OnSetSymbolSurfaceMessage:" << endl;
+  ss << data << endl;
+  globals.pLogger->LogDebug(ss.str());
+}
+
+void CTestCigiEventHandler::OnClearSymbolSurfaceMessage(const sbio::ig::symbol::SClearSymbolSurfaceMessage& data)
+{
+  stringstream ss;
+  ss << "OnClearSymbolSurfaceMessage:" << endl;
   ss << data << endl;
   globals.pLogger->LogDebug(ss.str());
 }

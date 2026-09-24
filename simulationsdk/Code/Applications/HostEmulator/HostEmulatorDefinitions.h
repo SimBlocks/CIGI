@@ -104,11 +104,14 @@ enum EnumWidgetID
 };
 
 /**
- * @brief Global settings for the HostEmulator application, including view manager pointer.
+ * @brief Extends shared application services and paths with the host's configured view manager.
+ *
+ * The shared pointer retains manager ownership. GUI code accesses these process-wide services through g_globals;
+ * the structure itself performs no initialization or event registration.
  */
 struct SHostEmulatorGlobals : sbio::SGlobals
 {
-  std::shared_ptr<sbio::cigi::host::CHostViewManager> pViewManager;///< Pointer to host view manager
+  std::shared_ptr<sbio::cigi::host::CHostViewManager> pViewManager;///< Shared owner of the configured host view manager; empty before initialization.
 };
 
 #endif

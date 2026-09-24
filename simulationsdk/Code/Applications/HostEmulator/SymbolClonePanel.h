@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending symbol clone packets.
-   * @param event The command event.
+   * @brief Submits a symbol-clone request using the entered identifiers and source selection.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available. Does not create a local symbol or confirm IG-side cloning.
    */
   void OnSend(wxCommandEvent& event);
 

@@ -26,11 +26,17 @@ wxBEGIN_EVENT_TABLE(CScriptsPage, wxPanel)
 wxEND_EVENT_TABLE();
 // clang-format on
 
+/** @brief Builds the application's scripts-root path without checking existence.
+ * @return g_globals.applicationsDataPath / "HostEmulator" / "Scripts".
+ */
 std::filesystem::path GetScriptsPath()
 {
   return g_globals.applicationsDataPath / "HostEmulator" / "Scripts";
 }
 
+/** @brief Looks up the application-owned host without transferring ownership.
+ * @return Borrowed host pointer, or nullptr when the application or host is unavailable.
+ */
 CHost* GetHostFromApp()
 {
   if (g_pHostEmulatorGuiApp == nullptr)
@@ -278,7 +284,7 @@ void CScriptsPage::OnEditScript(wxCommandEvent& event)
     return;
   }
 
-  //open script using default editor
+  // open script using default editor
   ShellExecute(NULL, L"open", filePath.wstring().c_str(), NULL, NULL, SW_SHOWNORMAL);
 }
 

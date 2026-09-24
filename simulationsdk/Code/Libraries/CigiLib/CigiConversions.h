@@ -94,6 +94,12 @@ namespace sbio
      * @return Converted value.
      */
     sbio::math::TBodyEulerRotation ConvertToBodyEulerRotation(const sbio::cigi::TCigiBodyEulerRotation& cigiBodyEulerRotation);
+
+    /** @brief Copies signed CIGI Euler angular velocity without applying orientation-angle bounds. */
+    sbio::math::TBodyEulerVelocity ConvertToBodyEulerRate(const sbio::cigi::TCigiBodyEulerVelocity& cigiBodyEulerRate);
+
+    /** @brief Copies signed CIGI Euler angular acceleration without applying orientation-angle bounds. */
+    sbio::math::TBodyEulerAcceleration ConvertToBodyEulerRate(const sbio::cigi::TCigiBodyEulerAcceleration& cigiBodyEulerRate);
     /**
      * @brief Converts to cigi body euler rotation.
      * @param bodyEulerRotation Rotation value.

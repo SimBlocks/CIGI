@@ -3,7 +3,7 @@
  * @file CollisionControlHandler.h
  * @brief Declares the CCigiCollisionControlHandler class for handling CIGI collision control messages and definitions.
  *
- * Provides the CCigiCollisionControlHandler class for processing collision detection segment, cuboid, and sphere definitions in the SimBlocks CIGI IG library.
+ * Provides the CCigiCollisionControlHandler class for processing collision detection segment, cuboid, and sphere definitions in the SimBlocks IGCigiLib library.
  * Utilizes tuple hashing and unordered maps for efficient collision volume and segment management.
  * Integrates with SimBlocks CIGI and common types for simulation and collision management.
  *
@@ -39,6 +39,11 @@ namespace sbio
          */
         struct VolumeTupleHash
         {
+          /**
+           * @brief Combines the entity and volume identifiers with bitwise XOR.
+           * @param tuple Collision-volume key to hash.
+           * @return Hash value for the key.
+           */
           inline size_t operator()(std::tuple<sbio::EntityID, sbio::VolumeID> tuple) const
           {
             return std::get<0>(tuple).Value() ^ std::get<1>(tuple).Value();
@@ -50,6 +55,11 @@ namespace sbio
          */
         struct SegmentTupleHash
         {
+          /**
+           * @brief Combines the entity and segment identifiers with bitwise XOR.
+           * @param tuple Collision-segment key to hash.
+           * @return Hash value for the key.
+           */
           inline size_t operator()(std::tuple<sbio::EntityID, sbio::SegmentID> tuple) const
           {
             return std::get<0>(tuple).Value() ^ std::get<1>(tuple).Value();
@@ -66,9 +76,19 @@ namespace sbio
          */
         ~CCigiCollisionControlHandler();
 
+        /** @brief Ignores database-loaded notifications. */
         virtual void OnDatabaseLoadedEvent() override {};
+        /** @brief Ignores database-load failures. */
         virtual void OnDatabaseLoadingFailedEvent() override {};
+        /**
+         * @brief Removes the entity's cached collision segments and volumes.
+         * @param entityID Identifier of the removed entity.
+         */
         virtual void OnEntityRemoved(sbio::EntityID entityID) override;
+        /**
+         * @brief Ignores image-generator error notifications.
+         * @param args Unused error details.
+         */
         virtual void OnImageGeneratorErrorEvent(const SImageGeneratorErrorEventArgs args) override {};
 
         /**
@@ -112,9 +132,12 @@ namespace sbio
         void CreateNewCollisionSphereVolume(const sbio::cigi::SCollisionDetectionSphereDefinition& collisionVolumeDefinition, std::tuple<sbio::EntityID, sbio::VolumeID> pair);
 
       private:
-        std::unordered_map<std::tuple<sbio::EntityID, sbio::VolumeID>, sbio::cigi::SCollisionDetectionCuboidDefinition, VolumeTupleHash> m_CollisionCuboidDefinitions;///< Latest cuboid definitions keyed by entity and volume identifier.
-        std::unordered_map<std::tuple<sbio::EntityID, sbio::VolumeID>, sbio::cigi::SCollisionDetectionSphereDefinition, VolumeTupleHash> m_CollisionSphereDefinitions;///< Latest sphere definitions keyed by entity and volume identifier.
-        std::unordered_map<std::tuple<sbio::EntityID, sbio::SegmentID>, sbio::cigi::SCollisionDetectionSegmentDefinition, SegmentTupleHash> m_CollisionSegmentDefinitions;///< Latest segment definitions keyed by entity and segment identifier.
+        std::unordered_map<std::tuple<sbio::EntityID, sbio::VolumeID>, sbio::cigi::SCollisionDetectionCuboidDefinition, VolumeTupleHash>
+          m_CollisionCuboidDefinitions;///< Latest cuboid definitions keyed by entity and volume identifier.
+        std::unordered_map<std::tuple<sbio::EntityID, sbio::VolumeID>, sbio::cigi::SCollisionDetectionSphereDefinition, VolumeTupleHash>
+          m_CollisionSphereDefinitions;///< Latest sphere definitions keyed by entity and volume identifier.
+        std::unordered_map<std::tuple<sbio::EntityID, sbio::SegmentID>, sbio::cigi::SCollisionDetectionSegmentDefinition, SegmentTupleHash>
+          m_CollisionSegmentDefinitions;///< Latest segment definitions keyed by entity and segment identifier.
       };
     }
   }

@@ -21,27 +21,29 @@
 /**
  * @brief Packets page for managing and selecting protocol packets in the HostEmulator GUI.
  *
- * Supports user interaction for selecting and displaying packet panels.
+ * Constructs the packet editors as wxWidgets children, lists their names in sorted order, and initially shows
+ * IG Control. The panel map holds non-owning pointers; the window hierarchy owns their lifetime.
  */
 class CPacketsPage : public CNotebookPage
 {
 public:
   /**
    * @brief Constructs the packets page.
-   * @param pParent Parent window pointer.
+   * @param pParent Parent window owning this notebook page through the wxWidgets hierarchy.
    */
   CPacketsPage(wxWindow* pParent);
 
   /**
    * @brief Selects a packet by name and displays the corresponding panel.
-   * @param sPacket The packet name to select.
+   * @param sPacket Exact, case-sensitive editor name. Unknown names hide the old panel and create a null map entry;
+   * no replacement panel is shown. This does not change the packet-name list box selection.
    */
   void SelectPacket(const std::string& sPacket);
 
   DECLARE_EVENT_TABLE()
   /**
    * @brief Handles the packet list box event.
-   * @param event The command event.
+   * @param event List-box event whose string supplies the packet editor name passed to SelectPacket().
    */
   void OnListBox(wxCommandEvent& event);
 

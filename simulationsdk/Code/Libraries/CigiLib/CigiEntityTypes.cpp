@@ -20,7 +20,7 @@ namespace
   bool TryParseUnsignedToken(const std::string& token, TValue& value)
   {
     const std::string trimmedToken = boost::trim_copy(token);
-    if (trimmedToken.empty())
+    if (trimmedToken.empty() || trimmedToken.front() == '-')
     {
       return false;
     }
@@ -139,7 +139,7 @@ void CCigiEntityTypes::LoadCigiToSisoConversionFileCsv(const std::filesystem::pa
 
   m_CigiEntityTypes.clear();
 
-  file.open(filePath.string().c_str(), std::ios_base::in);
+  file.open(filePath, std::ios_base::in);
 
   // could not open file
   if (!file.is_open())

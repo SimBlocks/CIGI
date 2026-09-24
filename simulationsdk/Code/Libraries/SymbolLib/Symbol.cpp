@@ -37,7 +37,8 @@ void CSymbol::CopyFrom(CSymbol* pSymbol, SymbolID symbolID)
   this->m_bHiddenByAncestor = false;
   this->m_Rotation = pSymbol->m_Rotation;
   this->m_SymbolSurfaceID = pSymbol->GetSymbolSurfaceID();
-  this->m_ParentSymbolID = UnknownSymbolID;
+  this->m_bSymbolSurfaceAssigned = pSymbol->HasSymbolSurfaceID();
+  this->m_ParentSymbolID.reset();
   this->m_Children.clear();
 }
 
@@ -84,12 +85,12 @@ std::vector<SymbolID> CSymbol::GetChildren() const
   return v;
 }
 
-SymbolID CSymbol::GetParentSymbolID() const
+std::optional<SymbolID> CSymbol::GetParentSymbolID() const
 {
   return m_ParentSymbolID;
 }
 
-void CSymbol::SetParentSymbolID(SymbolID parentSymbolID)
+void CSymbol::SetParentSymbolID(std::optional<SymbolID> parentSymbolID)
 {
   m_ParentSymbolID = parentSymbolID;
 }
@@ -109,9 +110,14 @@ SymbolSurfaceID CSymbol::GetSymbolSurfaceID() const
   return m_SymbolSurfaceID;
 }
 
+bool CSymbol::HasSymbolSurfaceID() const
+{
+  return m_bSymbolSurfaceAssigned;
+}
+
 bool CSymbol::IsTopLevel() const
 {
-  return m_ParentSymbolID == UnknownSymbolID;
+  return !m_ParentSymbolID.has_value();
 }
 
 bool CSymbol::IsVisible() const
@@ -167,6 +173,13 @@ void CSymbol::SetRotation(Degrees rotation)
 void CSymbol::SetSymbolSurfaceID(SymbolSurfaceID symbolSurfaceID)
 {
   m_SymbolSurfaceID = symbolSurfaceID;
+  m_bSymbolSurfaceAssigned = true;
+}
+
+void CSymbol::ClearSymbolSurfaceID()
+{
+  m_SymbolSurfaceID = UnknownSymbolSurfaceID;
+  m_bSymbolSurfaceAssigned = false;
 }
 
 void CSymbol::SetVisible(bool bVisible, bool bForceChange)

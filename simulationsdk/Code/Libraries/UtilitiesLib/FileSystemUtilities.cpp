@@ -208,28 +208,79 @@ namespace sbio
     {
       try
       {
+        // Check if the source directory exists
         if (!DirectoryExists(sourceDirectoryPath))
         {
           return;
         }
 
-        if (!DirectoryExists(destinationDirectoryPath))
+        const auto sourcePath = std::filesystem::canonical(sourceDirectoryPath);
+        const auto resolvedDestinationPath = std::filesystem::weakly_canonical(std::filesystem::absolute(destinationDirectoryPath));
+        const auto isSameOrDescendant = [](const std::filesystem::path& candidate, const std::filesystem::path& directory)
         {
-          CreateDirectory(destinationDirectoryPath);
+          for (auto ancestor = candidate; !ancestor.empty();)
+          {
+            if (std::filesystem::exists(ancestor) && std::filesystem::equivalent(ancestor, directory))
+            {
+              return true;
+            }
+
+            const auto parent = ancestor.parent_path();
+            if (parent == ancestor)
+            {
+              break;
+            }
+            ancestor = parent;
+          }
+
+          return false;
+        };
+
+        // Prevent copying into a subdirectory of the source directory to avoid infinite recursion
+        if (isSameOrDescendant(resolvedDestinationPath, sourcePath))
+        {
+          return;
         }
 
-        for (const auto& entry : std::filesystem::recursive_directory_iterator(sourceDirectoryPath))
+        // Create the destination directory if it doesn't exist
+        if (!DirectoryExists(resolvedDestinationPath) && !CreateDirectory(resolvedDestinationPath))
         {
-          const auto& path = entry.path();
-          std::filesystem::path filePath = std::filesystem::relative(path, sourceDirectoryPath);
-          auto destinationPath = destinationDirectoryPath / filePath;
+          return;
+        }
 
+        // Recursively copy the contents of the source directory to the destination directory
+        for (auto it = std::filesystem::recursive_directory_iterator(sourcePath); it != std::filesystem::recursive_directory_iterator(); ++it)
+        {
+          // Skip symbolic links and reparse points to avoid copying them
+          if (it->is_symlink()
+#ifdef _WIN32
+              || ShouldSkipFileSystemEntry(it->path())
+#endif
+          )
+          {
+            it.disable_recursion_pending();
+            continue;
+          }
+
+          // Compute the relative path of the current item with respect to the source directory
+          const auto& path = it->path();
+          const auto filePath = path.lexically_relative(sourcePath);
+          const auto destinationPath = resolvedDestinationPath / filePath;
+
+          // Prevent copying into a subdirectory of the source directory to avoid infinite recursion
+          if (!isSameOrDescendant(std::filesystem::weakly_canonical(destinationPath), resolvedDestinationPath))
+          {
+            return;
+          }
+
+          // Create the destination directory if it doesn't exist
           if (std::filesystem::is_directory(path))
           {
             CreateDirectory(destinationPath);
           }
           else if (std::filesystem::is_regular_file(path))
           {
+            // Copy the file to the destination directory, overwriting if it already exists
             std::filesystem::copy_file(path, destinationPath, std::filesystem::copy_options::overwrite_existing);
           }
         }
@@ -245,12 +296,13 @@ namespace sbio
 
     bool CreateDirectory(const std::filesystem::path& directoryPath)
     {
-      if (std::filesystem::exists(directoryPath))
-      {
-        return false;
-      }
       try
       {
+        if (std::filesystem::exists(directoryPath))
+        {
+          return false;
+        }
+
         if (g_UtilitiesGlobals.pLogger != nullptr)
         {
           g_UtilitiesGlobals.pLogger->LogDebug("Creating Directory: " + directoryPath.string());
@@ -272,9 +324,22 @@ namespace sbio
       }
 
       std::ofstream fout(filePath);
+      if (!fout.is_open())
+      {
+        return false;
+      }
       fout.close();
 
-      return std::filesystem::exists(filePath);
+      return !fout.fail();
+    }
+
+    std::filesystem::path PathFromUtf8(const std::string& value)
+    {
+#ifdef _WIN32
+      return std::filesystem::path(Utf8ToWideString(value));
+#else
+      return std::filesystem::path(value);
+#endif
     }
 
     std::vector<std::string> FindFilesByExtension(const std::filesystem::path& directoryPath, const std::string& sExtension)
@@ -286,6 +351,7 @@ namespace sbio
         return files;
       }
 
+      const auto extension = PathFromUtf8(sExtension);
       std::error_code errorCode;
       std::filesystem::directory_iterator it(directoryPath, errorCode);
       if (errorCode)
@@ -298,9 +364,10 @@ namespace sbio
       while (it != end)
       {
         std::error_code entryErrorCode;
-        if (it->is_regular_file(entryErrorCode) && !entryErrorCode && it->path().extension() == sExtension)
+        if (it->is_regular_file(entryErrorCode) && !entryErrorCode && it->path().extension() == extension)
         {
-          files.push_back(it->path().string());
+          const auto utf8Path = it->path().u8string();
+          files.emplace_back(utf8Path.begin(), utf8Path.end());
         }
 
         it.increment(errorCode);
@@ -453,7 +520,8 @@ namespace sbio
 
       if (g_UtilitiesGlobals.pLogger != nullptr)
       {
-        g_UtilitiesGlobals.pLogger->LogError("Unable to locate the SDK root path. Set SBIO_SIMULATION_SDK or run from within an SDK directory containing Data/Applications and Data/Libraries.");
+        g_UtilitiesGlobals.pLogger->LogError(
+          "Unable to locate the SDK root path. Set SBIO_SIMULATION_SDK or run from within an SDK directory containing Data/Applications and Data/Libraries.");
       }
 
       return std::filesystem::path();
@@ -482,7 +550,8 @@ namespace sbio
         std::error_code entryErrorCode;
         if (it->is_regular_file(entryErrorCode) && !entryErrorCode)
         {
-          sFiles.push_back(it->path().filename().string());
+          const auto utf8Name = it->path().filename().u8string();
+          sFiles.emplace_back(utf8Name.begin(), utf8Name.end());
         }
 
         it.increment(errorCode);
@@ -518,7 +587,8 @@ namespace sbio
         std::error_code entryErrorCode;
         if (it->is_directory(entryErrorCode) && !entryErrorCode)
         {
-          subdirectories.push_back(it->path().filename().string());
+          const auto utf8Name = it->path().filename().u8string();
+          subdirectories.emplace_back(utf8Name.begin(), utf8Name.end());
         }
 
         it.increment(errorCode);
@@ -760,11 +830,11 @@ namespace sbio
       size_t size = 0;
 
       // On Windows, environment variables are stored as UTF-16 strings,
-      // so we need to retrieve them as wide strings and convert to UTF-8.
+      // so construct the path directly from the native wide string.
       const std::wstring variableName = Utf8ToWideString(sEnvironmentVariableName);
       if (_wdupenv_s(&buf, &size, variableName.c_str()) == 0 && buf != nullptr)
       {
-        std::filesystem::path p = WideToUtf8String(buf);
+        std::filesystem::path p(buf);
         free(buf);
         return p;
       }

@@ -14,6 +14,7 @@
  */
 #include "UTMProjection.h"
 #include <GeographicLib/UTMUPS.hpp>
+#include <cmath>
 
 using namespace sbio::math;
 using namespace GeographicLib;
@@ -85,7 +86,20 @@ SGeodeticCoordinates CUTMProjection::GetGeodeticCoordinate(const ReferencePlaneC
  */
 void CUTMProjection::Init(const SGeodeticCoordinates& geodeticCoords)
 {
-  UTMUPS::Forward(geodeticCoords.latitude.Value(), geodeticCoords.longitude.Value(), m_zone, m_northp, m_OriginPoint.easting, m_OriginPoint.northing);
+  if (!geodeticCoords.latitude.CheckValid() || !geodeticCoords.longitude.CheckValid() || !std::isfinite(geodeticCoords.altitude.Value()) ||
+      geodeticCoords.altitude == UnknownHeightRelativeToWGS84Ellipsoid)
+  {
+    return;
+  }
+
+  int zone = 0;
+  bool northp = false;
+  SUTMCoordinates originPoint;
+  UTMUPS::Forward(geodeticCoords.latitude.Value(), geodeticCoords.longitude.Value(), zone, northp, originPoint.easting, originPoint.northing);
+
+  m_zone = zone;
+  m_northp = northp;
+  m_OriginPoint = originPoint;
   m_ReferenceAltitude = geodeticCoords.altitude;
   m_bInitialized = true;
 }

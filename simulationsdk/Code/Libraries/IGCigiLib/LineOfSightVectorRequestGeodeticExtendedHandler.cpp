@@ -26,7 +26,9 @@ using namespace sbio::ig::terrain;
 
 extern SIGCigiLibGlobals g_CigiLibGlobals;
 
-CLineOfSightVectorRequestGeodeticExtendedHandler::CLineOfSightVectorRequestGeodeticExtendedHandler(const sbio::cigi::SLineOfSightVectorRequestGeodeticExtended& lineOfSightRequest) : CLineOfSightRequestHandler(), m_Request(lineOfSightRequest)
+CLineOfSightVectorRequestGeodeticExtendedHandler::CLineOfSightVectorRequestGeodeticExtendedHandler(
+  const sbio::cigi::SLineOfSightVectorRequestGeodeticExtended& lineOfSightRequest) :
+  CLineOfSightRequestHandler(lineOfSightRequest.fMinimumRange), m_Request(lineOfSightRequest)
 {
 }
 
@@ -43,6 +45,8 @@ bool CLineOfSightVectorRequestGeodeticExtendedHandler::Handle()
 
   SLineOfSightVectorRequestExtendedMessage data;
   data.LosID = m_Request.requestID;
+  data.RequestGeneration = GetRequestGeneration();
+  data.HostFrameLSN = GetHostFrameLSN();
   data.AlphaThreshold = m_Request.nAlphaThreshold / 255.f;
   data.MaterialMask = m_Request.nMaterialMask;
   data.eResponseCoordinateSystem = m_Request.eResponseCoordinateSystem;
@@ -89,7 +93,7 @@ Quaternion4d CLineOfSightVectorRequestGeodeticExtendedHandler::GetRotation() con
   }
 
   // Otherwise, the geocentric rotation is calculated from the source geodetic coordinates (latitude and longitude).
-  return GetGeocentricRotation(m_Request.sourceGeodeticCoordinates.latitude, m_Request.sourceGeodeticCoordinates.longitude);
+  return GetBodyGeocentricRotation(m_Request.sourceGeodeticCoordinates.latitude, m_Request.sourceGeodeticCoordinates.longitude);
 }
 
 bool CLineOfSightVectorRequestGeodeticExtendedHandler::ResolveStartPoint(GeocentricCoordinates& point)

@@ -3,7 +3,7 @@
  * @file AnimationControlHandler.h
  * @brief Declares the CCigiAnimationControlHandler class for handling CIGI entity animation control.
  *
- * Provides the CCigiAnimationControlHandler class for processing animation control messages for entities in the SimBlocks CIGI IG library.
+ * Provides the CCigiAnimationControlHandler class for processing animation control messages for entities in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI and common types for simulation and animation control.
  *
  * @see sbio::cigi::ig::CCigiAnimationControlHandler

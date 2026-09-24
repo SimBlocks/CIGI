@@ -3,7 +3,7 @@
  * @file CigiSymbolPolygon.h
  * @brief Declares the CIGCigiSymbolPolygon class for SimBlocks CIGI IG symbol polygon management and geometry.
  *
- * Provides the CIGCigiSymbolPolygon class for representing and managing polygon symbols with CIGI-specific logic in the SimBlocks CIGI IG library.
+ * Provides the CIGCigiSymbolPolygon class for representing and managing polygon symbols with CIGI-specific logic in the SimBlocks IGCigiLib library.
  * Inherits from sbio::symbol::CSymbolPolygon and integrates with SimBlocks symbol geometry types for symbol rendering and manipulation.
  * Supports symbol geometry copying, symbol creation, update, and ID management for simulation symbols.
  *

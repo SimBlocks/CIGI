@@ -17,7 +17,8 @@
 /**
  * @brief Main menu bar for the HostEmulator application.
  *
- * Manages menu actions and event handling for the application.
+ * Builds File, Test, and Help menus and binds setup, exit, IG launch, and about actions. Ownership passes to the
+ * frame when installed with SetMenuBar(); individual menu objects are owned by the menu bar.
  */
 class CMenuBar : public wxMenuBar
 {
@@ -29,23 +30,23 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the about event.
-   * @param event Event object associated with the callback.
+   * @brief Displays the application's wxWidgets About dialog.
+   * @param event Unused command event.
    */
   void OnAbout(wxCommandEvent& event);
   /**
-   * @brief Handles the launch ig event.
-   * @param event Event object associated with the callback.
+   * @brief Delegates IG launch to the application, or does nothing when it is unavailable.
+   * @param event Unused command event.
    */
   void OnLaunchIG(wxCommandEvent& event);
   /**
-   * @brief Handles the quit event.
-   * @param event Event object associated with the callback.
+   * @brief Requests a forced close of the application's top window when both are available.
+   * @param event Unused command event.
    */
   void OnQuit(wxCommandEvent& event);
   /**
-   * @brief Handles the setup event.
-   * @param event Event object associated with the callback.
+   * @brief Constructs and displays a modal SetupDialog; configuration changes are handled by that dialog.
+   * @param event Unused command event.
    */
   void OnSetup(wxCommandEvent& event);
 

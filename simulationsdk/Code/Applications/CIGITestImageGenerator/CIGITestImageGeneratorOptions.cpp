@@ -8,6 +8,7 @@
 #include "Poco/Util/IniFileConfiguration.h"
 #include <iostream>
 #include <memory>
+#include <utility>
 
 using namespace std;
 using namespace sbio;
@@ -28,10 +29,11 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
   try
   {
     AutoPtr<IniFileConfiguration> pConf(new IniFileConfiguration(filePath.string()));
+    SIGSetupOptions setupOptions;
 
     if (pConf->has("imageGeneratorID"))
     {
-      m_SetupOptions.imageGeneratorID = ImageGeneratorID(static_cast<uint16_t>(pConf->getInt("imageGeneratorID")));
+      setupOptions.imageGeneratorID = ImageGeneratorID(static_cast<uint16_t>(pConf->getInt("imageGeneratorID")));
     }
 
     SHostSettings hostSettings;
@@ -57,12 +59,12 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
 
     if (bHasHostSettings)
     {
-      m_SetupOptions.hostSettings.push_back(hostSettings);
+      setupOptions.hostSettings.push_back(hostSettings);
     }
 
     if (pConf->has("igIPAddress"))
     {
-      m_SetupOptions.igIPAddress = pConf->getString("igIPAddress");
+      setupOptions.igIPAddress = pConf->getString("igIPAddress");
     }
 
     if (pConf->has("cigiVersion"))
@@ -70,15 +72,15 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
       string sCigiVersion = pConf->getString("cigiVersion");
       if (sCigiVersion == "3.3")
       {
-        m_SetupOptions.eCigiVersion = ECigiVersion::VERSION_3_3;
+        setupOptions.eCigiVersion = ECigiVersion::VERSION_3_3;
       }
       else if (sCigiVersion == "4.0")
       {
-        m_SetupOptions.eCigiVersion = ECigiVersion::VERSION_4_0;
+        setupOptions.eCigiVersion = ECigiVersion::VERSION_4_0;
       }
       else
       {
-        m_SetupOptions.eCigiVersion = ECigiVersion::UNKNOWN_VERSION;
+        setupOptions.eCigiVersion = ECigiVersion::UNKNOWN_VERSION;
       }
     }
 
@@ -89,25 +91,21 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
 
       if (sSynchronizationMode == "synchronous")
       {
-        m_SetupOptions.eSynchronizationMode = ECigiSynchronizationMode::SYNCHRONOUS;
+        setupOptions.eSynchronizationMode = ECigiSynchronizationMode::SYNCHRONOUS;
       }
       else if (sSynchronizationMode == "asynchronous")
       {
-        m_SetupOptions.eSynchronizationMode = ECigiSynchronizationMode::ASYNCHRONOUS;
+        setupOptions.eSynchronizationMode = ECigiSynchronizationMode::ASYNCHRONOUS;
       }
       else
       {
-        m_SetupOptions.eSynchronizationMode = ECigiSynchronizationMode::ASYNCHRONOUS;
+        setupOptions.eSynchronizationMode = ECigiSynchronizationMode::ASYNCHRONOUS;
       }
-    }
-    else
-    {
-      m_SetupOptions.eSynchronizationMode = ECigiSynchronizationMode::ASYNCHRONOUS;
     }
 
     if (pConf->has("PathToCigiSisoConversionsFile"))
     {
-      m_SetupOptions.pathToCigiSisoConversionsFile = globals.applicationsDataPath / pConf->getString("PathToCigiSisoConversionsFile");
+      setupOptions.pathToCigiSisoConversionsFile = globals.applicationsDataPath / pConf->getString("PathToCigiSisoConversionsFile");
     }
 
     if (pConf->has("PacketLogger"))
@@ -116,15 +114,15 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
 
       if (s == "None")
       {
-        m_SetupOptions.ePacketLoggerState = EPacketLoggerState::NONE;
+        setupOptions.ePacketLoggerState = EPacketLoggerState::NONE;
       }
       else if (s == "Read")
       {
-        m_SetupOptions.ePacketLoggerState = EPacketLoggerState::READ;
+        setupOptions.ePacketLoggerState = EPacketLoggerState::READ;
       }
       else if (s == "Write")
       {
-        m_SetupOptions.ePacketLoggerState = EPacketLoggerState::WRITE;
+        setupOptions.ePacketLoggerState = EPacketLoggerState::WRITE;
       }
     }
 
@@ -132,7 +130,7 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
     {
       string s = pConf->getString("PacketTextLogger");
       std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-      m_SetupOptions.bLogPacketText = s == "true";
+      setupOptions.bLogPacketText = s == "true";
     }
 
     if (pConf->has("databaseControl"))
@@ -141,14 +139,15 @@ bool CCIGITestImageGeneratorOptions::LoadOptions(const std::filesystem::path& fi
 
       if (s == "Host")
       {
-        m_SetupOptions.bDatabaseControlledByIG = false;
+        setupOptions.bDatabaseControlledByIG = false;
       }
       else if (s == "IG")
       {
-        m_SetupOptions.bDatabaseControlledByIG = true;
+        setupOptions.bDatabaseControlledByIG = true;
       }
     }
 
+    m_SetupOptions = std::move(setupOptions);
     return true;
   }
   catch (const Poco::Exception& e)

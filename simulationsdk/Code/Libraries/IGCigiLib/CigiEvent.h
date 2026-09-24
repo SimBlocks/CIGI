@@ -86,6 +86,7 @@ namespace sbio
        */
       struct SDatabaseLoadedEventArgs : public SIGCIGIEventArgs
       {
+        /** @brief Selects the database-finished event kind; success defaults to false. */
         SDatabaseLoadedEventArgs() : SIGCIGIEventArgs(EIGCIGIEvent::DATABASE_FINISHED_LOADING) {};
 
         bool bLoadSuccessful = false;///< Indicates whether the database load completed successfully.
@@ -96,6 +97,7 @@ namespace sbio
        */
       struct SEntityRemovedEventArgs : public SIGCIGIEventArgs
       {
+        /** @brief Selects the entity-removed event kind with an unknown entity identifier. */
         SEntityRemovedEventArgs() : SIGCIGIEventArgs(EIGCIGIEvent::ENTITY_REMOVED) {};
 
         sbio::EntityID entityID = UnknownEntityID;///< Identifier of the entity that was removed.
@@ -106,6 +108,7 @@ namespace sbio
        */
       struct SImageGeneratorErrorEventArgs : public SIGCIGIEventArgs
       {
+        /** @brief Selects the database-loading-failed event kind for the error payload. */
         SImageGeneratorErrorEventArgs() : SIGCIGIEventArgs(EIGCIGIEvent::DATABASE_LOADING_FAILED) {};
 
         sbio::cigi::SImageGeneratorError error;///< Error data associated with the event.
@@ -117,6 +120,7 @@ namespace sbio
       struct IIGCIGIEventListener : public sbio::utils::IEventListener
       {
       public:
+        /** @brief Supports destruction through the listener interface. */
         virtual ~IIGCIGIEventListener() {};
 
         /// @name High-level IG lifecycle callbacks

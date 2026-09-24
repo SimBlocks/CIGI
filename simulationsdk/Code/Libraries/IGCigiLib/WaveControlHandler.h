@@ -1,9 +1,9 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file WaveControlHandler.h
- * @brief Declares the CCigiWaveControlHandler class for handling CIGI wave condition packets in SimBlocks CIGI IG library.
+ * @brief Declares the CCigiWaveControlHandler class for handling CIGI wave condition packets in SimBlocks IGCigiLib library.
  *
- * Provides the CCigiWaveControlHandler class for processing wave condition packets and updating environmental region handler state in the SimBlocks CIGI IG library.
+ * Provides the CCigiWaveControlHandler class for processing wave condition packets and updating environmental region handler state in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI environmental region handler for simulation and wave management.
  *
  * @see sbio::cigi::ig::CCigiWaveControlHandler

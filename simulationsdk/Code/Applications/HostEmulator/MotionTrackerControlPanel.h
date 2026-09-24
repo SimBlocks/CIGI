@@ -32,13 +32,14 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the radio button event for motion tracker options.
-   * @param event The command event.
+   * @brief Relabels the shared target ID as View or View Group without changing the entered identifier.
+   * @param event Radio event; "View ID" selects View, other strings select View Group.
    */
   void OnRadio(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending motion tracker control packets.
-   * @param event The command event.
+   * @brief Submits view- or view-group-scoped tracker control according to the selected ID type.
+   * @param event Unused command event; requires an active session for recognized ID types.
+   * An unrecognized type sends nothing; this panel does not sample tracker hardware.
    */
   void OnSend(wxCommandEvent& event);
 

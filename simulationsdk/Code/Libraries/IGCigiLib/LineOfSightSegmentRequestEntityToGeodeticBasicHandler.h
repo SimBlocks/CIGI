@@ -3,9 +3,9 @@
  * @file LineOfSightSegmentRequestEntityToGeodeticHandler.h
  * @brief Declares the CLineOfSightSegmentRequestEntityToGeodeticHandler class for SimBlocks CIGI IG line of sight segment request handling from entity to geodetic coordinates.
  *
- * Provides the CLineOfSightSegmentRequestEntityToGeodeticHandler class for managing and processing line of sight segment requests from an entity to geodetic coordinates in the SimBlocks CIGI IG library.
- * Inherits from CLineOfSightSegmentRequestEntityHandler and integrates with SimBlocks CIGI, math, and entity types for simulation and line of sight calculations.
- * Supports entity-to-geodetic request management and end point resolution for line of sight segment requests.
+ * Provides the CLineOfSightSegmentRequestEntityToGeodeticHandler class for managing and processing line of sight segment requests from an entity to geodetic coordinates in the
+ * SimBlocks IGCigiLib library. Inherits from CLineOfSightSegmentRequestEntityHandler and integrates with SimBlocks CIGI, math, and entity types for simulation and line of sight
+ * calculations. Supports entity-to-geodetic request management and end point resolution for line of sight segment requests.
  *
  * @see CLineOfSightSegmentRequestEntityToGeodeticHandler
  * @see CLineOfSightSegmentRequestEntityHandler
@@ -32,8 +32,15 @@ public:
    */
   CLineOfSightSegmentRequestEntityToGeodeticBasicHandler(const sbio::cigi::SLineOfSightSegmentRequestEntityToGeodeticBasic& request);
 
+  /** @brief Resolves entity-relative and geodetic endpoints and submits a basic segment query.
+   * @return `true` after dispatch; `false` if the messenger or source entity is unavailable.
+   */
   virtual bool Handle() override;
 
+  /** @brief Resolves the source entity offset into world coordinates.
+   * @param point Receives the resolved point on success; unchanged if the manager/entity is absent.
+   * @return `true` when resolved; otherwise `false`.
+   */
   bool ResolveStartPoint(GeocentricCoordinates& point);
 
   /**
@@ -44,7 +51,13 @@ public:
   bool ResolveEndPoint(GeocentricCoordinates& point);
 
 protected:
+  /** @brief Gets common request metadata.
+   * @return Const reference to this handler's stored request.
+   */
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const override;
+  /** @brief Gets mutable common request metadata.
+   * @return Reference to this handler's stored request.
+   */
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() override;
 
 private:

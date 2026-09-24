@@ -1,17 +1,25 @@
 //Copyright SimBlocks LLC 2016-2026
 #pragma once
 
+#include <filesystem>
 #include <string>
 
 /**
- * @brief Returns the result of `Utf8ToWideString`.
- * @param value Value value.
+ * @brief Identifies filesystem entries that should not be traversed during copying.
+ * @param path Filesystem entry to inspect.
+ * @return `true` when the entry should be skipped; otherwise `false`.
+ */
+bool ShouldSkipFileSystemEntry(const std::filesystem::path& path);
+
+/**
+ * @brief Converts a UTF-8 string to a wide-character string.
+ * @param value UTF-8 encoded string to convert.
  * @return Wide-character string converted from UTF-8 input.
  */
 std::wstring Utf8ToWideString(const std::string& value);
 /**
- * @brief Returns the result of `WideToUtf8String`.
- * @param value Value value.
+ * @brief Converts a wide-character string to UTF-8.
+ * @param value Null-terminated wide-character string to convert.
  * @return UTF-8 string converted from wide-character input.
  */
 std::string WideToUtf8String(const wchar_t* value);

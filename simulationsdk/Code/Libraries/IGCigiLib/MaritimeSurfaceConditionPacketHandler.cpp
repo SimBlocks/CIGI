@@ -7,7 +7,8 @@
 using namespace sbio::cigi;
 using namespace sbio::cigi::ig;
 
-CCigiMaritimeSurfaceConditionPacketHandler::CCigiMaritimeSurfaceConditionPacketHandler(CCigiEnvironmentalRegionHandler* pEnvironmentalRegionHandler) : m_pEnvironmentalRegionHandler(pEnvironmentalRegionHandler)
+CCigiMaritimeSurfaceConditionPacketHandler::CCigiMaritimeSurfaceConditionPacketHandler(CCigiEnvironmentalRegionHandler* pEnvironmentalRegionHandler) :
+  m_pEnvironmentalRegionHandler(pEnvironmentalRegionHandler)
 {
 }
 

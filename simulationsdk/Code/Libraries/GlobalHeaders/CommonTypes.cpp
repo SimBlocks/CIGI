@@ -11,6 +11,7 @@
  */
 #include "CommonTypes.h"
 #include "MathLib/Math.h"
+#include <cmath>
 
 using namespace sbio;
 using namespace sbio::math;
@@ -52,7 +53,7 @@ bool SColor32::operator==(const SColor32& c) const
 
 bool SColor32::operator<(const SColor32& c) const
 {
-  return *((uint32_t*)this) < *((uint32_t*)&c);
+  return To_uint32_t() < c.To_uint32_t();
 }
 
 void SColor3f::ScaleBy(SColor3f scale)
@@ -85,32 +86,30 @@ bool SColor3f::operator==(const SColor3f& c) const
 
 bool SColor3f::operator<(const SColor3f& c) const
 {
-  if (r < c.r)
+  // Lexicographical comparison with NaN handling: NaN is considered greater than any number.
+  const auto less = [](float lhs, float rhs)
+  {
+    return !std::isnan(lhs) && (std::isnan(rhs) || lhs < rhs);
+  };
+
+  if (less(r, c.r))
   {
     return true;
   }
-  else if (r > c.r)
+  else if (less(c.r, r))
   {
     return false;
   }
-  if (g < c.g)
+  if (less(g, c.g))
   {
     return true;
   }
-  else if (g > c.g)
-  {
-    return false;
-  }
-  if (b < c.b)
-  {
-    return true;
-  }
-  else if (b > c.b)
+  else if (less(c.g, g))
   {
     return false;
   }
 
-  return false;
+  return less(b, c.b);
 }
 
 SColor4f::SColor4f() : r(0), g(0), b(0), a(0)
@@ -158,11 +157,11 @@ STextureCoordinateUV::STextureCoordinateUV() : U(0), V(0)
 
 STextureCoordinateUV::STextureCoordinateUV(int u, int v)
 {
-  U = static_cast<float>(u);
-  V = static_cast<float>(v);
+  U = static_cast<double>(u);
+  V = static_cast<double>(v);
 }
 
-STextureCoordinateUV::STextureCoordinateUV(double u, double v) : U(static_cast<float>(u)), V(static_cast<float>(v))
+STextureCoordinateUV::STextureCoordinateUV(double u, double v) : U(u), V(v)
 {
 }
 

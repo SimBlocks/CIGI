@@ -44,6 +44,8 @@ namespace sbio
        *
        * Each entry in `SHostSetupOptions::sessions` overrides or supplements the top-level
        * connection defaults for one logical session.
+       * Zero ports, empty addresses, and an unknown database ID inherit top-level values.
+       * Session identifiers and nonzero effective receive ports must be unique within a host.
        */
       struct SHostSessionSetupOptions
       {
@@ -58,23 +60,24 @@ namespace sbio
       /**
        * @brief Configuration options for initializing the CIGI host library.
        *
-       * The top-level port and address fields describe the default connection used when a
-       * single session is configured. When `sessions` contains entries, each session may supply
+       * The top-level port and address fields describe the connection used for session zero when
+       * `sessions` is empty. When `sessions` contains entries, each session may supply
        * its own endpoint information while still sharing the remaining host-wide settings.
+       * `CHost::Initialize()` supports CIGI 3.3 and 4.0 only.
        */
       struct SHostSetupOptions
       {
         uint16_t hostToIGPort = 0;///< Port for host-to-IG communication
         uint16_t igToHostPort = 0;///< Port for IG-to-host communication
-        std::string hostIPAddress;///< Host IP address
+        std::string hostIPAddress;///< Host address used in diagnostics; session receive sockets are configured by port.
         std::string igIPAddress;///< IG IP address
         ECigiVersion eCigiVersion = ECigiVersion::UNKNOWN_VERSION;///< CIGI protocol version
         sbio::cigi::ECigiSynchronizationMode eSynchronizationMode = sbio::cigi::ECigiSynchronizationMode::ASYNCHRONOUS;///< Host synchronization mode
         sbio::DatabaseID defaultDatabaseID = sbio::UnknownDatabaseID;///< Default database ID
-        bool bigEndianByteOrder = false;///< Use big endian byte order
+        bool bigEndianByteOrder = false;///< Desired wire byte order; host initialization derives the byte-swap flag.
         std::filesystem::path pathToCigiSisoConversionsFile;///< Path to CIGI-SISO conversion file
         bool bEnableScripts = true;///< Enable scripting support
-        bool bDatabaseIGControlled = false;///< Database controlled by IG
+        bool bDatabaseIGControlled = false;///< Track database state as IG-controlled when start-of-frame data is received.
         std::vector<SHostSessionSetupOptions> sessions;///< Per-session connection settings
       };
 

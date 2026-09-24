@@ -26,7 +26,8 @@ using namespace sbio::ig::terrain;
 
 extern SIGCigiLibGlobals g_CigiLibGlobals;
 
-CLineOfSightVectorRequestGeodeticBasicHandler::CLineOfSightVectorRequestGeodeticBasicHandler(const sbio::cigi::SLineOfSightVectorRequestGeodeticBasic& lineOfSightRequest) : CLineOfSightRequestHandler(), m_Request(lineOfSightRequest)
+CLineOfSightVectorRequestGeodeticBasicHandler::CLineOfSightVectorRequestGeodeticBasicHandler(const sbio::cigi::SLineOfSightVectorRequestGeodeticBasic& lineOfSightRequest) :
+  CLineOfSightRequestHandler(lineOfSightRequest.fMinimumRange), m_Request(lineOfSightRequest)
 {
 }
 
@@ -43,6 +44,8 @@ bool CLineOfSightVectorRequestGeodeticBasicHandler::Handle()
 
   SLineOfSightVectorRequestBasicMessage data;
   data.LosID = m_Request.requestID;
+  data.RequestGeneration = GetRequestGeneration();
+  data.HostFrameLSN = GetHostFrameLSN();
   data.AlphaThreshold = m_Request.nAlphaThreshold / 255.f;
   data.MaterialMask = m_Request.nMaterialMask;
 
@@ -87,7 +90,7 @@ Quaternion4d CLineOfSightVectorRequestGeodeticBasicHandler::GetRotation() const
   }
 
   // If no active projection is present, compute the rotation based on the geodetic coordinates of the source point.
-  return GetGeocentricRotation(m_Request.sourceGeodeticCoordinates.latitude, m_Request.sourceGeodeticCoordinates.longitude);
+  return GetBodyGeocentricRotation(m_Request.sourceGeodeticCoordinates.latitude, m_Request.sourceGeodeticCoordinates.longitude);
 }
 
 bool CLineOfSightVectorRequestGeodeticBasicHandler::ResolveStartPoint(GeocentricCoordinates& point)

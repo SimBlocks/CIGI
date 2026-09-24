@@ -14,6 +14,7 @@
 #include "IEventListener.h"
 #include "UtilitiesLib.h"
 #include <boost/core/ignore_unused.hpp>
+#include <algorithm>
 
 using namespace sbio::utils;
 
@@ -40,15 +41,21 @@ void EventHandler::Visit(const Event& event, const std::string& sEvent, const Ev
 {
   boost::ignore_unused(event);
 
-  if (g_UtilitiesGlobals.pEventDispatcher == nullptr)
+  const auto dispatcher = g_UtilitiesGlobals.pEventDispatcher;
+  if (dispatcher == nullptr)
   {
     return;
   }
 
-  TListeners callbacks = g_UtilitiesGlobals.pEventDispatcher->GetCallbacks(sEvent);
+  TListeners callbacks = dispatcher->GetCallbacks(sEvent);
   for (TListeners::iterator it = callbacks.begin(); it != callbacks.end(); ++it)
   {
     IEventListener* pCallback = *it;
+    const TListeners& registeredCallbacks = dispatcher->GetCallbacks(sEvent);
+    if (pCallback == nullptr || std::find(registeredCallbacks.begin(), registeredCallbacks.end(), pCallback) == registeredCallbacks.end())
+    {
+      continue;
+    }
     pCallback->OnEvent(args);
   }
 }

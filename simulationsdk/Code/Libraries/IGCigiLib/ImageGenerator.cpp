@@ -45,10 +45,17 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 const CigiDatabaseNumber DefaultDatabaseNumber(0);// Default Database Number from CIGI ICD
 
 CCigiImageGenerator::CCigiImageGenerator(const sbio::cigi::ig::SIGSetupOptions& setupOptions) :
-  m_SetupOptions(setupOptions), m_eDatabaseState(EIGDatabaseState::NO_DATABASE), m_eOperationMode(EIGMode::RESET), m_LastHostFrameNumber(0), m_ImageGeneratorFrameNumber(0), m_DatabaseNumber(DefaultDatabaseNumber), m_bTimeStampValid(false), m_eEarthReferenceModel(EEarthReferenceModel::WGS84)
+  m_SetupOptions(setupOptions),
+  m_eDatabaseState(EIGDatabaseState::NO_DATABASE),
+  m_eOperationMode(EIGMode::RESET),
+  m_LastHostFrameNumber(0),
+  m_ImageGeneratorFrameNumber(0),
+  m_DatabaseNumber(DefaultDatabaseNumber),
+  m_bTimeStampValid(false),
+  m_eEarthReferenceModel(EEarthReferenceModel::WGS84)
 {
   m_pDatabaseLoader = std::make_unique<CDatabaseLoader>();
-  m_pExportedFunctionsEventDispatcher = std::make_unique<CIGResponseEventDispatcher>();
+  m_pExportedFunctionsEventDispatcher = std::make_shared<CIGResponseEventDispatcher>();
   g_CigiLibGlobals.pCigiEntityTypes = std::make_unique<CCigiEntityTypes>();
 
   if (setupOptions.bDatabaseControlledByIG)
@@ -69,6 +76,7 @@ CCigiImageGenerator::CCigiImageGenerator(const sbio::cigi::ig::SIGSetupOptions& 
 
 CCigiImageGenerator::~CCigiImageGenerator()
 {
+  m_pExportedFunctionsEventDispatcher->CloseTerrainResponses();
   if (g_CigiLibGlobals.pEventDispatcher != nullptr)
   {
     g_CigiLibGlobals.pEventDispatcher->UnregisterListener<IGCIGIEvent>(this);
@@ -148,6 +156,21 @@ sbio::cigi::ig::CCigiMessageLogger* CCigiImageGenerator::GetCigiMessageLogger() 
 sbio::cigi::ig::CIGResponseEventDispatcher* CCigiImageGenerator::GetExportedFunctionsEventDispatcher() const
 {
   return m_pExportedFunctionsEventDispatcher.get();
+}
+
+std::shared_ptr<CIGResponseEventDispatcher> CCigiImageGenerator::GetExportedFunctionsEventDispatcherHandle() const
+{
+  return m_pExportedFunctionsEventDispatcher;
+}
+
+void CCigiImageGenerator::ResetTerrainResponseDispatcher()
+{
+  m_pExportedFunctionsEventDispatcher->CloseTerrainResponses();
+  if (m_pPacketSenders != nullptr)
+  {
+    m_pPacketSenders->ClearPendingResponses();
+  }
+  m_pExportedFunctionsEventDispatcher = std::make_shared<CIGResponseEventDispatcher>();
 }
 
 std::vector<SCigiTerrestrialSurfaceCondition> CCigiImageGenerator::QueryTerrestrialSurfaceCondition(const SGeodeticCoordinates& query) const
@@ -275,6 +298,12 @@ bool CCigiImageGenerator::IsTimeStampValid() const
 
 void CCigiImageGenerator::OnDatabaseLoadedEvent()
 {
+  // If the database is not controlled by the IG, then the host has requested a database load and the IG should not process this event.
+  if (!m_SetupOptions.bDatabaseControlledByIG && m_eDatabaseState != EIGDatabaseState::LOADING)
+  {
+    return;
+  }
+
   stringstream ss;
   ss << "On Database Loaded " << m_DatabaseNumber << endl;
   g_CigiLibGlobals.pLogger->LogInformation(ss);
@@ -286,12 +315,15 @@ void CCigiImageGenerator::OnDatabaseLoadedEvent()
 
   DatabaseID databaseID = DatabaseID(m_DatabaseNumber.Value());
   SDatabaseProjection* pDatabaseProjection = m_pDatabaseLoader->GetDatabaseProjection(databaseID);
+
   if (pDatabaseProjection != nullptr)
   {
+    // Initialize the projection based on the database projection information
     SGeodeticCoordinates geodetic;
     geodetic.latitude = pDatabaseProjection->originLatitude;
     geodetic.longitude = pDatabaseProjection->originLongitude;
 
+    // Create the appropriate projection based on the database projection type
     unique_ptr<CProjection> pProjection;
     if (pDatabaseProjection->projectionType == EDatabaseProjectionType::UTM)
     {
@@ -304,6 +336,7 @@ void CCigiImageGenerator::OnDatabaseLoadedEvent()
 
     if (pProjection != nullptr)
     {
+      // Initialize the projection with the geodetic coordinates from the database projection
       pProjection->Init(geodetic);
       g_CigiLibGlobals.pProjection = std::move(pProjection);
     }
@@ -312,7 +345,10 @@ void CCigiImageGenerator::OnDatabaseLoadedEvent()
 
 void CCigiImageGenerator::OnDatabaseLoadingFailedEvent()
 {
-  m_eDatabaseState = EIGDatabaseState::LOADING_FAILED;
+  if (m_SetupOptions.bDatabaseControlledByIG || m_eDatabaseState == EIGDatabaseState::LOADING)
+  {
+    m_eDatabaseState = EIGDatabaseState::LOADING_FAILED;
+  }
 }
 
 void CCigiImageGenerator::OnEntityRemoved(sbio::EntityID entityID)
@@ -336,11 +372,15 @@ void CCigiImageGenerator::ProcessPackets()
     pPacketHandler->ProcessPackets();
     pPacketHandler->Update();
   }
+
+  // Retain this dispatcher in case a response listener resets the IG during delivery.
+  auto responseDispatcher = m_pExportedFunctionsEventDispatcher;
+  responseDispatcher->DispatchTerrainResponses();
 }
 
 void CCigiImageGenerator::QueueLoadingDatabase(CigiDatabaseNumber databaseNumber)
 {
-  if (databaseNumber != m_DatabaseNumber)
+  if (databaseNumber != m_DatabaseNumber || m_eDatabaseState == EIGDatabaseState::LOADING_FAILED)
   {
     m_pDatabaseLoader->UnloadCurrentDatabase();
     g_CigiLibGlobals.pEntityManager->Reset();
@@ -372,7 +412,7 @@ void CCigiImageGenerator::Update(double fTimeStepSeconds)
 {
   ProcessPackets();
 
-  g_CigiLibGlobals.pEntityManager->Update(false, fTimeStepSeconds);
+  g_CigiLibGlobals.pEntityManager->Update(m_SetupOptions.bInterpolationEnabled, fTimeStepSeconds);
   g_CigiLibGlobals.pViewManager->Update();
   g_CigiLibGlobals.pSymbolSurfaceManager->Update();
   SetIgControlReceived(false);
@@ -425,6 +465,7 @@ void CCigiImageGenerator::SetIgControlReceivedAfterPlay(bool bReceived)
 
 void CCigiImageGenerator::StartPlaying()
 {
+  ResetTerrainResponseDispatcher();
   m_bIgControlReceived = false;
   m_bIGControlReceivedAfterPlay = false;
 
@@ -444,6 +485,13 @@ void CCigiImageGenerator::StartPlaying()
 
 void CCigiImageGenerator::StopPlaying()
 {
+  m_pExportedFunctionsEventDispatcher->CloseTerrainResponses();
+
+  if (m_pPacketSenders != nullptr)
+  {
+    m_pPacketSenders->ClearPendingResponses();
+  }
+
   m_PlayTimer->Reset();
 }
 

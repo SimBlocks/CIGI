@@ -85,9 +85,9 @@ void CEntityPositionPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     child.bAttached = true;
     child.entityID = sbio::EntityID(GetInt("Entity ID"));
     child.parentID = sbio::EntityID(GetInt("Parent ID"));
-    child.offset[0] = GetFloat("Latitude");//X Offset
-    child.offset[1] = GetFloat("Longitude");//Y Offset
-    child.offset[2] = GetFloat("Altitude");//Z Offset
+    child.offset[0] = GetFloat("Latitude");// X Offset
+    child.offset[1] = GetFloat("Longitude");// Y Offset
+    child.offset[2] = GetFloat("Altitude");// Z Offset
 
     HostCigiErrorEventArgs args;
 
@@ -101,7 +101,7 @@ void CEntityPositionPanel::OnSend(wxCommandEvent& WXUNUSED(event))
       wxLogError("Roll: Enter number between -180.0 and 180.0");
       roll = Degrees(ResetFloat("Roll"));
     }
-    child.rotation.roll = roll;
+    child.rotation.roll = Degrees180(roll.Value());
 
     Degrees pitch = Degrees(GetFloat("Pitch"));
     if (!Degrees90::CheckValid(pitch.Value()))
@@ -112,7 +112,7 @@ void CEntityPositionPanel::OnSend(wxCommandEvent& WXUNUSED(event))
       wxLogError("Pitch: Enter number between -90.0 and 90.0");
       pitch = Degrees(ResetFloat("Pitch"));
     }
-    child.rotation.pitch = pitch;
+    child.rotation.pitch = Degrees90(pitch.Value());
 
     Degrees yaw = Degrees(GetFloat("Yaw"));
     if (!Degrees::CheckValid(yaw.Value()))
@@ -148,7 +148,7 @@ void CEntityPositionPanel::OnSend(wxCommandEvent& WXUNUSED(event))
       wxLogError("Roll: Enter number between -180.0 and 180.0");
       roll = Degrees(ResetFloat("Roll"));
     }
-    topLevel.rotation.roll = roll;
+    topLevel.rotation.roll = Degrees180(roll.Value());
 
     Degrees pitch = Degrees(GetFloat("Pitch"));
     if (!Degrees90::CheckValid(pitch.Value()))
@@ -159,7 +159,7 @@ void CEntityPositionPanel::OnSend(wxCommandEvent& WXUNUSED(event))
       wxLogError("Pitch: Enter number between -90.0 and 90.0");
       pitch = Degrees(ResetFloat("Pitch"));
     }
-    topLevel.rotation.pitch = pitch;
+    topLevel.rotation.pitch = Degrees90(pitch.Value());
 
     Degrees yaw = Degrees(GetFloat("Yaw"));
     if (!Degrees::CheckValid(yaw.Value()))

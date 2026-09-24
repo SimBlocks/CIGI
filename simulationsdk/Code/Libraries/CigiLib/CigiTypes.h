@@ -56,6 +56,12 @@ namespace sbio
      */
     typedef SEulerRotation<CigiBodyCoordinates> TCigiBodyEulerRotation;
 
+    /** @brief Signed CIGI body Euler angular velocity in degrees per second. */
+    typedef SEulerRate<CigiBodyCoordinates, DegreesPerSecond> TCigiBodyEulerVelocity;
+
+    /** @brief Signed CIGI body Euler angular acceleration in degrees per second squared. */
+    typedef SEulerRate<CigiBodyCoordinates, DegreesPerSecondSquared> TCigiBodyEulerAcceleration;
+
     /** @brief Transform whose source and destination coordinate bases are both CIGI body coordinates. */
     typedef STransform<CigiBodyCoordinates, CigiBodyCoordinates> TCigiBodyTransform;
 
@@ -131,7 +137,7 @@ namespace sbio
   namespace cigi
   {
     /** @brief Percentage value encoded as an integer constrained to the inclusive range 0 through 100. */
-    RANGED_STRONG_INT(CigiIntPercentage, uint8_t, 0, 100);
+    RANGED_STRONG_INT_WITH_UNKNOWN(CigiIntPercentage, uint8_t, 0, 100);
     /** @brief Percentage value encoded as a float constrained to the inclusive range 0 through 100. */
     RANGED_STRONG_FLOAT(CigiFloatPercentage, float, 0, 100);
     /**
@@ -145,7 +151,7 @@ namespace sbio
     /** @brief Strong identifier for a CIGI component class. */
     STRONG_TYPE(CigiComponentClassID, uint8_t);
     /** @brief CIGI month value constrained to the inclusive range 1 through 12. */
-    RANGED_STRONG_INT(CigiMonth, uint8_t, 1, 12);// cigi month is 1-based
+    RANGED_STRONG_INT_WITH_UNKNOWN(CigiMonth, uint8_t, 1, 12);// cigi month is 1-based
 
     /** @brief Strong identifier for a sensor. */
     STRONG_TYPE(SensorID, uint8_t)
@@ -348,7 +354,7 @@ namespace sbio
     {
       UNKNOWN = -1,
       SYNCHRONOUS = 0,///< Host sends packets immediately after receiving a start-of-frame packet.
-      ASYNCHRONOUS,///< Host packet processing is not synchronized to start-of-frame packet receipt; this may cause zero, one, or two host packets to be processed in a single frame.
+      ASYNCHRONOUS,///< Host packet processing is not synchronized to start-of-frame packet receipt.
     };
 
     /**
@@ -561,17 +567,17 @@ namespace sbio
     struct SEntityState
     {
       /// Active state associated with the entity.
-      EActiveState m_eActiveState;
+      EActiveState m_eActiveState = EActiveState::UNKNOWN;
       /// Indicates whether `m_ParentID` contains a parent entity ID.
-      bool m_bHasParent;
+      bool m_bHasParent = false;
       /// Indicates whether alpha should be inherited from the parent entity.
-      bool m_bInheritAlpha;
+      bool m_bInheritAlpha = false;
       /// Entity alpha value stored from control state.
-      float m_Alpha;
+      float m_Alpha = 0;
       /// Indicates whether collision reporting is enabled for the entity.
-      bool m_bCollisionReportingEnabled;
+      bool m_bCollisionReportingEnabled = false;
       /// Indicates whether smoothing is enabled for the entity.
-      bool m_SmoothingEnabled;
+      bool m_SmoothingEnabled = false;
       /// Parent entity ID when `m_bHasParent` is true; otherwise `UnknownEntityID` by default.
       EntityID m_ParentID = UnknownEntityID;
     };
@@ -638,7 +644,7 @@ namespace sbio
       HOST_DEFINED,
     };
 
-    // @brief Maximum size of a UDP datagram, which is 65535 bytes.
+    /// @brief Datagram-size limit used by CigiLib, equal to the maximum unsigned 16-bit value (65535 bytes).
     constexpr int MAX_UDP_DATAGRAM_SIZE = std::numeric_limits<std::uint16_t>::max();
   }
 }

@@ -33,23 +33,24 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the add row button event for adding rows to the grid.
-   * @param event The command event.
+   * @brief Inserts one grid row at the tracked insertion index and increments that index.
+   * @param event Unused command event.
    */
   void OnAddRow(wxCommandEvent& event);
   /**
-   * @brief Handles the remove row button event for removing rows from the grid.
-   * @param event The command event.
+   * @brief Clears all cell contents and resets the insertion index to zero; does not delete grid rows.
+   * @param event Unused command event.
    */
   void OnRemoveRow(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending symbol circle definition packets.
-   * @param event The command event.
+   * @brief Submits a circle definition using complete rows preceding the first row with an empty cell.
+   * @param event Unused command event; requires an active host session.
+   * Rows after the first incomplete row are ignored. Cell numbers use ToFloat(); submission does not confirm delivery.
    */
   void OnSend(wxCommandEvent& event);
 
 private:
-  int m_nNumRows = {10};///< Number of rows in the grid
+  int m_nNumRows = {10};///< Next insertion index, reset to zero by clearing cells without deleting rows.
   wxGrid* m_pGrid = nullptr;///< Grid control for symbol circle data entry
 };
 #endif

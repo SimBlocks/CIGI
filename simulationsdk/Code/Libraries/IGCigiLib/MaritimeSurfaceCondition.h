@@ -3,7 +3,7 @@
  * @file MaritimeSurfaceCondition.h
  * @brief Declares the CCigiMaritimeSurfaceCondition class for SimBlocks CIGI IG maritime surface condition management.
  *
- * Provides the CCigiMaritimeSurfaceCondition class for managing maritime surface conditions in the SimBlocks CIGI IG library, including active state and condition data.
+ * Provides the CCigiMaritimeSurfaceCondition class for managing maritime surface conditions in the SimBlocks IGCigiLib library, including active state and condition data.
  * Integrates with SimBlocks CIGI types for simulation and maritime surface control.
  *
  * @see sbio::cigi::ig::CCigiMaritimeSurfaceCondition

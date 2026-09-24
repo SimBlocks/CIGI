@@ -3,7 +3,7 @@
  * @file ViewHandler.h
  * @brief Declares the CCigiViewHandler class for SimBlocks CIGI IG view control and definition handling.
  *
- * Provides the CCigiViewHandler class for handling CIGI view control and definition messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiViewHandler class for handling CIGI view control and definition messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI image generator and view control/definition types for simulation view management.
  * Supports processing of view control and definition messages, and manages image generator reference for view operations.
  *

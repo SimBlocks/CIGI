@@ -15,16 +15,40 @@
 class CHATHOTGlobalRequestHandler : public CHATHOTRequestHandler
 {
 public:
+  /** @brief Stores a geodetic terrain-height request.
+   * @param request Payload copied into this handler.
+   */
   CHATHOTGlobalRequestHandler(const sbio::cigi::SHATHOTGlobalRequest& request);
 
+  /** @brief Identifies geodetic positioning.
+   * @return `ETopLevelCoordinateSystem::GEODETIC`.
+   */
   virtual sbio::ETopLevelCoordinateSystem GetCoordinateSystem() const override;
+  /** @brief Supplies the unused entity-reference interface.
+   * @return `UnknownEntityID`.
+   */
   virtual sbio::EntityID GetEntityID() const override;
+  /** @brief Gets the query position.
+   * @return Copy of the stored geodetic coordinates.
+   */
   virtual sbio::math::SGeodeticCoordinates GetGeodeticCoordinates() const override;
+  /** @brief Supplies the unused relative-offset interface.
+   * @return Default-constructed vector.
+   */
   virtual sbio::math::Vec3 GetOffset() const override;
+  /** @brief Submits the query at its stored geodetic position.
+   * @return Result of `SendRequest()`; submission is not a terrain-hit acknowledgment.
+   */
   virtual bool Handle() override;
 
 protected:
+  /** @brief Gets the stored request metadata.
+   * @return Const reference owned by this handler.
+   */
   virtual const sbio::cigi::SBaseHATHOTRequest& GetRequest() const override;
+  /** @brief Gets mutable stored request metadata.
+   * @return Reference owned by this handler.
+   */
   virtual sbio::cigi::SBaseHATHOTRequest& GetRequestRef() override;
 
 private:

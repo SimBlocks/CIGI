@@ -31,7 +31,8 @@ using namespace std;
 
 extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
-CCigiPacketSenderV4::CCigiPacketSenderV4(CCigiImageGenerator& imageGenerator, std::string hostIPAddress, int igToHostPort) : CCigiPacketSender(imageGenerator, hostIPAddress, igToHostPort)
+CCigiPacketSenderV4::CCigiPacketSenderV4(CCigiImageGenerator& imageGenerator, std::string hostIPAddress, int igToHostPort) :
+  CCigiPacketSender(imageGenerator, hostIPAddress, igToHostPort)
 {
 }
 
@@ -52,7 +53,7 @@ void CCigiPacketSenderV4::SendLineOfSightResponse(const sbio::cigi::SLineOfSight
   losRespV4.visible = false;
   losRespV4.responseCount = response.responseCount;
 
-  m_pBuffer->Write(losRespV4);
+  QueuePacket(losRespV4);
 }
 
 void CCigiPacketSenderV4::SendLineOfSightEntityResponse(const sbio::cigi::SLineOfSightEntityResponse& response)
@@ -72,7 +73,7 @@ void CCigiPacketSenderV4::SendLineOfSightEntityResponse(const sbio::cigi::SLineO
   losRespV4.visible = response.bVisible;
   losRespV4.responseCount = response.responseCount;
 
-  m_pBuffer->Write(losRespV4);
+  QueuePacket(losRespV4);
 }
 
 void CCigiPacketSenderV4::SendPositionResponse(const SBasePositionResponse* response, sbio::cigi::EPositionResponseType type)
@@ -97,6 +98,7 @@ void CCigiPacketSenderV4::SendPositionResponse(const SBasePositionResponse* resp
 
   posResp.objectClass = ConvertObjectClass(response->eObjectClass);
   posResp.objectId = response->objectID;
+  posResp.articulatedPartId = response->articulatedPartID.Value();
   posResp.yaw = static_cast<float>(response->rotation.yaw.Value());
   posResp.pitch = static_cast<float>(response->rotation.pitch.Value());
   posResp.roll = static_cast<float>(response->rotation.roll.Value());
@@ -120,14 +122,13 @@ void CCigiPacketSenderV4::SendPositionResponse(const SBasePositionResponse* resp
   else if (type == sbio::cigi::EPositionResponseType::ARTICULATED)
   {
     auto articulated = (SPositionResponseArticulatedPartCoordinates*)response;
-    posResp.articulatedPartId = articulated->articulatedPartID.Value();
     posResp.latitudeXOffset = articulated->offset.toVec3().x();
     posResp.longitudeYOffset = articulated->offset.toVec3().y();
     posResp.altitudeZOffset = articulated->offset.toVec3().z();
     posResp.coordinateSystem = CIGI::V40::PositionResponse::CoordinateSystem::eCoordinateSystem_Submodel;
   }
 
-  m_pBuffer->Write(posResp);
+  QueuePacket(posResp);
 }
 
 void CCigiPacketSenderV4::SendWeatherConditionsResponse(const SWeatherConditionsResponse& response)
@@ -147,7 +148,7 @@ void CCigiPacketSenderV4::SendWeatherConditionsResponse(const SWeatherConditions
   data.windDirection = response.fWindDirection;
   data.barometricPressure = response.fBarometricPressure;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendAerosolConcentrationResponse(const SAerosolConcentrationResponse& response)
@@ -162,7 +163,7 @@ void CCigiPacketSenderV4::SendAerosolConcentrationResponse(const SAerosolConcent
   data.layerId = response.layerID;
   data.aerosolConcentration = response.fAerosolConcentration;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendMaritimeSurfaceConditionsResponse(const SMaritimeSurfaceConditionsResponse& response)
@@ -178,7 +179,7 @@ void CCigiPacketSenderV4::SendMaritimeSurfaceConditionsResponse(const SMaritimeS
   data.surfaceWaterTemperature = static_cast<float>(response.fSurfaceWaterTemperature.Value());
   data.surfaceClarity = ConvertToCigiFloatPercentage(response.surfaceClarity).Value();
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendTerrestrialSurfaceConditionsResponse(const STerrestrialSurfaceConditionsResponse& response)
@@ -192,7 +193,7 @@ void CCigiPacketSenderV4::SendTerrestrialSurfaceConditionsResponse(const STerres
   data.requestId = response.requestID;
   data.surfaceConditionId = response.surfaceConditionID;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendEventNotification(const sbio::cigi::SEventNotification& response)
@@ -208,7 +209,7 @@ void CCigiPacketSenderV4::SendEventNotification(const sbio::cigi::SEventNotifica
   data.eventData2 = response.EventData2;
   data.eventData3 = response.EventData3;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendImageGeneratorMessageNotification(const sbio::cigi::SImageGeneratorNotification& response)
@@ -223,7 +224,7 @@ void CCigiPacketSenderV4::SendImageGeneratorMessageNotification(const sbio::cigi
   // only message ID is currently supported.
   data.messageId = response.MessageID.Value();
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendLineOfSightExtendedGeodeticCoordinatesResponse(const sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse& response)
@@ -242,6 +243,7 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedGeodeticCoordinatesResponse(con
   data.entityIdValid = false;
   data.responseCount = response.responseCount;
   data.rangeValid = response.bRangeValid;
+  data.visible = response.bVisible;
 
   data.latitudeXOffset = response.geodeticCoordinates.latitude.Value();
   data.longitudeYOffset = response.geodeticCoordinates.longitude.Value();
@@ -256,7 +258,7 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedGeodeticCoordinatesResponse(con
   data.materialCode = response.materialCode.Value();
   data.range = response.dRange;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(const sbio::cigi::SLineOfSightExtendedEntityGeodeticCoordinatesResponse& response)
@@ -275,6 +277,7 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedEntityGeodeticCoordinatesRespon
   data.entityIdValid = true;
   data.responseCount = response.responseCount;
   data.rangeValid = response.bRangeValid;
+  data.visible = response.bVisible;
 
   data.latitudeXOffset = response.geodeticCoordinates.latitude.Value();
   data.longitudeYOffset = response.geodeticCoordinates.longitude.Value();
@@ -289,7 +292,7 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedEntityGeodeticCoordinatesRespon
   data.materialCode = response.materialCode.Value();
   data.range = response.dRange;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendLineOfSightExtendedEntityCoordinatesResponse(const sbio::cigi::SLineOfSightExtendedEntityCoordinatesResponse& response)
@@ -308,6 +311,7 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedEntityCoordinatesResponse(const
   data.entityIdValid = true;
   data.responseCount = response.responseCount;
   data.rangeValid = response.bRangeValid;
+  data.visible = response.bVisible;
 
   data.latitudeXOffset = response.offset[0];
   data.longitudeYOffset = response.offset[1];
@@ -322,7 +326,7 @@ void CCigiPacketSenderV4::SendLineOfSightExtendedEntityCoordinatesResponse(const
   data.materialCode = response.materialCode.Value();
   data.range = response.dRange;
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendHatResponse(const SHeightAboveTerrainResponse& response)
@@ -340,7 +344,7 @@ void CCigiPacketSenderV4::SendHatResponse(const SHeightAboveTerrainResponse& res
   hatHotRespV4.responseType = CIGI::V40::HATHOTResponse::Type::eType_HAT;
   hatHotRespV4.height = response.heightAboveTerrain;
 
-  m_pBuffer->Write(hatHotRespV4);
+  QueuePacket(hatHotRespV4);
 }
 
 void CCigiPacketSenderV4::SendHotResponse(const SHeightOfTerrainResponse& response)
@@ -358,7 +362,7 @@ void CCigiPacketSenderV4::SendHotResponse(const SHeightOfTerrainResponse& respon
   hatHotRespV4.responseType = CIGI::V40::HATHOTResponse::Type::eType_HOT;
   hatHotRespV4.height = response.heightOfTerrain.Value();
 
-  m_pBuffer->Write(hatHotRespV4);
+  QueuePacket(hatHotRespV4);
 }
 
 void CCigiPacketSenderV4::SendHatHotExtendedResponse(const sbio::cigi::SHATHOTExtendedResponse& response)
@@ -379,7 +383,7 @@ void CCigiPacketSenderV4::SendHatHotExtendedResponse(const sbio::cigi::SHATHOTEx
   hatHotRespV4.normalVectorAzimuth = static_cast<float>(response.normalVectorAzimuth.Value());
   hatHotRespV4.normalVectorElevation = static_cast<float>(response.normalVectorElevation.Value());
 
-  m_pBuffer->Write(hatHotRespV4);
+  QueuePacket(hatHotRespV4);
 }
 
 void CCigiPacketSenderV4::SendSensorResponse(const sbio::cigi::SSensorResponse& response)
@@ -414,9 +418,9 @@ void CCigiPacketSenderV4::SendSensorResponse(const sbio::cigi::SSensorResponse& 
   data.gateYSize = static_cast<uint16_t>(response.gateSize[1] + .05f);
   data.gateXPosition = response.gatePosition[0];
   data.gateYPosition = response.gatePosition[1];
-  data.hostFrameCounter = m_ImageGenerator.GetFrameNumber().Value();
+  data.hostFrameCounter = response.hostFrameNumber.Value();
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendSensorExtendedResponse(const sbio::cigi::SSensorExtendedResponse& response)
@@ -453,11 +457,11 @@ void CCigiPacketSenderV4::SendSensorExtendedResponse(const sbio::cigi::SSensorEx
   data.gateYSize = static_cast<uint16_t>(response.gateSize[1] + .05f);
   data.gateXPosition = response.gatePosition[0];
   data.gateYPosition = response.gatePosition[1];
-  data.hostFrameCounter = m_ImageGenerator.GetFrameNumber().Value();
+  data.hostFrameCounter = response.hostFrameNumber.Value();
   data.trackPointLatitude = response.trackPoint.latitude.Value();
   data.trackPointLongitude = response.trackPoint.longitude.Value();
   data.trackPointAltitude = response.trackPoint.altitude.Value();
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendSensorExtendedEntityResponse(const sbio::cigi::SSensorExtendedEntityResponse& response)
@@ -493,12 +497,12 @@ void CCigiPacketSenderV4::SendSensorExtendedEntityResponse(const sbio::cigi::SSe
   data.gateYSize = static_cast<uint16_t>(response.gateSize[1] + .05f);
   data.gateXPosition = response.gatePosition[0];
   data.gateYPosition = response.gatePosition[1];
-  data.hostFrameCounter = m_ImageGenerator.GetFrameNumber().Value();
+  data.hostFrameCounter = response.hostFrameNumber.Value();
   data.trackPointLatitude = response.trackPoint.latitude.Value();
   data.trackPointLongitude = response.trackPoint.longitude.Value();
   data.trackPointAltitude = response.trackPoint.altitude.Value();
 
-  m_pBuffer->Write(data);
+  QueuePacket(data);
 }
 
 void CCigiPacketSenderV4::SendAnimationFinishedNotification(const sbio::cigi::SAnimationStopNotification& response)
@@ -511,7 +515,7 @@ void CCigiPacketSenderV4::SendAnimationFinishedNotification(const sbio::cigi::SA
   CIGI::V40::AnimationStopNotification animationStop;
   animationStop.entityId = response.entityID.Value();
 
-  m_pBuffer->Write(animationStop);
+  QueuePacket(animationStop);
 }
 
 void CCigiPacketSenderV4::SendCollisionDetectionSegmentNotificationResponse(const sbio::cigi::SCollisionDetectionSegmentNotification& response)
@@ -529,7 +533,7 @@ void CCigiPacketSenderV4::SendCollisionDetectionSegmentNotificationResponse(cons
 
   collisionSegmentResponse.collisionType = CIGI::V40::CollisionDetectionSegmentNotification::CollisionType::eCollisionType_NonEntity;
 
-  m_pBuffer->Write(collisionSegmentResponse);
+  QueuePacket(collisionSegmentResponse);
 }
 
 void CCigiPacketSenderV4::SendCollisionDetectionSegmentEntityNotificationResponse(const sbio::cigi::SCollisionDetectionSegmentEntityNotification& response)
@@ -549,7 +553,7 @@ void CCigiPacketSenderV4::SendCollisionDetectionSegmentEntityNotificationRespons
 
   collisionSegmentResponse.collisionType = CIGI::V40::CollisionDetectionSegmentNotification::CollisionType::eCollisionType_Entity;
 
-  m_pBuffer->Write(collisionSegmentResponse);
+  QueuePacket(collisionSegmentResponse);
 }
 
 void CCigiPacketSenderV4::SendCollisionDetectionVolumeNotificationResponse(const sbio::cigi::SCollisionDetectionVolumeNotification& response)
@@ -567,7 +571,7 @@ void CCigiPacketSenderV4::SendCollisionDetectionVolumeNotificationResponse(const
   collisionVolumeResponse.contactedEntityId = 0;// ignored for a non-entity collision
   collisionVolumeResponse.contactedVolumeId = response.contactedVolumeID.Value();
 
-  m_pBuffer->Write(collisionVolumeResponse);
+  QueuePacket(collisionVolumeResponse);
 }
 
 void CCigiPacketSenderV4::SendCollisionDetectionVolumeEntityNotificationResponse(const sbio::cigi::SCollisionDetectionVolumeEntityNotification& response)
@@ -585,7 +589,7 @@ void CCigiPacketSenderV4::SendCollisionDetectionVolumeEntityNotificationResponse
 
   collisionVolumeResponse.collisionType = CIGI::V40::CollisionDetectionVolumeNotification::CollisionType::eCollisionType_Entity;
 
-  m_pBuffer->Write(collisionVolumeResponse);
+  QueuePacket(collisionVolumeResponse);
 }
 
 void CCigiPacketSenderV4::SendStartOfFramePacket(FrameNumber frameNumber)

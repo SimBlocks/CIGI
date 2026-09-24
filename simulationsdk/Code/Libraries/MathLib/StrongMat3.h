@@ -14,7 +14,7 @@
 #ifndef SIMBLOCKS_STRONG_MAT3_H
 #define SIMBLOCKS_STRONG_MAT3_H
 
-#include "MathLib/MathTypes.h"
+#include "MathLib/EigenTypes.h"
 
 namespace sbio
 {

@@ -44,6 +44,9 @@
     <ClInclude Include="AABB.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="EigenTypes.h">
+      <Filter>MathTypes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Math.cpp">

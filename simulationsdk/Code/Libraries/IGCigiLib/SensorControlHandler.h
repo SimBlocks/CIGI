@@ -1,9 +1,9 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file SensorControlHandler.h
- * @brief Declares the CCigiSensorControlHandler class for handling CIGI sensor control messages in SimBlocks CIGI IG library.
+ * @brief Declares the CCigiSensorControlHandler class for handling CIGI sensor control messages in SimBlocks IGCigiLib library.
  *
- * Provides the CCigiSensorControlHandler class for processing sensor control messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiSensorControlHandler class for processing sensor control messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI and math types for simulation and sensor management.
  *
  * @see sbio::cigi::ig::CCigiSensorControlHandler

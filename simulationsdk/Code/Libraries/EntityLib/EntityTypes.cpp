@@ -15,7 +15,9 @@ namespace
   template <typename TValue>
   bool TryParseUnsignedToken(const std::string& token, TValue& value)
   {
-    if (token.empty())
+    // Check for empty token or negative sign, which are invalid for unsigned integers.
+    const auto first = token.find_first_not_of(" \t\n\r\f\v");
+    if (first == std::string::npos || token[first] == '-')
     {
       return false;
     }
@@ -41,8 +43,8 @@ namespace
 
 bool SEntityType::operator==(const SEntityType& rhs) const
 {
-  return (entityKindID == rhs.entityKindID) && (entityDomainID == rhs.entityDomainID) && (entityCountryID == rhs.entityCountryID) && (entityCategoryID == rhs.entityCategoryID) && (entitySubCategoryID == rhs.entitySubCategoryID) && (entitySpecificID == rhs.entitySpecificID) &&
-         (entityExtraID == rhs.entityExtraID);
+  return (entityKindID == rhs.entityKindID) && (entityDomainID == rhs.entityDomainID) && (entityCountryID == rhs.entityCountryID) && (entityCategoryID == rhs.entityCategoryID) &&
+         (entitySubCategoryID == rhs.entitySubCategoryID) && (entitySpecificID == rhs.entitySpecificID) && (entityExtraID == rhs.entityExtraID);
 }
 
 bool SEntityType::operator!=(const SEntityType& rhs) const
@@ -136,7 +138,8 @@ void SEntityType::SetFromEnumerationString(const std::string& sEntityEnumeration
 
   // Parse the first 5 tokens, which are required, and validate that they are unsigned integers within the range of their respective types.
   // Then parse the optional specific and extra tokens if they exist.
-  if (!TryParseUnsignedToken(tokens[0], nEntityKind) || !TryParseUnsignedToken(tokens[1], nEntityDomain) || !TryParseUnsignedToken(tokens[2], nEntityCountry) || !TryParseUnsignedToken(tokens[3], nEntityCategory) || !TryParseUnsignedToken(tokens[4], nEntitySubCategory))
+  if (!TryParseUnsignedToken(tokens[0], nEntityKind) || !TryParseUnsignedToken(tokens[1], nEntityDomain) || !TryParseUnsignedToken(tokens[2], nEntityCountry) ||
+      !TryParseUnsignedToken(tokens[3], nEntityCategory) || !TryParseUnsignedToken(tokens[4], nEntitySubCategory))
   {
     return;
   }

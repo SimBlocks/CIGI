@@ -47,8 +47,9 @@ struct AABB
   double extentZ = 0;
 
   /**
-   * @brief Determines whether empty.
-   * @return `true` when the condition is met; otherwise `false`.
+   * @brief Determines whether the bounding box contains no included points.
+   * @return `true` when at least one minimum extent is greater than its corresponding maximum extent;
+   *   otherwise `false`.
    */
   bool IsEmpty() const;
 
@@ -62,6 +63,9 @@ struct AABB
 
   /**
    * @brief Computes the center and extents of the bounding box.
+   *
+   * Updates the derived center and half-size fields from the current minimum
+   * and maximum extents.
    */
   void ComputeAABB();
 
@@ -70,6 +74,9 @@ struct AABB
    * @param other The AABB to encapsulate.
    */
   void Encapsulate(const AABB& other);
+
+private:
+  static double Midpoint(double a, double b);
 };
 
 //The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.

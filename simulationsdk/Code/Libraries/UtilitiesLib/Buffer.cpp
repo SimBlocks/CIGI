@@ -12,6 +12,7 @@
 #include "Buffer.h"
 
 #include <cstring>
+#include <functional>
 
 using namespace sbio::utils;
 
@@ -24,9 +25,17 @@ CBuffer::CBuffer(int nSize) : m_nSize(nSize)
   }
 }
 
-CBuffer::CBuffer(std::vector<std::uint8_t>&& buffer) : m_own_Buffer(false), m_nSize(static_cast<int>(buffer.size())), m_ownedBytes(std::move(buffer))
+CBuffer::CBuffer(std::vector<std::uint8_t>&& buffer) : m_own_Buffer(false)
 {
-  m_buffer = reinterpret_cast<char*>(m_ownedBytes.data());
+  if (buffer.size() > static_cast<size_t>((std::numeric_limits<int>::max)()))
+  {
+    return;
+  }
+
+  m_nSize = static_cast<int>(buffer.size());
+  m_ownedBytes = std::move(buffer);
+  m_bRequiresCopyOnSteal = true;
+  m_buffer = m_ownedBytes.empty() ? nullptr : reinterpret_cast<char*>(m_ownedBytes.data());
 }
 
 // Constructs a buffer with a specified size and existing data.
@@ -54,7 +63,8 @@ void CBuffer::Clear()
 
   m_buffer = nullptr;
   m_nSize = 0;
-  m_ownedBytes.clear();
+  std::vector<std::uint8_t>().swap(m_ownedBytes);
+  m_bRequiresCopyOnSteal = false;
 }
 
 // Gets a pointer to the buffer.
@@ -83,11 +93,15 @@ bool CBuffer::IsEmpty() const
 // Transfers ownership of the buffer pointer to the caller.
 char* CBuffer::StealPointer()
 {
-  if (!m_ownedBytes.empty())
+  if (m_bRequiresCopyOnSteal)
   {
-    char* p = new char[m_nSize];
-    std::memcpy(p, m_buffer, m_nSize);
-    m_ownedBytes.clear();
+    char* p = (m_nSize > 0) ? new char[m_nSize] : nullptr;
+    if (m_nSize > 0)
+    {
+      std::memcpy(p, m_buffer, m_nSize);
+    }
+    std::vector<std::uint8_t>().swap(m_ownedBytes);
+    m_bRequiresCopyOnSteal = false;
     m_buffer = nullptr;
     m_nSize = 0;
     return p;
@@ -101,16 +115,43 @@ char* CBuffer::StealPointer()
   return p;
 }
 
+bool CBuffer::IsPointerInOwnedStorageRange(const void* data) const
+{
+  if (data == nullptr)
+  {
+    return false;
+  }
+
+  const auto contains = [data](const char* begin, size_t size)
+  {
+    const std::less<const void*> less;
+    return begin != nullptr && !less(data, begin) && !less(begin + size, data);
+  };
+
+  if (m_bRequiresCopyOnSteal)
+  {
+    return contains(reinterpret_cast<const char*>(m_ownedBytes.data()), m_ownedBytes.capacity());
+  }
+
+  return m_own_Buffer && contains(m_buffer, m_nSize > 0 ? static_cast<size_t>(m_nSize) : 0);
+}
+
 // Sets the buffer to a new memory block.
 void CBuffer::Set(int nSize, void* data)
 {
+  if (IsPointerInOwnedStorageRange(data))
+  {
+    return;
+  }
+
   if (m_buffer && m_own_Buffer)
   {
     delete[] m_buffer;
     m_buffer = nullptr;
   }
 
-  m_ownedBytes.clear();
+  std::vector<std::uint8_t>().swap(m_ownedBytes);
+  m_bRequiresCopyOnSteal = false;
   m_nSize = nSize;
   m_buffer = (char*)data;
   m_own_Buffer = false;

@@ -23,34 +23,36 @@ CUDPReceiveMulticastSocket::CUDPReceiveMulticastSocket(const std::string& sIPAdd
 {
   try
   {
-    IPAddress ipAddress = Poco::Net::IPAddress(sIPAddress);
-    m_pMulticastSocket = std::make_unique<MulticastSocket>();
-    m_pMulticastSocket->bind(SocketAddress(IPAddress(), static_cast<Poco::UInt16>(nPort)), true);
-
-    bool bJoinedGroup = false;
-
-    if (!sNetworkInterface.empty())
+    // Validate the port number range.
+    if (nPort < 0 || nPort > 65535)
     {
-      const NetworkInterface::Map map = NetworkInterface::map();
-
-      for (auto it = map.begin(); it != map.end(); ++it)
+      if (g_UtilitiesGlobals.pLogger != nullptr)
       {
-        const NetworkInterface& networkInterface = it->second;
-
-        if (networkInterface.name() == sNetworkInterface)
-        {
-          m_pMulticastSocket->joinGroup(ipAddress, networkInterface);
-          bJoinedGroup = true;
-          break;
-        }
+        g_UtilitiesGlobals.pLogger->LogError("UDP multicast receive socket port must be in [0, 65535].");
       }
+      return;
     }
 
-    if (!bJoinedGroup)
+    // Create an IPAddress object from the provided string and determine its address family.
+    IPAddress ipAddress = Poco::Net::IPAddress(sIPAddress);
+    const auto family = ipAddress.family();
+    m_pMulticastSocket = std::make_unique<MulticastSocket>(family);
+    m_pMulticastSocket->bind(SocketAddress(IPAddress(family), static_cast<Poco::UInt16>(nPort)), true);
+
+    // Join the multicast group on the specified network interface, if provided.
+    if (!sNetworkInterface.empty())
     {
+      // Join the multicast group on the specified network interface.
+      const auto networkInterface = NetworkInterface::forName(sNetworkInterface, family == IPAddress::IPv6);
+      m_pMulticastSocket->joinGroup(ipAddress, networkInterface);
+    }
+    else
+    {
+      // Join the multicast group on the default interface.
       m_pMulticastSocket->joinGroup(ipAddress);
     }
 
+    // Set the socket to non-blocking mode for receive operations.
     m_pMulticastSocket->setBlocking(false);
   }
   catch (const Poco::Exception& exception)

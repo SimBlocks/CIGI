@@ -5,7 +5,8 @@ using namespace std;
 using namespace sbio;
 using namespace sbio::entity;
 
-CEntityType::CEntityType(SisoEntityKindID entityKindID, SisoEntityDomainID entityDomainID, SisoEntityCountryID entityCountryID) : m_entityKindID(entityKindID), m_entityDomainID(entityDomainID), m_entityCountryID(entityCountryID)
+CEntityType::CEntityType(SisoEntityKindID entityKindID, SisoEntityDomainID entityDomainID, SisoEntityCountryID entityCountryID) :
+  m_entityKindID(entityKindID), m_entityDomainID(entityDomainID), m_entityCountryID(entityCountryID)
 {
 }
 

@@ -5,7 +5,7 @@
  *
  * Provides the CLineOfSightVectorRequestPanel class for managing line of sight vector request packet input and sending in the HostEmulator GUI.
  * Inherits from CBasePacketPanel for base packet panel functionality and integrates with wxWidgets for GUI management.
- * Supports radio button events for source, destination, and response coordinate system selection.
+ * Provides source and response coordinate controls; current sending code builds basic requests only.
  *
  * @see CLineOfSightVectorRequestPanel
  * @see CBasePacketPanel
@@ -19,7 +19,8 @@
 /**
  * @brief Line of sight vector request panel for managing vector request packet input in the HostEmulator GUI.
  *
- * Provides user interface for entering and sending line of sight vector request packets, including radio button selection for source, destination, and response coordinate systems.
+ * Edits geodetic or entity-relative basic vector requests. The Extended Response and Response Coordinate System
+ * controls are not consumed by OnSend(); they do not select an extended request in this implementation.
  */
 class CLineOfSightVectorRequestPanel : public CBasePacketPanel
 {
@@ -32,23 +33,25 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the destination point coordinate system radio button event.
-   * @param event The command event.
+   * @brief Attempts to relabel destination fields using a destination coordinate radio selection.
+   * @param event Unused command event.
+   * This legacy helper is not bound by the panel, whose constructor creates no destination controls.
    */
   void OnDestinationPointCoordinateSystemRadio(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending line of sight vector request packets.
-   * @param event The command event.
+   * @brief Submits a basic geodetic or entity-relative vector request from the current controls.
+   * @param event Unused command event; requires an active session for recognized source coordinates.
+   * Ignores extended-response and response-coordinate controls; unrecognized source coordinates send nothing.
    */
   void OnSend(wxCommandEvent& event);
   /**
-   * @brief Handles the source point coordinate system radio button event.
-   * @param event The command event.
+   * @brief Relabels source fields as geodetic coordinates or entity offsets without converting values.
+   * @param event Unused command event; the current source radio selection controls the labels.
    */
   void OnSourcePointCoordinateSystemRadio(wxCommandEvent& event);
   /**
-   * @brief Handles the response coordinate system radio button event.
-   * @param event The command event.
+   * @brief No-op response-coordinate callback; the panel's event table currently routes that event to the source callback.
+   * @param event Unused command event.
    */
   void OnResponseCoordinateSystemRadio(wxCommandEvent& event);
 

@@ -61,8 +61,9 @@ namespace sbio
        * @brief Reads the next frame worth of packet buffers.
        * @return List of newly allocated buffers containing the buffer data from `FRAME_BUFFER` records in the next frame.
        *
-       * The read cursor advances through the file. Encountering malformed, truncated, or unknown frame data causes the reader
-       * to advance to end-of-file and return the buffers collected so far for that call.
+       * Each frame must contain a BEGIN_FRAME, zero or more FRAME_BUFFER records, and an END_FRAME.
+       * Malformed, truncated, or unknown data (including invalid record ordering) advances the cursor to end-of-file
+       * and discards all buffers collected for that incomplete frame.
        *
        * @ownership Ownership of each returned buffer is transferred to the caller.
        * @sideeffects Advances the internal read cursor and may print `END_FRAME` progress information to `std::cout` as implemented.

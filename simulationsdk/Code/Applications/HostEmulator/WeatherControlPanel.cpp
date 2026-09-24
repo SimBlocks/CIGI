@@ -50,7 +50,7 @@ CWeatherControlPanel::CWeatherControlPanel(wxWindow* pParentWindow) : CBasePacke
   }
   CreateChoiceControl(vbox, "Layer ID", layerOptions);
 
-  CreateIntControl(vbox, "Humidity ID");//create slider
+  CreateIntControl(vbox, "Humidity ID");// create slider
   CreateBoolControl(vbox, "Weather Enable");
   CreateBoolControl(vbox, "Bottom Scud Enable");
   CreateBoolControl(vbox, "Random Winds Enable");

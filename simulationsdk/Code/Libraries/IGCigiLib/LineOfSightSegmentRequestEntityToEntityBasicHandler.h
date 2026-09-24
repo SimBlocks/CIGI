@@ -3,9 +3,9 @@
  * @file LineOfSightSegmentRequestEntityToEntityHandler.h
  * @brief Declares the CLineOfSightSegmentRequestEntityToEntityHandler class for SimBlocks CIGI IG line of sight segment request handling between entities.
  *
- * Provides the CLineOfSightSegmentRequestEntityToEntityHandler class for managing and processing line of sight segment requests between entities in the SimBlocks CIGI IG library.
- * Inherits from CLineOfSightSegmentRequestEntityHandler and integrates with SimBlocks CIGI, math, and entity types for simulation and line of sight calculations.
- * Supports entity-to-entity request management and end point resolution for line of sight segment requests.
+ * Provides the CLineOfSightSegmentRequestEntityToEntityHandler class for managing and processing line of sight segment requests between entities in the SimBlocks IGCigiLib
+ * library. Inherits from CLineOfSightSegmentRequestEntityHandler and integrates with SimBlocks CIGI, math, and entity types for simulation and line of sight calculations. Supports
+ * entity-to-entity request management and end point resolution for line of sight segment requests.
  *
  * @see CLineOfSightSegmentRequestEntityToEntityHandler
  * @see CLineOfSightSegmentRequestEntityHandler
@@ -33,8 +33,15 @@ public:
    */
   CLineOfSightSegmentRequestEntityToEntityBasicHandler(const sbio::cigi::SLineOfSightSegmentRequestEntityToEntityBasic& request);
 
+  /** @brief Resolves both entity-relative endpoints and submits a basic segment query.
+   * @return `true` after dispatch; `false` if the messenger or either endpoint's entity is unavailable.
+   */
   virtual bool Handle() override;
 
+  /** @brief Resolves the source entity offset into world coordinates.
+   * @param point Receives the resolved point on success; unchanged if the manager/entity is absent.
+   * @return `true` when resolved; otherwise `false`.
+   */
   bool ResolveStartPoint(GeocentricCoordinates& point);
 
   /**
@@ -46,7 +53,13 @@ public:
 
 protected:
   // virtual const sbio::cigi::SLineOfSightSegmentRequestEntity& GetEntityRequest() const override;
+  /** @brief Gets common request metadata.
+   * @return Const reference to this handler's stored request.
+   */
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const override;
+  /** @brief Gets mutable common request metadata.
+   * @return Reference to this handler's stored request.
+   */
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() override;
 
 private:

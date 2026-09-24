@@ -3,7 +3,7 @@
  * @file ArticulatedPartHandler.h
  * @brief Declares the CCigiArticulatedPartHandler class for handling CIGI articulated part messages.
  *
- * Provides the CCigiArticulatedPartHandler class for processing articulated part and short articulated part messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiArticulatedPartHandler class for processing articulated part and short articulated part messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, entity, math, and common types for simulation and articulated part management.
  *
  * @see sbio::cigi::ig::CCigiArticulatedPartHandler

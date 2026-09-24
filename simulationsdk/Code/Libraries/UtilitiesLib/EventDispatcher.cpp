@@ -50,7 +50,7 @@ void CEventDispatcher::Notify(Event* pEvent, const std::string& sEvent, const Ev
     return;
   }
 
-  EventHandler* pHandler = it->second.pHandler.get();
+  const std::shared_ptr<EventHandler> pHandler = it->second.pHandler;
   if (pHandler == nullptr)
   {
     return;

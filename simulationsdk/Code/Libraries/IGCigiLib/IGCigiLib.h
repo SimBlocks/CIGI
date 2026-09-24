@@ -1,7 +1,7 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file IGCigiLib.h
- * @brief Declares core types, parameters, and initialization functions for SimBlocks CIGI IG library integration.
+ * @brief Declares core types, parameters, and initialization functions for SimBlocks IGCigiLib library integration.
  *
  * Provides the SCigiLibParams and SCigiLibGlobals structs for configuring and sharing resources between SimBlocks IG, entity, view, and symbol libraries.
  * Declares functions for initializing, setting, and uninitializing the CIGI IG library.

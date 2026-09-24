@@ -13,17 +13,17 @@
 #include <wx/wx.h>
 
 /**
- * @brief Panel for selecting packets in the HostEmulator GUI.
+ * @brief Placeholder panel containing explanatory text and an unbound button.
  *
- * Manages user interface controls for packet selection.
+ * Does not populate a packet list or implement packet selection; CPacketsPage provides the active editor selector.
  */
 class PacketSelectionPanel : public wxPanel
 {
 public:
   /**
    * @brief Constructs the packet selection panel.
-   * @param title Title for the panel.
-   * @param parent Parent panel pointer.
+   * @param title wxWidgets window name, not a visible panel caption.
+   * @param parent Parent panel owning this window through the wxWidgets hierarchy.
    */
   PacketSelectionPanel(const wxString& title, wxPanel* parent);
 };

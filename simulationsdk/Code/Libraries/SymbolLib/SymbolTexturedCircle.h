@@ -26,6 +26,7 @@ namespace sbio
      *
      * `CSymbolTexturedCircle` stores the current `SSymbolTexturedCircle` definition and keeps the embedded
      * `symbolID` synchronized with the identifier supplied by the caller when constructed or updated.
+     * It stores circle elements and texture attributes; it does not load textures, tessellate circles, or render them.
      *
      * @invariant `m_SymbolTexturedCircle.symbolID` matches the symbol ID last supplied to the constructor or `Set()`.
      */
@@ -35,6 +36,7 @@ namespace sbio
       /**
        * @brief Constructs textured circle geometry for a symbol.
        * @param symbolID Symbol ID to store in the embedded `SSymbolTexturedCircle` properties.
+       * Construction selects `ESymbolType::TEXTURED_CIRCLE` without registering a symbol or surface.
        */
       CSymbolTexturedCircle(sbio::symbol::SymbolID symbolID);
 
@@ -44,14 +46,15 @@ namespace sbio
        *
        * Copies properties only when `pSymbolGeometry` is a `CSymbolTexturedCircle`. The stored symbol ID is preserved.
        *
-       * @ownership `pSymbolGeometry` remains owned by the caller.
+       * @ownership The source is borrowed; circle elements are copied into destination-owned storage.
        * @failurecases If `pSymbolGeometry` is `nullptr` or does not reference `CSymbolTexturedCircle`, the function has no effect.
        */
       virtual void CopyFrom(CSymbolGeometry* pSymbolGeometry) override;
 
       /**
        * @brief Returns the stored textured circle properties.
-       * @return Const reference to the internal `SSymbolTexturedCircle` properties.
+       * @return Borrowed reference to the live `SSymbolTexturedCircle` properties, valid for this geometry's lifetime.
+       * Later updates change the referenced value and may invalidate references or iterators into its circle vector.
        *
        * @ownership The returned reference remains owned by this object.
        */
@@ -63,6 +66,7 @@ namespace sbio
        * @param symbolID Symbol ID to write into the stored properties after copying.
        *
        * The `symbolID` embedded in `properties` is ignored and overwritten with `symbolID`.
+       * Circle elements are copied. Circle dimensions, texture availability, and sampling attributes are not validated.
        */
       void Set(const sbio::symbol::SSymbolTexturedCircle& properties, sbio::symbol::SymbolID symbolID);
 

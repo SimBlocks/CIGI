@@ -9,6 +9,7 @@
 #include "ImageGenerator.h"
 #include "UtilitiesLib/Logger.h"
 #include "CigiLib/CigiTypesHostToIG.h"
+#include <memory>
 #include <sstream>
 
 using namespace std;
@@ -167,6 +168,41 @@ void CCigiViewHandler::Handle(const SCigiViewDefinition& viewDefinition)
     g_CigiLibGlobals.pLogger->LogError(ss);
 
     return;
+  }
+
+  if (pView->GetViewGroupID() != viewDefinition.viewGroupID)
+  {
+    CCigiViewGroup* pNewGroup = nullptr;
+    if (viewDefinition.viewGroupID != sbio::UnknownViewGroupID)
+    {
+      auto* pGroup = g_CigiLibGlobals.pViewManager->GetViewGroup(viewDefinition.viewGroupID);
+      if (pGroup == nullptr)
+      {
+        auto newGroup = std::make_unique<CCigiViewGroup>(viewDefinition.viewGroupID);
+        pNewGroup = newGroup.get();
+        g_CigiLibGlobals.pViewManager->AddViewGroup(std::move(newGroup));
+      }
+      else
+      {
+        pNewGroup = dynamic_cast<CCigiViewGroup*>(pGroup);
+        if (pNewGroup == nullptr)
+        {
+          g_CigiLibGlobals.pLogger->LogWarning("Cannot assign a CIGI view to a non-CIGI view group.");
+          return;
+        }
+      }
+    }
+
+    auto* pOldGroup = g_CigiLibGlobals.pViewManager->GetViewGroup(pView->GetViewGroupID());
+    if (pOldGroup != nullptr)
+    {
+      pOldGroup->RemoveViewID(viewDefinition.viewID);
+    }
+    if (pNewGroup != nullptr)
+    {
+      pNewGroup->AddViewID(viewDefinition.viewID);
+    }
+    pView->SetViewGroupID(viewDefinition.viewGroupID);
   }
 
   if (viewDefinition.bNearEnabled)

@@ -34,7 +34,7 @@ namespace sbio
        * @brief Converts a host session database state to a user-facing string.
        *
        * @param eHostSessionDatabaseState Database state to format.
-       * @return Text used by the host-side tools and logs for the supplied state.
+       * @return Enumeration name for a recognized state, or `"UNKNOWN"` for other values.
        */
       std::string ConvertToString(sbio::cigi::host::EHostSessionDatabaseState eHostSessionDatabaseState);
 
@@ -42,7 +42,7 @@ namespace sbio
        * @brief Maps the shared active-state enum to the CIGI 4.0 entity-state enum.
        *
        * @param state Shared entity active state.
-       * @return Matching `CIGI::V40::EntityCtrl::EntityState` value.
+       * @return Matching active, destroyed, or inactive-standby state; destroyed for unrecognized values.
        */
       CIGI::V40::EntityCtrl::EntityState ConvertToEntityState(sbio::cigi::EActiveState state);
 
@@ -50,7 +50,7 @@ namespace sbio
        * @brief Converts the library's IG mode enum to the CIGI 4.0 `IGCtrl` representation.
        *
        * @param eIGMode Host-side IG mode value.
-       * @return Matching `CIGI::V40::IGCtrl::IGMode` value.
+       * @return Matching debug, operate, or reset mode; reset for unknown or unrecognized values.
        */
       CIGI::V40::IGCtrl::IGMode ToIGMode(sbio::cigi::EIGMode eIGMode);
 
@@ -63,6 +63,8 @@ namespace sbio
        * Side effects:
        * - Stores the supplied globals in HostCigiLib module state.
        * - Makes the host pointer available to code that consults the module globals.
+       * - Registers or replaces the `HostCigiEvent` handler when an event dispatcher is supplied.
+       * - Does not initialize the host or create any sessions.
        *
        * Ownership:
        * - `pHost` is non-owning and must outlive any HostCigiLib code that reads it.

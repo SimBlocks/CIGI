@@ -3,7 +3,7 @@
  * @file HATHOTRequestPanel.h
  * @brief Declares the CHATHOTRequestPanel class for HAT/HOT request control in the HostEmulator application.
  *
- * Provides the CHATHOTRequestPanel class for managing Height Above Terrain/Height On Terrain (HAT/HOT) request packet input and sending in the HostEmulator GUI.
+ * Provides the CHATHOTRequestPanel class for managing Height Above Terrain/Height Of Terrain (HAT/HOT) request packet input and sending in the HostEmulator GUI.
  * Inherits from CBasePacketPanel for base packet panel functionality and integrates with wxWidgets for GUI management.
  * Supports radio button events for ID and coordinate system selection.
  *
@@ -32,19 +32,19 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the ID radio button event.
-   * @param event The command event.
+   * @brief Relabels the request ID for HAT, HOT, or Extended without changing its stored value.
+   * @param event Radio event supplying the request-type string; other strings leave the label unchanged.
    */
   void OnIDRadio(wxCommandEvent& event);
   /**
-   * @brief Handles the coordinate system radio button event.
-   * @param event The command event.
+   * @brief Relabels the position fields as geodetic coordinates or entity offsets, without converting their values.
+   * @param event Radio event; "Geodetic" selects latitude/longitude/altitude labels, all other strings select offsets.
    */
   void OnCoordinateSystemRadio(wxCommandEvent& event);
 
   /**
-   * @brief Handles the send button event for sending HAT/HOT request packets.
-   * @param event The command event.
+   * @brief Builds a global or entity-relative HAT/HOT request from the controls and submits it to the active session.
+   * @param event Unused command event. Does nothing when no session exists; submission does not confirm a response.
    */
   void OnSend(wxCommandEvent& event);
 

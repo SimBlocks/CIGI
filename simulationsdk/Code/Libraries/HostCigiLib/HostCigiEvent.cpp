@@ -4,6 +4,7 @@
 #include "UtilitiesLib/EventDispatcher.h"
 #include "UtilitiesLib/EventHandler.h"
 #include "HostCigiLibTypes.h"
+#include <algorithm>
 
 using namespace sbio;
 using namespace sbio::utils;
@@ -18,10 +19,27 @@ void HostCigiEvent::Visit(const EventHandler& handler, const EventArgs& args)
 
 void HostCigiEventHandler::Visit(const Event& e, const std::string& sEvent, const EventArgs& args) const
 {
-  // Get the list of callbacks registered for this event type from the global event dispatcher.
-  const TListeners& callbacks = g_HostCigiLibGlobals.pEventDispatcher->GetCallbacks(HostCigiEvent::GetStaticName());
+  // Check if the global event dispatcher is available.
+  const auto pDispatcher = g_HostCigiLibGlobals.pEventDispatcher;
+  if (pDispatcher == nullptr)
+  {
+    return;
+  }
+
+  // Snapshot the list because callbacks may unregister themselves or other listeners.
+  const TListeners callbacks = pDispatcher->GetCallbacks(HostCigiEvent::GetStaticName());
   for (TListeners::const_iterator it = callbacks.begin(); it != callbacks.end(); ++it)
   {
+    // Check if the listener is still registered for the event after the snapshot was taken.
+    const TListeners& registeredCallbacks = pDispatcher->GetCallbacks(HostCigiEvent::GetStaticName());
+
+    // Skip this listener if it has been unregistered since the snapshot was taken.
+    if (std::find(registeredCallbacks.begin(), registeredCallbacks.end(), *it) == registeredCallbacks.end())
+    {
+      continue;
+    }
+
+    // Attempt to cast the listener to the specific host CIGI event listener interface.
     IHostCigiEventListener* pListener = dynamic_cast<IHostCigiEventListener*>(*it);
     if (pListener == nullptr)
     {
@@ -110,19 +128,22 @@ void HostCigiEventHandler::Visit(const Event& e, const std::string& sEvent, cons
     }
     case EHostCigiEvent::LINE_OF_SIGHT_EXTENDED_GEODETIC_COORDINATES_RESPONSE:
     {
-      const HostCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs& hostCigiLineOfSightExtendedGeodeticResponseEventArgs = static_cast<const HostCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs&>(args);
+      const HostCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs& hostCigiLineOfSightExtendedGeodeticResponseEventArgs =
+        static_cast<const HostCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs&>(args);
       pListener->OnHostCigiLineOfSightExtendedGeodeticCoordinatesResponseEvent(hostCigiLineOfSightExtendedGeodeticResponseEventArgs);
       break;
     }
     case EHostCigiEvent::LINE_OF_SIGHT_EXTENDED_ENTITY_GEODETIC_COORDINATES_RESPONSE:
     {
-      const HostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& hostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs = static_cast<const HostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs&>(args);
+      const HostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& hostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs =
+        static_cast<const HostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs&>(args);
       pListener->OnHostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEvent(hostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs);
       break;
     }
     case EHostCigiEvent::LINE_OF_SIGHT_EXTENDED_ENTITY_COORDINATES_RESPONSE:
     {
-      const HostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs& hostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs = static_cast<const HostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs&>(args);
+      const HostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs& hostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs =
+        static_cast<const HostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs&>(args);
       pListener->OnHostCigiLineOfSightExtendedEntityCoordinatesResponseEvent(hostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs);
       break;
     }
@@ -164,37 +185,43 @@ void HostCigiEventHandler::Visit(const Event& e, const std::string& sEvent, cons
     }
     case EHostCigiEvent::MARITIME_SURFACE_CONDITIONS_RESPONSE:
     {
-      const HostCigiMaritimeSurfaceConditionsResponseEventArgs& hostCigiMaritimeSurfaceConditionsResponseEventArgs = static_cast<const HostCigiMaritimeSurfaceConditionsResponseEventArgs&>(args);
+      const HostCigiMaritimeSurfaceConditionsResponseEventArgs& hostCigiMaritimeSurfaceConditionsResponseEventArgs =
+        static_cast<const HostCigiMaritimeSurfaceConditionsResponseEventArgs&>(args);
       pListener->OnHostCigiMaritimeSurfaceConditionsResponseEvent(hostCigiMaritimeSurfaceConditionsResponseEventArgs);
       break;
     }
     case EHostCigiEvent::TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE:
     {
-      const HostCigiTerrestrialSurfaceConditionsResponseEventArgs& hostCigiTerrestrialSurfaceConditionsResponseEventArgs = static_cast<const HostCigiTerrestrialSurfaceConditionsResponseEventArgs&>(args);
+      const HostCigiTerrestrialSurfaceConditionsResponseEventArgs& hostCigiTerrestrialSurfaceConditionsResponseEventArgs =
+        static_cast<const HostCigiTerrestrialSurfaceConditionsResponseEventArgs&>(args);
       pListener->OnHostCigiTerrestrialSurfaceConditionsResponseEvent(hostCigiTerrestrialSurfaceConditionsResponseEventArgs);
       break;
     }
     case EHostCigiEvent::COLLISION_DETECTION_SEGMENT_NOTIFICATION:
     {
-      const HostCigiCollisionDetectionSegmentNotificationEventArgs& hostCigiCollisionDetectionSegmentNotificationEventArgs = static_cast<const HostCigiCollisionDetectionSegmentNotificationEventArgs&>(args);
+      const HostCigiCollisionDetectionSegmentNotificationEventArgs& hostCigiCollisionDetectionSegmentNotificationEventArgs =
+        static_cast<const HostCigiCollisionDetectionSegmentNotificationEventArgs&>(args);
       pListener->OnHostCigiCollisionDetectionSegmentNotificationEvent(hostCigiCollisionDetectionSegmentNotificationEventArgs);
       break;
     }
     case EHostCigiEvent::COLLISION_DETECTION_SEGMENT_ENTITY_NOTIFICATION:
     {
-      const HostCigiCollisionDetectionSegmentEntityNotificationEventArgs& hostCigiCollisionDetectionSegmentEntityNotificationEventArgs = static_cast<const HostCigiCollisionDetectionSegmentEntityNotificationEventArgs&>(args);
+      const HostCigiCollisionDetectionSegmentEntityNotificationEventArgs& hostCigiCollisionDetectionSegmentEntityNotificationEventArgs =
+        static_cast<const HostCigiCollisionDetectionSegmentEntityNotificationEventArgs&>(args);
       pListener->OnHostCigiCollisionDetectionSegmentEntityNotificationEvent(hostCigiCollisionDetectionSegmentEntityNotificationEventArgs);
       break;
     }
     case EHostCigiEvent::COLLISION_DETECTION_VOLUME_NOTIFICATION:
     {
-      const HostCigiCollisionDetectionVolumeNotificationEventArgs& hostCigiCollisionDetectionVolumeNotificationEventArgs = static_cast<const HostCigiCollisionDetectionVolumeNotificationEventArgs&>(args);
+      const HostCigiCollisionDetectionVolumeNotificationEventArgs& hostCigiCollisionDetectionVolumeNotificationEventArgs =
+        static_cast<const HostCigiCollisionDetectionVolumeNotificationEventArgs&>(args);
       pListener->OnHostCigiCollisionDetectionVolumeNotificationEvent(hostCigiCollisionDetectionVolumeNotificationEventArgs);
       break;
     }
     case EHostCigiEvent::COLLISION_DETECTION_VOLUME_ENTITY_NOTIFICATION:
     {
-      const HostCigiCollisionDetectionVolumeEntityNotificationEventArgs& hostCigiCollisionDetectionVolumeEntityNotificationEventArgs = static_cast<const HostCigiCollisionDetectionVolumeEntityNotificationEventArgs&>(args);
+      const HostCigiCollisionDetectionVolumeEntityNotificationEventArgs& hostCigiCollisionDetectionVolumeEntityNotificationEventArgs =
+        static_cast<const HostCigiCollisionDetectionVolumeEntityNotificationEventArgs&>(args);
       pListener->OnHostCigiCollisionDetectionVolumeEntityNotificationEvent(hostCigiCollisionDetectionVolumeEntityNotificationEventArgs);
       break;
     }

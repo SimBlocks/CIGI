@@ -3,9 +3,9 @@
  * @file ImageGenerator.h
  * @brief Declares the CCigiImageGenerator class for SimBlocks CIGI IG image generator management and event handling.
  *
- * Provides the CCigiImageGenerator class for managing image generator state, database loading, packet processing, event handling, and simulation control in the SimBlocks CIGI IG library.
- * Inherits from IIGCIGIEventListener and integrates with SimBlocks CIGI, engine, math, and utility types for simulation and event management.
- * Supports database operations, frame and mode management, error reporting, and event listener callbacks.
+ * Provides the CCigiImageGenerator class for managing image generator state, database loading, packet processing, event handling, and simulation control in the SimBlocks CIGI IG
+ * library. Inherits from IIGCIGIEventListener and integrates with SimBlocks CIGI, engine, math, and utility types for simulation and event management. Supports database
+ * operations, frame and mode management, error reporting, and event listener callbacks.
  *
  * @see sbio::cigi::ig::CCigiImageGenerator
  * @see sbio::cigi::ig::IIGCIGIEventListener
@@ -240,17 +240,30 @@ namespace sbio
          * @return Non-owning pointer to the owned packet-sender fan-out object, or `nullptr` before initialization.
          */
         sbio::cigi::ig::CCigiPacketSenders* GetPacketSenders() const;
+        /**
+         * @brief Gets the library's current CIGI message logger.
+         * @return Non-owning pointer to the global logger, or nullptr when no logger is installed.
+         */
         sbio::cigi::ig::CCigiMessageLogger* GetCigiMessageLogger() const;
         /**
          * @brief Gets the exported functions event dispatcher.
-         * @return Non-owning pointer to the owned exported-response dispatcher.
+         * @return Non-owning pointer, valid only until reset, stop, or destruction. Do not retain for asynchronous work.
          */
         sbio::cigi::ig::CIGResponseEventDispatcher* GetExportedFunctionsEventDispatcher() const;
 
+        /**
+         * @brief Captures the current response dispatcher on the IG thread for asynchronous work.
+         * @return Shared handle preserving dispatcher lifetime; a retired dispatcher discards subsequent responses.
+         */
+        std::shared_ptr<sbio::cigi::ig::CIGResponseEventDispatcher> GetExportedFunctionsEventDispatcherHandle() const;
+
+        /** @brief Retires old terrain callbacks and starts a fresh dispatcher. Call only on the IG thread. */
+        void ResetTerrainResponseDispatcher();
+
       protected:
         /**
-           * @brief Loads the CIGI to SISO entity enumeration conversion file.
-           */
+         * @brief Loads the CIGI to SISO entity enumeration conversion file.
+         */
         void LoadCigiToSisoEntityEnumerationConversionFile();
 
       protected:
@@ -269,7 +282,7 @@ namespace sbio
         std::unique_ptr<sbio::cigi::ig::CCigiPacketSenders> m_pPacketSenders;///< Owned fan-out sender for IG-to-host responses.
         std::unique_ptr<sbio::engine::CDatabaseLoader> m_pDatabaseLoader;///< Owned database loader for scene loading and unloading.
         std::unique_ptr<sbio::utils::CStopWatch> m_PlayTimer;///< Owned session timer used for timestamps and elapsed-time queries.
-        std::unique_ptr<sbio::cigi::ig::CIGResponseEventDispatcher> m_pExportedFunctionsEventDispatcher;///< Owned dispatcher for exported IG response events.
+        std::shared_ptr<sbio::cigi::ig::CIGResponseEventDispatcher> m_pExportedFunctionsEventDispatcher;///< Owned dispatcher for asynchronous responses.
       };
     }
   }

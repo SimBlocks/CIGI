@@ -15,6 +15,7 @@
 #include "FlatEarthProjection.h"
 #include <GeographicLib/AzimuthalEquidistant.hpp>
 #include <GeographicLib/Geodesic.hpp>
+#include <cmath>
 
 using namespace sbio::math;
 using namespace GeographicLib;
@@ -84,6 +85,12 @@ SGeodeticCoordinates CFlatEarthProjection::GetGeodeticCoordinate(const Reference
  */
 void CFlatEarthProjection::Init(const SGeodeticCoordinates& geodeticCoords)
 {
+  if (!geodeticCoords.latitude.CheckValid() || !geodeticCoords.longitude.CheckValid() || !std::isfinite(geodeticCoords.altitude.Value()) ||
+      geodeticCoords.altitude == UnknownHeightRelativeToWGS84Ellipsoid)
+  {
+    return;
+  }
+
   m_ReferenceLatitude = geodeticCoords.latitude;
   m_ReferenceLongitude = geodeticCoords.longitude;
   m_ReferenceAltitude = geodeticCoords.altitude;

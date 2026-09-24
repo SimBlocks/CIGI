@@ -3,8 +3,8 @@
  * @file MaritimeSurfaceConditionPacketHandler.h
  * @brief Declares the CCigiMaritimeSurfaceConditionPacketHandler class for handling CIGI maritime surface condition packets.
  *
- * Provides the CCigiMaritimeSurfaceConditionPacketHandler class for processing maritime surface condition packets and updating environmental region handler state in the SimBlocks CIGI IG library.
- * Integrates with SimBlocks CIGI environmental region handler for simulation and maritime surface management.
+ * Provides the CCigiMaritimeSurfaceConditionPacketHandler class for processing maritime surface condition packets and updating environmental region handler state in the SimBlocks
+ * CIGI IG library. Integrates with SimBlocks CIGI environmental region handler for simulation and maritime surface management.
  *
  * @see sbio::cigi::ig::CCigiMaritimeSurfaceConditionPacketHandler
  * @see sbio::cigi::ig::CCigiEnvironmentalRegionHandler
@@ -37,12 +37,21 @@ namespace sbio
         CCigiMaritimeSurfaceConditionPacketHandler(CCigiEnvironmentalRegionHandler* pEnvironmentalRegionHandler);
 
         /**
-         * @brief Applies one maritime-surface condition packet.
+         * @brief Forwards an entity-scoped maritime-surface condition.
          * @param maritimeSurfaceCondition Parsed maritime-surface condition state.
-         * @param entityRegionID Scope-specific entity or region identifier.
+         * @param entityID Entity receiving the condition.
          */
         void HandleEntityMartiimeSurfaceCondition(const SCigiMaritimeSurfaceCondition& maritimeSurfaceCondition, sbio::EntityID entityID);
+        /**
+         * @brief Forwards a regional maritime-surface condition.
+         * @param maritimeSurfaceCondition Parsed maritime-surface condition state.
+         * @param regionID Region receiving the condition.
+         */
         void HandleRegionMaritimeSurfaceCondition(const SCigiMaritimeSurfaceCondition& maritimeSurfaceCondition, sbio::RegionID regionID);
+        /**
+         * @brief Forwards a global maritime-surface condition.
+         * @param maritimeSurfaceCondition Parsed maritime-surface condition state.
+         */
         void HandleGlobalMaritimeSurfaceCondition(const SCigiMaritimeSurfaceCondition& maritimeSurfaceCondition);
 
       private:

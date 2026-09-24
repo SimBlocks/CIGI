@@ -3,7 +3,7 @@
  * @file CigiSymbolText.h
  * @brief Declares the CIGCigiSymbolText class for SimBlocks CIGI IG symbol text management and geometry.
  *
- * Provides the CIGCigiSymbolText class for representing and managing text symbols with CIGI-specific logic in the SimBlocks CIGI IG library.
+ * Provides the CIGCigiSymbolText class for representing and managing text symbols with CIGI-specific logic in the SimBlocks IGCigiLib library.
  * Inherits from sbio::symbol::CSymbolText and integrates with SimBlocks symbol geometry types for symbol rendering and manipulation.
  * Supports symbol geometry copying, symbol creation, update, and ID management for simulation symbols.
  *

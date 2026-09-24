@@ -40,9 +40,11 @@ void CIGCigiSymbolCircle::SendUpdate()
 
     g_CigiLibGlobals.pEventMessenger->SendUpdateSymbolCircleFilledMessage(data);
 
+    uint32_t elementIndex = 0;
     for (auto c : m_SymbolCircle.circles)
     {
       SUpdateSymbolCircleFilledElementMessage circleElementData;
+      circleElementData.ElementIndex = elementIndex++;
       circleElementData.CenterUV = c.centerUV;
       circleElementData.EndAngle = static_cast<float>(c.endAngle.Value());
       circleElementData.Radius = c.fRadius;
@@ -63,9 +65,11 @@ void CIGCigiSymbolCircle::SendUpdate()
 
     g_CigiLibGlobals.pEventMessenger->SendUpdateSymbolCircleMessage(data);
 
+    uint32_t elementIndex = 0;
     for (auto c : m_SymbolCircle.circles)
     {
       SUpdateSymbolCircleElementMessage circleElementData;
+      circleElementData.ElementIndex = elementIndex++;
       circleElementData.CenterUV = c.centerUV;
       circleElementData.EndAngle = static_cast<float>(c.endAngle.Value());
       circleElementData.Radius = c.fRadius;

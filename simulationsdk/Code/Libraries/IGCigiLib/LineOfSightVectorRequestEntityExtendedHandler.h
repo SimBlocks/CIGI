@@ -3,7 +3,7 @@
  * @file LineOfSightVectorRequestEntityHandler.h
  * @brief Declares the CLineOfSightVectorRequestEntityHandler class for SimBlocks CIGI IG line of sight vector request handling for entities.
  *
- * Provides the CLineOfSightVectorRequestEntityHandler class for managing and processing line of sight vector requests for entities in the SimBlocks CIGI IG library.
+ * Provides the CLineOfSightVectorRequestEntityHandler class for managing and processing line of sight vector requests for entities in the SimBlocks IGCigiLib library.
  * Inherits from CLineOfSightRequestHandler and integrates with SimBlocks CIGI, math, and entity types for simulation and line of sight calculations.
  * Supports entity-specific request management, start point resolution, rotation retrieval, and entity coordinate system response handling for line of sight vector requests.
  *
@@ -32,11 +32,14 @@ public:
    */
   CLineOfSightVectorRequestEntityExtendedHandler(const sbio::cigi::SLineOfSightVectorRequestEntityExtended& lineOfSightRequest);
 
+  /** @brief Builds an extended vector query using entity pose, azimuth/elevation, and range limits.
+   * @return `true` after dispatch; `false` when the messenger, entity manager, or source entity is unavailable.
+   */
   virtual bool Handle() override;
 
   /**
    * @brief Gets the rotation for the vector request.
-   * @return Quaternion representing the rotation.
+   * @return Source entity's world rotation, or identity if the entity manager or source entity is absent.
    */
   sbio::math::Quaternion4d GetRotation() const;
   /**
@@ -47,7 +50,13 @@ public:
   bool ResolveStartPoint(sbio::math::GeocentricCoordinates& point);
 
 protected:
+  /** @brief Gets common request metadata.
+   * @return Const reference to this handler's stored request.
+   */
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const override;
+  /** @brief Gets mutable common request metadata.
+   * @return Reference to this handler's stored request.
+   */
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() override;
 
 private:

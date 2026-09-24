@@ -32,13 +32,15 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending entity position packets.
-   * @param event The command event.
+   * @brief Submits a child position for Attach, otherwise a top-level position, using the active session.
+   * @param event Unused command event; requires an active session.
+   * Invalid angles, and top-level latitude/longitude, raise errors and reset the affected controls before submission
+   * continues. The callback also removes the active wxLog target; it does not report network delivery.
    */
   void OnSend(wxCommandEvent& event);
   /**
-   * @brief Handles the attach state selection event for updating the UI.
-   * @param event The command event.
+   * @brief Relabels position fields as offsets for Attach or geodetic coordinates for Detach, without converting values.
+   * @param event Unused command event; reads the current Attach State choice.
    */
   void OnAttachStateSelection(wxCommandEvent& event);
 

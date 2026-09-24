@@ -3,7 +3,7 @@
  * @file WaveLayer.h
  * @brief Declares the CCigiWaveLayer class for SimBlocks CIGI IG wave condition management.
  *
- * Provides the CCigiWaveLayer class for managing wave conditions in the SimBlocks CIGI IG library, including active state, breaker type, and condition data.
+ * Provides the CCigiWaveLayer class for managing wave conditions in the SimBlocks IGCigiLib library, including active state, breaker type, and condition data.
  * Integrates with SimBlocks CIGI types for simulation and wave control.
  *
  * @see sbio::cigi::ig::CCigiWaveLayer

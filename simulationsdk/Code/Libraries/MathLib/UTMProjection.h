@@ -44,9 +44,9 @@ namespace sbio
       virtual ReferencePlaneCoordinates GetProjectedCoordinate(const SGeodeticCoordinates& geodeticCoordinates) const override;
 
       /**
-       * @brief Gets geodetic coordinate.
-       * @param referencePlaneCoordinates Coordinate value.
-       * @return Geodetic coordinate value.
+       * @brief Converts UTM reference-plane coordinates to geodetic coordinates.
+       * @param referencePlaneCoordinates Coordinates in the initialized UTM reference plane.
+       * @return Geodetic coordinates corresponding to the supplied reference-plane coordinates.
        */
       virtual SGeodeticCoordinates GetGeodeticCoordinate(const ReferencePlaneCoordinates& referencePlaneCoordinates) const override;
 
@@ -55,6 +55,8 @@ namespace sbio
        *
        * Sets the UTM zone and hemisphere based on the provided geodetic coordinates.
        * All projected coordinates will be relative to this UTM zone.
+       * Invalid or unknown origins are ignored without changing projection state.
+       * Existing projection state is preserved if initialization fails.
        *
        * @param geodeticCoords The reference geodetic coordinates (latitude, longitude, altitude).
        */

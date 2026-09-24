@@ -57,6 +57,7 @@ std::list<std::unique_ptr<sbio::utils::TBuffer<char>>> CPacketLoggerReader::Read
   const char* const pFileBegin = m_pFileContents->GetBuffer();
   const char* const pFileEnd = pFileBegin + m_pFileContents->GetSize();
   char* pFrameStart = m_pBuffer;
+  bool bFrameStarted = false;
   bool bFrameComplete = false;
 
   while (m_pBuffer < pFileEnd)
@@ -77,7 +78,7 @@ std::list<std::unique_ptr<sbio::utils::TBuffer<char>>> CPacketLoggerReader::Read
     if (frameHeader.ID == EFrameID::BEGIN_FRAME)
     {
       // A BEGIN_FRAME record should be followed by an SBeginFrame structure containing the frame number.
-      if (bytesRemaining < sizeof(SBeginFrame))
+      if (bFrameStarted || bytesRemaining < sizeof(SBeginFrame))
       {
         m_pBuffer = const_cast<char*>(pFileEnd);
         break;
@@ -87,12 +88,13 @@ std::list<std::unique_ptr<sbio::utils::TBuffer<char>>> CPacketLoggerReader::Read
       SBeginFrame frame;
       memcpy(&frame, m_pBuffer, sizeof(SBeginFrame));
       m_pBuffer += sizeof(SBeginFrame);
+      bFrameStarted = true;
       cout << frame.nFrame << endl;
     }
     else if (frameHeader.ID == EFrameID::FRAME_BUFFER)
     {
       // A FRAME_BUFFER record should be followed by an SFrameBuffer structure containing the buffer size, and then the buffer data itself.
-      if (bytesRemaining < sizeof(SFrameBuffer))
+      if (!bFrameStarted || bytesRemaining < sizeof(SFrameBuffer))
       {
         m_pBuffer = const_cast<char*>(pFileEnd);
         break;
@@ -116,7 +118,11 @@ std::list<std::unique_ptr<sbio::utils::TBuffer<char>>> CPacketLoggerReader::Read
       // Allocate a new buffer for the frame data, copy the data from the file buffer, and advance the read cursor.
       const int bufferSize = static_cast<int>(frameBufferSize);
       std::unique_ptr<TBuffer<char>> pBuffer = std::make_unique<TBuffer<char>>(bufferSize);
-      memcpy(pBuffer->GetBuffer(), m_pBuffer, static_cast<size_t>(bufferSize));
+
+      if (bufferSize > 0)
+      {
+        memcpy(pBuffer->GetBuffer(), m_pBuffer, static_cast<size_t>(bufferSize));
+      }
       m_pBuffer += bufferSize;
 
       buffers.push_back(std::move(pBuffer));
@@ -124,7 +130,7 @@ std::list<std::unique_ptr<sbio::utils::TBuffer<char>>> CPacketLoggerReader::Read
     else if (frameHeader.ID == EFrameID::END_FRAME)
     {
       // An END_FRAME record should be followed by an SEndFrame structure. This marks the end of the current frame.
-      if (bytesRemaining < sizeof(SEndFrame))
+      if (!bFrameStarted || bytesRemaining < sizeof(SEndFrame))
       {
         m_pBuffer = const_cast<char*>(pFileEnd);
         break;

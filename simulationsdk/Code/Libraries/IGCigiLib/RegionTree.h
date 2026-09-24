@@ -3,9 +3,9 @@
  * @file RegionTree.h
  * @brief Declares the CCigiRegionTree class and supporting types for SimBlocks CIGI IG region spatial queries.
  *
- * Provides the CCigiRegionTree class and supporting structs for managing and querying environmental regions using a BVH tree for efficient spatial queries in the SimBlocks CIGI IG library.
- * Integrates with SimBlocks CIGI, math, and Eigen BVH types for simulation and region management.
- * Supports region bounding, intersection tests, and efficient region lookup by spatial coordinates.
+ * Provides the CCigiRegionTree class and supporting structs for managing and querying environmental regions using a BVH tree for efficient spatial queries in the SimBlocks CIGI IG
+ * library. Integrates with SimBlocks CIGI, math, and Eigen BVH types for simulation and region management. Supports region bounding, intersection tests, and efficient region
+ * lookup by spatial coordinates.
  *
  * @see sbio::cigi::ig::CCigiRegionTree
  * @see sbio::cigi::ig::SRegionSphereBound
@@ -66,7 +66,9 @@ namespace sbio
         std::vector<CCigiEnvironmentalRegion*> hits;///< Non-owning region pointers collected during traversal
 
         /**
-         * @brief Calculates initial bounds intersection for BVH.
+         * @brief Tests whether a BVH volume contains the query point.
+         * @param b Axis-aligned volume to test in geocentric coordinates.
+         * @return True if the volume contains the query point; otherwise false.
          */
         bool intersectVolume(const Eigen::AlignedBox3d& b)
         {
@@ -75,7 +77,9 @@ namespace sbio
         }
 
         /**
-         * @brief Calculates final bound intersection and collects hits.
+         * @brief Appends the region to hits if its bounding sphere contains the query point.
+         * @param region Non-null sphere wrapper to test; neither wrapper nor region ownership is transferred.
+         * @return Always false so BVH traversal continues collecting candidates.
          */
         bool intersectObject(SRegionSphereBound* region)
         {
@@ -108,6 +112,11 @@ namespace sbio
          * @param region Pointer to the region.
          */
         void AddRegion(RegionID regionID, std::unique_ptr<CCigiEnvironmentalRegion> region);
+        /**
+         * @brief Refreshes the cached bounds and BVH after a region's geometry changes.
+         * @param regionID Identifier of the existing region.
+         */
+        void UpdateRegionBounds(RegionID regionID);
         /**
          * @brief Removes a region from the tree.
          * @param regionID Region identifier.

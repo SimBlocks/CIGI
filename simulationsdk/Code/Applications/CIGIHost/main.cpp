@@ -52,8 +52,10 @@ const long SLEEP_MS = 17;
 /**
  * @brief Main entry point for the CIGIHost application.
  *
- * Initializes global resources, loads host options, and manages the main event loop.
- * Handles user input for running scripts and resetting the host.
+ * Configures application services, loads "CIGI Host/CIGI Host.ini" from the application data directory, and
+ * initializes the host. Each iteration updates the host, then handles key '1' to execute the configured script
+ * or key '2' to send a reset through the script runtime.
+ *
  */
 int main()
 {
@@ -110,7 +112,7 @@ int main()
 
       double fDuration = stopWatch.GetElapsedMilliSeconds();
 
-      //maintain frame rate
+      // maintain frame rate
       if (fDuration < SLEEP_MS)
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_MS));

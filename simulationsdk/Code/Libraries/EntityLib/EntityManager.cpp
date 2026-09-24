@@ -82,11 +82,11 @@ bool CEntityManager::HasEntityType(const SEntityType& entityType) const
     return false;
   }
 
-  sbio::entity::SEntityKindDomainCountry ekdc;
-  ekdc.entityKindID = entityType.entityKindID;
-  ekdc.entityDomainID = entityType.entityDomainID;
-  ekdc.entityCountryID = entityType.entityCountryID;
-  string description = m_pEntityEnumerations->GetDescription(ekdc, entityType.entityCategoryID, entityType.entitySubCategoryID, entityType.entitySpecificID);
+  sbio::entity::SEntityKindDomainCountry entityKindComainCountry;
+  entityKindComainCountry.entityKindID = entityType.entityKindID;
+  entityKindComainCountry.entityDomainID = entityType.entityDomainID;
+  entityKindComainCountry.entityCountryID = entityType.entityCountryID;
+  string description = m_pEntityEnumerations->GetDescription(entityKindComainCountry, entityType.entityCategoryID, entityType.entitySubCategoryID, entityType.entitySpecificID);
 
   if (description == "")
   {
@@ -176,36 +176,42 @@ std::string CEntityManager::Lookup(const SEntityType& entityType)
     return "";
   }
 
-  sbio::entity::SEntityKindDomainCountry EKDC;
-  EKDC.entityKindID = entityType.entityKindID;
-  EKDC.entityDomainID = entityType.entityDomainID;
-  EKDC.entityCountryID = entityType.entityCountryID;
-  auto description = m_pEntityEnumerations->GetDescription(EKDC, entityType.entityCategoryID, entityType.entitySubCategoryID, entityType.entitySpecificID);
+  sbio::entity::SEntityKindDomainCountry entityKindComainCountry;
+  entityKindComainCountry.entityKindID = entityType.entityKindID;
+  entityKindComainCountry.entityDomainID = entityType.entityDomainID;
+  entityKindComainCountry.entityCountryID = entityType.entityCountryID;
+  auto description = m_pEntityEnumerations->GetDescription(entityKindComainCountry, entityType.entityCategoryID, entityType.entitySubCategoryID, entityType.entitySpecificID);
   return description;
 }
 
 void CEntityManager::RemoveEntity(EntityID entityID)
 {
+  // Find the entity in the map
   auto itEntity = m_Entities.find(entityID);
-  if (itEntity == m_Entities.end())
-  {
-    return;
-  }
 
-  for (auto& it : m_Entities)
+  // If the entity exists, proceed to remove it
+  if (itEntity != m_Entities.end())
   {
-    if (it.first != entityID && it.second != nullptr && it.second->GetParentID() == entityID)
+    // Unattach any child entities that have this entity as their parent
+    for (auto& it : m_Entities)
     {
-      it.second->Unattach();
+      if (it.first != entityID && it.second != nullptr && it.second->GetParentID() == entityID)
+      {
+        it.second->Unattach();
+      }
     }
+
+    // Remove the entity from the manager and call its Remove method if it exists
+    if (itEntity->second != nullptr)
+    {
+      itEntity->second->Remove();
+    }
+
+    // Finally, erase the entity from the map
+    m_Entities.erase(itEntity);
   }
 
-  if (itEntity->second != nullptr)
-  {
-    itEntity->second->Remove();
-  }
-
-  m_Entities.erase(itEntity);
+  // Remove all articulated parts associated with the entity
   for (auto it = m_ArticulatedParts.begin(); it != m_ArticulatedParts.end();)
   {
     if (entityID == it->first.entityID)
@@ -250,7 +256,18 @@ void CEntityManager::UpdateEntities(bool bInterpolationEnabled, double deltaTime
   for (auto& it : m_Entities)
   {
     auto& pEntity = it.second;
-    pEntity->Update(deltaTime);
+    const bool bEntityInterpolationEnabled = pEntity->GetInterpolationEnabled();
+    pEntity->SetInterpolationEnabled(bInterpolationEnabled && bEntityInterpolationEnabled);
+    try
+    {
+      pEntity->Update(deltaTime);
+    }
+    catch (...)
+    {
+      pEntity->SetInterpolationEnabled(bEntityInterpolationEnabled);
+      throw;
+    }
+    pEntity->SetInterpolationEnabled(bEntityInterpolationEnabled);
   }
 }
 

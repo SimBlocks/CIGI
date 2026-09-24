@@ -1,7 +1,7 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file IGCIGILibTypes.h
- * @brief Declares types and options for SimBlocks CIGI IG library configuration and setup.
+ * @brief Declares types and options for SimBlocks IGCigiLib library configuration and setup.
  *
  * Provides enums and structs for configuring packet logging, host settings, and image generator setup options for SimBlocks CIGI IG integration.
  * Integrates with SimBlocks CIGI, IG, and image generator libraries for simulation configuration and communication.
@@ -60,7 +60,7 @@ namespace sbio
         EPacketLoggerState ePacketLoggerState = EPacketLoggerState::NONE;///< Packet-log operating mode.
         bool bLogPacketText = false;///< Enables human-readable CIGI message logging (independent of binary packet logging).
         bool bDatabaseControlledByIG = false;///< When `true`, database selection is controlled internally by the IG.
-        sbio::cigi::CigiDatabaseNumber defaultIGControlledDatabaseID = sbio::cigi::UnknownCigiDatabaseNumber;///< Default database identifier used when the IG controls database selection.
+        sbio::cigi::CigiDatabaseNumber defaultIGControlledDatabaseID = sbio::cigi::UnknownCigiDatabaseNumber;///< Default database identifier
       };
     }
   }

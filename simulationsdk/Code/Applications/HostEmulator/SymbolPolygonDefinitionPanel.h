@@ -33,23 +33,24 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the add row button event for adding rows to the grid.
-   * @param event The command event.
+   * @brief Inserts one grid row at the tracked insertion index and increments that index.
+   * @param event Unused command event.
    */
   void OnAddRow(wxCommandEvent& event);
   /**
-   * @brief Handles the remove row button event for removing rows from the grid.
-   * @param event The command event.
+   * @brief Clears all cell contents and resets the insertion index to zero; does not delete grid rows.
+   * @param event Unused command event.
    */
   void OnRemoveRow(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending symbol polygon definition packets.
-   * @param event The command event.
+   * @brief Submits a polygon definition using each row whose U and V cells are both nonempty.
+   * @param event Unused command event; requires an active host session.
+   * Incomplete rows are skipped rather than ending the scan. Numeric cells use ToFloat(); no delivery result is reported.
    */
   void OnSend(wxCommandEvent& event);
 
 private:
-  int m_nNumRows = {10};///< Number of rows in the grid
+  int m_nNumRows = {10};///< Next insertion index, reset to zero by clearing cells without deleting rows.
   wxGrid* m_pGrid = nullptr;///< Grid control for symbol polygon data entry
 };
 #endif

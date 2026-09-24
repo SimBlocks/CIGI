@@ -31,8 +31,10 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending weather control packets.
-   * @param event The command event.
+   * @brief Submits weather for the selected global layer, regional layer, or entity scope.
+   * @param event Unused command event; values come from the controls.
+   * Reports checked invalid values and resets the affected controls before continuing. Removes the active wxLog target.
+   * @pre An active host session is available when submitting. No delivery or IG acceptance result is exposed.
    */
   void OnSend(wxCommandEvent& event);
 

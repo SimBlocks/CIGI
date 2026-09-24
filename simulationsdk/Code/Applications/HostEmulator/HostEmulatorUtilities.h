@@ -15,9 +15,9 @@
 #include <wx/wx.h>
 
 /**
- * @brief Converts a wxString to a float value.
- * @param s The wxString to convert.
- * @return The converted float value.
+ * @brief Converts wxString text through ToStdString(), atof(), and a float cast.
+ * @param s Numeric text to convert using the C library's current locale and prefix-parsing rules.
+ * @return Parsed value narrowed to float, or zero if no conversion is possible. No validation status is returned.
  */
 float ToFloat(wxString s);
 

@@ -24,6 +24,30 @@ CBufferWriter::~CBufferWriter()
 {
 }
 
+void CBufferWriter::Clear()
+{
+  CBuffer::Clear();
+  Reset();
+}
+
+char* CBufferWriter::StealPointer()
+{
+  char* buffer = CBuffer::StealPointer();
+  Reset();
+  return buffer;
+}
+
+void CBufferWriter::Set(int nSize, void* data)
+{
+  if (IsPointerInOwnedStorageRange(data))
+  {
+    return;
+  }
+
+  CBuffer::Set(nSize, data);
+  Reset();
+}
+
 // Gets the number of bytes written to the buffer.
 int64_t CBufferWriter::GetInUseSize() const
 {

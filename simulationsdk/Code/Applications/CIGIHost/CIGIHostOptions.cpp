@@ -62,7 +62,7 @@ void CCIGIHostOptions::LoadOptions(const std::filesystem::path& filePath)
   if (pConf->has("synchronizationMode"))
   {
     string sSynchronizationMode = pConf->getString("synchronizationMode");
-    //make synchronization mode lowercase
+    // make synchronization mode lowercase
     std::transform(sSynchronizationMode.begin(), sSynchronizationMode.end(), sSynchronizationMode.begin(), ::tolower);
 
     if (sSynchronizationMode == "synchronous")

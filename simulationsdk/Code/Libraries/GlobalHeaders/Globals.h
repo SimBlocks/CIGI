@@ -27,30 +27,16 @@ namespace sbio
   /**
    * @brief Bundles global paths and shared services used across an application.
    *
-   * `SGlobals` is a passive data carrier. It does not allocate resources, validate paths, or manage
-   * service lifetime beyond storing `std::shared_ptr` instances supplied by the caller.
-   *
-   * Invariants:
-   * - Path members may be empty; this type does not enforce path existence or normalization.
-   * - `pEventDispatcher` and `pLogger` either hold shared ownership of service instances or are null.
-   *
-   * Ownership:
-   * - Filesystem paths are owned by value.
-   * - `pEventDispatcher` and `pLogger` participate in shared ownership with any other holders of the
-   *   same `std::shared_ptr` instances.
-   *
-   * Failure cases:
-   * - Consumers must handle missing paths and null shared service pointers.
    */
   struct SGlobals
   {
-    std::filesystem::path executablePath;///< Path to the current executable or application root used by the caller.
-    std::filesystem::path thirdPartyPath;///< Path to third-party runtime content expected by the application.
+    std::filesystem::path executablePath;///< Path to executable
+    std::filesystem::path thirdPartyPath;///< Path to third-party libraries
     std::filesystem::path applicationsDataPath;///< Path containing application data directories.
     std::filesystem::path currentApplicationDataPath;///< Path to the data directory for the active application.
     std::filesystem::path librariesDataPath;///< Path containing shared library data.
-    std::shared_ptr<sbio::utils::CEventDispatcher> pEventDispatcher;///< Shared owner of the process-wide event dispatcher, or `nullptr` when event dispatching is unavailable.
-    std::shared_ptr<sbio::utils::CLogger> pLogger;///< Shared owner of the process-wide logger, or `nullptr` when logging is unavailable.
+    std::shared_ptr<sbio::utils::CEventDispatcher> pEventDispatcher;///< Shared event dispatcher; null until supplied by the caller.
+    std::shared_ptr<sbio::utils::CLogger> pLogger;///< Shared logger; null until supplied by the caller.
   };
 }
 

@@ -55,10 +55,9 @@ namespace sbio
     sbio::math::TBodyRotation ConvertGeocentricRotationToBodyRotation(const sbio::math::TGeocentricTransform& geocentricTransform);
 
     /**
-     * @brief Converts a geocentric rotation to a body rotation.
-     * @param geocentricRotation Geocentric rotation quaternion.
-     * @return TBodyRotation Body rotation quaternion.
-      * @param bodyRotation Rotation value.
+     * @brief Converts a body rotation quaternion to body Euler angles.
+     * @param bodyRotation Body rotation quaternion.
+     * @return TBodyEulerRotation Body Euler angles (roll, pitch, yaw).
      */
     sbio::math::TBodyEulerRotation ConvertBodyRotationToBodyEulerRotation(const sbio::math::TBodyRotation& bodyRotation);
 
@@ -75,7 +74,8 @@ namespace sbio
      * @param referencePlane Reference plane coordinate system.
      * @return ReferencePlaneCoordinates Reference plane coordinates.
      */
-    sbio::math::ReferencePlaneCoordinates ConvertGeocentricToReferencePlaneCoordinates(const sbio::math::GeocentricCoordinates& geocentricPos, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
+    sbio::math::ReferencePlaneCoordinates ConvertGeocentricToReferencePlaneCoordinates(const sbio::math::GeocentricCoordinates& geocentricPos,
+                                                                                       const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
 
     /**
      * @brief Converts geocentric coordinates (ECEF) to reference plane coordinates using a geodetic origin.
@@ -83,7 +83,8 @@ namespace sbio
      * @param origin Geodetic origin of the reference plane.
      * @return ReferencePlaneCoordinates Reference plane coordinates.
      */
-    sbio::math::ReferencePlaneCoordinates ConvertGeocentricToReferencePlaneCoordinates(const sbio::math::GeocentricCoordinates& geocentricPos, const sbio::math::SGeodeticCoordinates& origin);
+    sbio::math::ReferencePlaneCoordinates ConvertGeocentricToReferencePlaneCoordinates(const sbio::math::GeocentricCoordinates& geocentricPos,
+                                                                                       const sbio::math::SGeodeticCoordinates& origin);
 
     /**
      * @brief Converts a geocentric transform to reference plane coordinates using the specified reference plane.
@@ -91,7 +92,8 @@ namespace sbio
      * @param referencePlane Reference plane coordinate system.
      * @return TReferencePlaneTransform Reference plane transform.
      */
-    sbio::math::TReferencePlaneTransform ConvertGeocentricToReferencePlaneCoordinates(const sbio::math::TGeocentricTransform& geocentricTransform, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
+    sbio::math::TReferencePlaneTransform ConvertGeocentricToReferencePlaneCoordinates(const sbio::math::TGeocentricTransform& geocentricTransform,
+                                                                                      const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
 
     /**
      * @brief Converts a geocentric rotation to reference plane rotation using the specified reference plane.
@@ -99,7 +101,8 @@ namespace sbio
      * @param referencePlane Reference plane coordinate system.
      * @return TReferencePlaneRotation Reference plane rotation.
      */
-    sbio::math::TReferencePlaneRotation ConvertGeocentricToReferencePlaneRotation(const sbio::math::TGeocentricRotation& geocentricTransform, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
+    sbio::math::TReferencePlaneRotation ConvertGeocentricToReferencePlaneRotation(const sbio::math::TGeocentricRotation& geocentricTransform,
+                                                                                  const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
 
     /**
      * @brief Converts a geocentric transform to a geodetic transform.
@@ -124,11 +127,18 @@ namespace sbio
     TGeocentricTransform ConvertGeodeticToGeocentricTransform(const SGeodeticCoordinates& geodeticPosition, const TBodyEulerRotation& rotation);
 
     /**
-     * @brief Converts a geocentric rotation to a geocentric reference plane (NED axes).
-     * @param geocentricRotation Geocentric rotation to convert.
+     * @brief Extracts reference plane axes from a NED-to-geocentric rotation.
+     * @param geocentricRotation Rotation whose columns represent north, east, and down.
      * @return TGeocentricReferencePlane Reference plane axes (north, east, down).
      */
     sbio::math::TGeocentricReferencePlane ConvertGeocentricToReferencePlane(const TGeocentricRotation& geocentricRotation);
+
+    /**
+     * @brief Extracts reference plane axes from a RFU body-to-geocentric rotation.
+     * @param bodyToGeocentricRotation Rotation whose columns represent right, forward, and up.
+     * @return TGeocentricReferencePlane Oriented axes (forward as north, right as east, and down).
+     */
+    sbio::math::TGeocentricReferencePlane ConvertGeocentricToReferencePlane(const TRotation<BodyCoordinates, GeocentricCoordinates>& bodyToGeocentricRotation);
 
     /**
      * @brief Converts reference plane to geodetic coordinates.
@@ -136,7 +146,8 @@ namespace sbio
      * @param referencePlane Reference plane value.
      * @return Converted value.
      */
-    sbio::math::SGeodeticCoordinates ConvertReferencePlaneToGeodeticCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
+    sbio::math::SGeodeticCoordinates ConvertReferencePlaneToGeodeticCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords,
+                                                                                const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
 
     /**
      * @brief Converts reference plane to geocentric coordinates.
@@ -144,7 +155,8 @@ namespace sbio
      * @param referencePlane Reference plane value.
      * @return Converted value.
      */
-    sbio::math::GeocentricCoordinates ConvertReferencePlaneToGeocentricCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
+    sbio::math::GeocentricCoordinates ConvertReferencePlaneToGeocentricCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords,
+                                                                                   const sbio::math::SReferencePlaneCoordinateSystem& referencePlane);
 
     /**
      * @brief Creates a local NED (North, East, Down) spatial reference frame based on geodetic coordinates.
@@ -181,7 +193,7 @@ namespace sbio
      * @param lon Longitude in degrees.
      * @return std::vector<double> 3x3 rotation matrix as a flat vector.
      */
-    std::vector<double> GetGeocentricRotationMatrix(double lat, double lon);
+    std::vector<double> GetGeocentricRotationMatrix(Latitude lat, Longitude lon);
 
     /**
      * @brief Returns a geocentric rotation object for a given latitude and longitude.
@@ -190,6 +202,14 @@ namespace sbio
      * @return TGeocentricRotation Geocentric rotation matrix.
      */
     TGeocentricRotation GetGeocentricRotation(Latitude latitude, Longitude longitude);
+
+    /**
+     * @brief Returns the rotation from local right-forward-up body coordinates to ECEF.
+     * @param latitude Latitude in degrees.
+     * @param longitude Longitude in degrees.
+     * @return RFU-to-ECEF rotation at the specified location.
+     */
+    TGeocentricRotation GetBodyGeocentricRotation(Latitude latitude, Longitude longitude);
 
     /**
      * @brief Converts a rotation matrix from ENU (East, North, Up) to NED (North, East, Down) coordinate system.

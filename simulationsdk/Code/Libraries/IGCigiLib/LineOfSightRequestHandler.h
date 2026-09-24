@@ -3,7 +3,7 @@
  * @file LineOfSightRequestHandler.h
  * @brief Declares the CLineOfSightRequestHandler class for SimBlocks CIGI IG line of sight request handling.
  *
- * Provides the CLineOfSightRequestHandler class for managing and processing line of sight requests and responses in the SimBlocks CIGI IG library.
+ * Provides the CLineOfSightRequestHandler class for managing and processing line of sight requests and responses in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, math, and coordinate system types for simulation and line of sight calculations.
  * Supports request management, response coordinate system selection, update period handling, and response processing for entity and geodetic coordinate systems.
  *
@@ -30,9 +30,12 @@ class CLineOfSightRequestHandler
 public:
   /**
    * @brief Constructs a line of sight request handler.
-   * @param lineOfSightRequest Reference to the line of sight request.
+   * @param rangeOffset Distance from the original source to the engine query start; zero for segments.
+   * @param sourceEntityID Source entity dependency, or UnknownEntityID for a geodetic source.
+   * @param destinationEntityID Destination entity dependency, or UnknownEntityID for a geodetic destination.
    */
-  CLineOfSightRequestHandler();
+  explicit CLineOfSightRequestHandler(double rangeOffset = 0.0, sbio::EntityID sourceEntityID = sbio::UnknownEntityID, sbio::EntityID destinationEntityID = sbio::UnknownEntityID);
+
   /**
    * @brief Destroys the line of sight request handler.
    */
@@ -54,10 +57,40 @@ public:
    * @param lastHostFrameNumber Frame number value.
    */
   void SetLastHostFrameNumber(sbio::FrameNumber lastHostFrameNumber);
+  /** @brief Gets this handler's response-correlation generation.
+   * @return Generation allocated at construction to distinguish reused request identifiers.
+   */
+  uint64_t GetRequestGeneration() const;
+  /** @brief Gets the distance excluded before the engine query's start point.
+   * @return Range offset supplied at construction; zero for segment handlers.
+   */
+  double GetRangeOffset() const;
+
+  /** @brief Tests whether the request depends on a particular entity.
+   * @param entityID Entity identifier to compare against both endpoint dependencies.
+   * @return `true` for a matching non-unknown identifier; otherwise `false`.
+   */
+  bool ReferencesEntity(sbio::EntityID entityID) const;
+
+  /** @brief Gets the host frame nibble used in responses.
+   * @return Low four host-frame bits for recurring requests, or zero for one-shot requests.
+   */
+  uint8_t GetHostFrameLSN() const;
+
+  /** @brief Records the repeat-interval baseline.
+   * @param frame Last dispatch frame.
+   */
+  void SetLastUpdateFrame(sbio::FrameNumber frame);
+  /** @brief Tests whether the repeat interval has elapsed.
+   * @param frame Current frame number.
+   * @return Whether unsigned frame distance from the baseline is at least the request's update period.
+   */
+  bool IsUpdateDue(sbio::FrameNumber frame) const;
 
   /**
    * @brief Handles the line of sight request (pure virtual).
-   * @return True if handled successfully, false otherwise.
+   * @return `true` when the engine request is submitted; `false` when services or endpoint resolution fail.
+   *         Does not report whether the ray intersects terrain or an entity.
    */
   virtual bool Handle() = 0;
   /**
@@ -65,7 +98,15 @@ public:
    * @param lineOfSightExtendedResponse Extended response data.
    * @param IntersectionPoint Intersection point coordinates.
    */
-  void HandleGeodeticCoordinateSystemResponse(sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse& lineOfSightExtendedResponse, sbio::math::GeocentricCoordinates IntersectionPoint);
+  void HandleGeodeticCoordinateSystemResponse(sbio::cigi::SLineOfSightExtendedGeodeticCoordinatesResponse& lineOfSightExtendedResponse,
+                                              sbio::math::GeocentricCoordinates IntersectionPoint);
+
+  /**
+   * @brief Records a one-shot response and reports whether the advertised total has been received.
+   * @param responseCount Total response packet count. Zero is treated as a single response.
+   * @return True when the response sequence is complete.
+   */
+  bool RecordResponse(uint8_t responseCount);
 
 protected:
   /**
@@ -74,7 +115,18 @@ protected:
    */
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const = 0;
 
+  /** @brief Exposes mutable request metadata supplied by the concrete handler.
+   * @return Borrowed reference to the concrete handler's stored request.
+   */
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() = 0;
+
+private:
+  const double m_RangeOffset;
+  const sbio::EntityID m_SourceEntityID;
+  const sbio::EntityID m_DestinationEntityID;
+  uint64_t m_RequestGeneration = 0;
+  uint16_t m_ResponsesReceived = 0;
+  uint32_t m_LastUpdateFrame = 0;
 };
 
 #endif

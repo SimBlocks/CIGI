@@ -17,16 +17,17 @@ namespace sbio
      * `CImageGeneratorEventMessenger` is a thin convenience wrapper around the generated
      * `IImageGeneratorEventHandler` interface. Each `Send...Message()` method forwards directly to
      * the corresponding `On...Message()` callback.
+     * When no handler is supplied, send methods do nothing and queries return false.
      *
      * Ownership:
-     * - `m_pEventHandler` is non-owning and must outlive the messenger.
+     * - `m_pEventHandler` is non-owning; a supplied handler must outlive the messenger.
      */
     class CImageGeneratorEventMessenger
     {
     public:
       /**
        * @brief Constructs a messenger bound to an event handler implementation.
-       * @param pEventHandler Non-owning target that receives forwarded messages.
+       * @param pEventHandler Non-owning target, or nullptr to disable message forwarding.
        */
       CImageGeneratorEventMessenger(IImageGeneratorEventHandler* pEventHandler);
 
@@ -36,9 +37,15 @@ namespace sbio
 
       /**
        * @brief Tests whether a point lies inside the collision or volume representation of an entity.
-       * @return Result forwarded from the underlying event handler.
+       * @return Result forwarded from the underlying event handler, or false when no handler is supplied.
        */
       virtual bool IsPointInEntityVolume(const sbio::math::GeocentricCoordinates& point, sbio::EntityID entityID) const;
+
+      /**
+       * @brief Queries device-native tracker offsets (meters) and Euler angles (degrees).
+       * @return False when no tracker pose is available; output values must then be ignored.
+       */
+      virtual bool GetMotionTrackerPosition(sbio::MotionTrackerID trackerID, sbio::math::Vec3& offset, sbio::math::TBodyEulerRotation& rotation) const;
 
       /// @name Entity messages
       /// @{
@@ -82,6 +89,7 @@ namespace sbio
       virtual void SendUpdateAttachedCameraTransformMessage(const sbio::ig::view::SUpdateAttachedCameraTransformMessage& data);
       virtual void SendSetCameraAttachedToEntityMessage(const sbio::ig::view::SSetCameraAttachedToEntityMessage& data);
       virtual void SendSetCameraUnattachedMessage(const sbio::ig::view::SSetCameraUnattachedMessage& data);
+      virtual void SendBringCameraToTopMessage(const sbio::ig::view::SBringCameraToTopMessage& data);
       virtual void SendSetCameraProjectionMessage(const sbio::ig::view::SSetCameraProjectionMessage& data);
       virtual void SendSetViewComponentStateMessage(const sbio::ig::view::SSetViewComponentStateMessage& data);
       virtual void SendSetViewGroupComponentStateMessage(const sbio::ig::view::SSetViewGroupComponentStateMessage& data);
@@ -94,6 +102,7 @@ namespace sbio
       virtual void SendSetAnimationDirectionMessage(const sbio::ig::animation::SSetAnimationDirectionMessage& data);
       virtual void SendSetAnimationLoopModeMessage(const sbio::ig::animation::SSetAnimationLoopModeMessage& data);
       virtual void SendSetAnimationSpeedMessage(const sbio::ig::animation::SSetAnimationSpeedMessage& data);
+      virtual void SendSetAnimationAlphaMessage(const sbio::ig::animation::SSetAnimationAlphaMessage& data);
       virtual void SendStopEntityAnimationMessage(const sbio::ig::animation::SStopEntityAnimationMessage& data);
       virtual void SendStopAtCurrentFrameEntityAnimationMessage(const sbio::ig::animation::SStopAtCurrentFrameEntityAnimationMessage& data);
       virtual void SendPauseEntityAnimationMessage(const sbio::ig::animation::SPauseEntityAnimationMessage& data);
@@ -126,6 +135,7 @@ namespace sbio
       virtual void SendSetSymbolAttachedMessage(const sbio::ig::symbol::SSetSymbolAttachedMessage& data);
       virtual void SendSetSymbolUnattachedMessage(const sbio::ig::symbol::SSetSymbolUnattachedMessage& data);
       virtual void SendSetSymbolSurfaceMessage(const sbio::ig::symbol::SSetSymbolSurfaceMessage& data);
+      virtual void SendClearSymbolSurfaceMessage(const sbio::ig::symbol::SClearSymbolSurfaceMessage& data);
       virtual void SendSetTopLevelSymbolTransformMessage(const sbio::ig::symbol::SSetTopLevelSymbolTransformMessage& data);
       virtual void SendSetChildSymbolTransformMessage(const sbio::ig::symbol::SSetChildSymbolTransformMessage& data);
       virtual void SendUpdateSymbolMessage(const sbio::ig::symbol::SUpdateSymbolMessage& data);
@@ -166,7 +176,7 @@ namespace sbio
   }
 }
 
-#endif//#ifndef SIMBLOCKS_IMAGE_GENERATOR_EVENT_MESSENGER_H
+#endif// #ifndef SIMBLOCKS_IMAGE_GENERATOR_EVENT_MESSENGER_H
 
 //The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.
 //Refer all inquiries to sales@simblocks.io

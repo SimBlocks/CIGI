@@ -3,7 +3,7 @@
  * @file TerrestrialSurfaceCondition.h
  * @brief Declares the CTerrestrialSurfaceCondition class for SimBlocks CIGI IG terrestrial surface condition management.
  *
- * Provides the CTerrestrialSurfaceCondition class for representing and managing terrestrial surface conditions in the SimBlocks CIGI IG library.
+ * Provides the CTerrestrialSurfaceCondition class for representing and managing terrestrial surface conditions in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI types for surface condition state, activation, and condition data management.
  * Supports activation state, condition setting and retrieval, and encapsulates SCigiTerrestrialSurfaceCondition data for simulation.
  *

@@ -35,15 +35,15 @@ namespace sbio
      * - All pointers are non-owning.
      * - The pointed-to objects must outlive any EntityLib code that uses them.
      *
-     * Invariants:
-     * - `dataPath` identifies the directory from which EntityLib loads its data files.
+     * `InitEntityLib()` populates these settings; default-constructed settings have an empty path
+     * and null service pointers.
      */
     struct SEntityLibSettings
     {
-      std::filesystem::path dataPath;///< Path to entity data
-      sbio::utils::CEventDispatcher* pEventDispatcher = nullptr;///< Pointer to event dispatcher
-      CEntityManager* pEntityManager = nullptr;///< Pointer to entity manager
-      sbio::utils::CLogger* pLogger = nullptr;///< Pointer to logger
+      std::filesystem::path dataPath;///< Directory containing `SISO-REF-010.xml` for manager initialization.
+      sbio::utils::CEventDispatcher* pEventDispatcher = nullptr;///< Non-owning application event dispatcher.
+      CEntityManager* pEntityManager = nullptr;///< Non-owning entity manager; may be null.
+      sbio::utils::CLogger* pLogger = nullptr;///< Non-owning logger; diagnostics are skipped when null.
     };
 
     /**
@@ -51,11 +51,12 @@ namespace sbio
      *
      * Ownership:
      * - `pEntityManager` shares ownership with the caller.
-     * - `InitEntityLib()` stores only the raw pointer obtained from this shared pointer.
+     * - `InitEntityLib()` stores only the raw pointer obtained from this shared pointer and does not
+     *   extend the manager's lifetime. An owner must keep the manager alive while the global binding is used.
      */
     struct SEntityLibParams
     {
-      std::shared_ptr<sbio::entity::CEntityManager> pEntityManager;///< Shared pointer to entity manager
+      std::shared_ptr<sbio::entity::CEntityManager> pEntityManager;///< Manager to bind and initialize; may be empty.
     };
   }
 }
@@ -63,22 +64,21 @@ namespace sbio
 /**
  * @brief Converts a textual clamp name to an `EClamp` value.
  *
- * @param sClamp Clamp name to convert.
- * @return `EClamp::NONE`, `EClamp::CONFORMAL`, or `EClamp::NON_CONFORMAL` for the recognized spellings used by
- *         the implementation; otherwise `EClamp::UNKNOWN`.
- *
- * Failure cases:
- * - Unrecognized strings are not rejected with an error; they map to `EClamp::UNKNOWN`.
+ * @param sClamp Case-sensitive clamp name; no whitespace is trimmed.
+ * @return `EClamp::NONE` for `"NONE"` or `"No Clamp"`, `EClamp::CONFORMAL` for `"CONFORMAL"` or
+ *         `"Conformal"`, `EClamp::NON_CONFORMAL` for `"NON_CONFORMAL"` or `"Non-Conformal"`,
+ *         and `EClamp::UNKNOWN` for any other string.
  */
 sbio::EClamp ToClamp(const std::string& sClamp);
 
+/** @brief Global non-owning service bindings and data directory used by EntityLib. */
 extern sbio::entity::SEntityLibSettings g_EntityLibSettings;
 
 /**
  * @brief Initializes EntityLib global state from application globals and module parameters.
  *
- * @param globals Global application services and paths.
- * @param params EntityLib initialization parameters.
+ * @param globals Application services and paths; bound services must remain alive while EntityLib uses them.
+ * @param params Manager binding; a non-null manager must remain alive while EntityLib uses it.
  *
  * Side effects:
  * - Populates `g_EntityLibSettings` with non-owning pointers derived from `globals` and `params`.
@@ -92,6 +92,7 @@ void InitEntityLib(const sbio::SGlobals& globals, const sbio::entity::SEntityLib
  *
  * Side effects:
  * - Sets the stored manager, event dispatcher, and logger pointers in `g_EntityLibSettings` to `nullptr`.
+ * - Leaves the stored data directory unchanged and does not call `CEntityManager::Reset()`.
  *
  * Ownership:
  * - Does not destroy caller-owned objects.

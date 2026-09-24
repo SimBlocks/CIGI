@@ -3,7 +3,7 @@
  * @file CigiSymbolTexturedCircle.h
  * @brief Declares the CIGCigiSymbolTexturedCircle class for SimBlocks CIGI IG symbol textured circle management and geometry.
  *
- * Provides the CIGCigiSymbolTexturedCircle class for representing and managing textured circle symbols with CIGI-specific logic in the SimBlocks CIGI IG library.
+ * Provides the CIGCigiSymbolTexturedCircle class for representing and managing textured circle symbols with CIGI-specific logic in the SimBlocks IGCigiLib library.
  * Inherits from sbio::symbol::CSymbolTexturedCircle and integrates with SimBlocks symbol geometry types for symbol rendering and manipulation.
  * Supports symbol geometry copying, symbol creation, update, and ID management for simulation symbols.
  *

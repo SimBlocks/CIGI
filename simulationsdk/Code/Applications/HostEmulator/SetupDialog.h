@@ -21,60 +21,65 @@
 /**
  * @brief Setup dialog for configuring host and IG connection options.
  *
- * Manages user input controls and validation for host/IG configuration.
+ * Seeds controls from the selected session when available and reinitializes the host on acceptance. Child windows
+ * belong to the dialog. Numeric accessors expose parsed control values, not independently validated configuration.
  */
 class SetupDialog : public wxDialog
 {
 public:
   /**
-   * @brief Constructs a `SetupDialog` instance.
-   * @param title Title value.
+   * @brief Creates an unparented setup dialog and populates controls from the application's available host settings.
+   * @param title Window caption.
    */
   SetupDialog(const wxString& title);
   /**
-   * @brief Handles the ok event.
-   * @param event Event object associated with the callback.
+   * @brief Validates IPv4 text, port ranges, and database range, then reinitializes the host and ends with wxID_OK.
+   * @param event Unused command event; values are read from the dialog's controls.
+   *
+   * Updates top-level defaults and the selected session entry, appending a missing selection only when the session
+   * list was already nonempty. Invalid input raises a host error and displays a message without closing. Does nothing
+   * when no host is available. Host initialization exceptions propagate.
    */
   void OnOk(wxCommandEvent& event);
   /**
-   * @brief Handles the cancel event.
-   * @param e E value.
+   * @brief Asks for cancellation confirmation and ends with wxID_CANCEL only when the user answers Yes.
+   * @param e Unused command event. Does not apply new host settings.
    */
   void OnCancel(wxCommandEvent& e);
 
   /**
-   * @brief Gets receive port.
-   * @return Receive port value.
+   * @brief Reads the IG receive-port field, corresponding to hostToIGPort.
+   * @return ToLong conversion output, initialized to zero; conversion status and port range are not checked here.
    */
   long GetReceivePort() const;
   /**
-   * @brief Gets local receive port.
-   * @return Local receive port value.
+   * @brief Reads the host receive-port field, corresponding to igToHostPort.
+   * @return ToLong conversion output, initialized to zero; conversion status and port range are not checked here.
    */
   long GetLocalReceivePort() const;
   /**
-   * @brief Gets default database.
-   * @return Default database value.
+   * @brief Reads the default-database text field.
+   * @return ToLong conversion output, initialized to zero; conversion status and database range are not checked here.
    */
   long GetDefaultDatabase() const;
   /**
-   * @brief Gets ipaddress.
-   * @return Ipaddress value.
+   * @brief Reads the IG address field without validation.
+   * @return Copy of the current address text.
    */
   wxString GetIPAddress() const;
   /**
-   * @brief Gets version id.
-   * @return Version id value.
+   * @brief Reads the read-only protocol version field.
+   * @return Version text, normally "3.3" or "4.0", or empty when initialized with an unknown version.
    */
   wxString GetVersionID() const;
   /**
-   * @brief Gets big endian byte order.
-   * @return Big endian byte order value.
+   * @brief Reads the byte-order checkbox.
+   * @return True when big-endian byte order is selected; false otherwise.
    */
   bool GetBigEndianByteOrder() const;
   /**
-   * @brief Determines whether ipaddress valid.
-   * @return `true` when the condition is met; otherwise `false`.
+   * @brief Tests the address text against the dialog's anchored dotted-decimal IPv4 expression.
+   * @return True for four decimal octets in [0, 255]; does not resolve names or test connectivity.
    */
   bool IsIPAddressValid() const;
 
@@ -105,16 +110,14 @@ private:
   wxTextCtrl* versionIDControl;///< Input for version ID
   wxTextCtrl* defaultDatabaseControl;///< Input for default database
 
-  wxRegEx* regexIpAddress = new wxRegEx("^(([0-9]{1}|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]{1}|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])$");///< Regex for IP address validation
+  wxRegEx* regexIpAddress =
+    new wxRegEx("^(([0-9]{1}|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]{1}|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])$");///< Regex for IP address validation
   wxString ipAddressFilter[11] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."};///< Allowed characters for IP address
   wxTextValidator* txtvldIPAddress = new wxTextValidator(wxFILTER_INCLUDE_CHAR_LIST);///< Validator for IP address input
 
   wxButton* okButton;///< OK button
   wxButton* cancelButton;///< Cancel button
 
-  /**
-   * @brief Constructs a `wxDECLARE_EVENT_TABLE` instance.
-   */
   wxDECLARE_EVENT_TABLE();
 };
 

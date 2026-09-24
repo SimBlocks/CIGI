@@ -4,6 +4,7 @@
 #include "CigiLib/CigiConversions.h"
 #include "EngineLib/EngineLib.h"
 #include "EngineLib/IImageGeneratorEventMessenger.h"
+#include "EngineLib/ImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorMessages.h"
 #include "CigiLib/CigiTypeDeclarations.h"
 #include "EntityLib/EntityManager.h"
@@ -17,11 +18,13 @@
 #include "MathLib/CoordinateConversions.h"
 #include "MathLib/Math.h"
 #include "MathLib/MathTypes.h"
+#include "UtilitiesLib/EventDispatcher.h"
 #include "UtilitiesLib/Logger.h"
 #include "ViewLib/ViewManager.h"
 #include "ViewLib/View.h"
 #include "ViewLib/ViewGroup.h"
 #include "IGCigiLib/CigiView.h"
+#include "IGCigiLib/CigiViewGroup.h"
 #include "IGCigiLib/PacketHandler.h"
 #include "IGCigiLib/TerrainHandler.h"
 #include "IGCigiLib/CigiProjectionConversions.h"
@@ -47,12 +50,38 @@ using namespace sbio::ig::entity;
 
 extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
-CCigiEntityControlHandler::CCigiEntityControlHandler(CCigiImageGenerator& ImageGenerator, CCigiTerrainHandler* pTerrainHandler) : m_ImageGenerator(ImageGenerator), m_pTerrainHandler(pTerrainHandler)
+CCigiEntityControlHandler::CCigiEntityControlHandler(CCigiImageGenerator& ImageGenerator, CCigiTerrainHandler* pTerrainHandler) :
+  m_ImageGenerator(ImageGenerator), m_pTerrainHandler(pTerrainHandler)
 {
+  if (g_CigiLibGlobals.pEventDispatcher != nullptr)
+  {
+    g_CigiLibGlobals.pEventDispatcher->RegisterListener<IGCIGIEvent>(this);
+  }
 }
 
 CCigiEntityControlHandler::~CCigiEntityControlHandler()
 {
+  if (g_CigiLibGlobals.pEventDispatcher != nullptr)
+  {
+    g_CigiLibGlobals.pEventDispatcher->UnregisterListener<IGCIGIEvent>(this);
+  }
+}
+
+void CCigiEntityControlHandler::OnEntityRemoved(sbio::EntityID entityID)
+{
+  m_ContinuousEntityIDPositionRequests.erase(entityID);
+  m_ContinuousChildEntityIDPositionRequests.erase(entityID);
+  for (auto it = m_ContinuousArticulatedPartIDPositionRequests.begin(); it != m_ContinuousArticulatedPartIDPositionRequests.end();)
+  {
+    if (it->entityID == entityID)
+    {
+      it = m_ContinuousArticulatedPartIDPositionRequests.erase(it);
+    }
+    else
+    {
+      ++it;
+    }
+  }
 }
 
 void CCigiEntityControlHandler::HandleCigiConformalClampedEntityPosition(const SCigiConformalClampedEntityPosition& conformalClampedEntityPosition)
@@ -71,6 +100,7 @@ void CCigiEntityControlHandler::HandleCigiConformalClampedEntityPosition(const S
   // If this packet is applied to an unclamped or non-conformal clamped entity,
   // its current absolute roll, pitch, and altitude will be maintained
   TCigiBodyEulerRotation rotation = ConvertToCigiBodyEulerRotation(pCigiEntity->GetRotation());
+  rotation.yaw = conformalClampedEntityPosition.fYaw;
 
   SGeodeticCoordinates geodeticCoordinates;
   geodeticCoordinates.altitude = pCigiEntity->GetGeodeticCoordinates().altitude;
@@ -126,23 +156,23 @@ bool CCigiEntityControlHandler::HandleCigiEntityControl(const SEntityControl& en
   {
     if (entityControl.eState == EActiveState::DESTROYED)
     {
-      pCigiEntity->Remove();
       g_CigiLibGlobals.pEntityManager->RemoveEntity(entityControl.entityID);
       return true;
     }
 
     pCigiEntity->SetEntityState(entityControl.eState);
     // A value of zero(0) corresponds to fully transparent; a value of 255 corresponds to fully opaque.
-    // TODO: handle inherit alpha
     float fAlpha = entityControl.alpha / (float)255;
-    pCigiEntity->SetAlpha(fAlpha);
+    pCigiEntity->SetAlpha(fAlpha, entityControl.bInheritAlpha);
     pCigiEntity->SetCollisionDetectionEnabled(entityControl.bCollisionReportingEnabled);
+    pCigiEntity->SetInterpolationEnabled(entityControl.bSmoothingEnabled);
   }
 
   return true;
 }
 
-void CCigiEntityControlHandler::HandleCigiEntityPosition(EntityID entityID, EntityID parentID, EAttachState attachState, EClamp eGrndClamp, const sbio::math::Vec3& position, const TCigiBodyEulerRotation& rotation)
+void CCigiEntityControlHandler::HandleCigiEntityPosition(EntityID entityID, EntityID parentID, EAttachState attachState, EClamp eGrndClamp, const sbio::math::Vec3& position,
+                                                         const TCigiBodyEulerRotation& rotation)
 {
   CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(entityID));
   if (pCigiEntity == nullptr)
@@ -153,7 +183,7 @@ void CCigiEntityControlHandler::HandleCigiEntityPosition(EntityID entityID, Enti
     return;
   }
 
-  if (!pCigiEntity->SetAttachState(attachState, parentID, false))
+  if (!pCigiEntity->SetAttachState(attachState, parentID, pCigiEntity->GetInheritAlpha()))
   {
     return;
   }
@@ -208,9 +238,10 @@ void CCigiEntityControlHandler::HandleCigiEntityPosition(EntityID entityID, Enti
 
 void CCigiEntityControlHandler::HandleCigiPositionRequest(const SPositionRequest& positionRequest)
 {
-  if (positionRequest.eCoordinateSystem == EObjectCoordinateSystem::LOCAL && positionRequest.eObjectClass != EObjectClass::ARTICULATED_PART)
+  if (positionRequest.eCoordinateSystem == EObjectCoordinateSystem::LOCAL && positionRequest.eObjectClass != EObjectClass::ARTICULATED_PART &&
+      positionRequest.eObjectClass != EObjectClass::MOTION_TRACKER)
   {
-    // submodel only valid for articulated parts
+    // Submodel is only valid for articulated parts; trackers ignore the coordinate selector.
     return;
   }
 
@@ -432,6 +463,18 @@ void CCigiEntityControlHandler::RequestGeodeticViewPosition(sbio::ViewID viewID)
     return;
   }
 
+  CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(pCigiView->GetAttachedEntityID()));
+  if (!pCigiEntity)
+  {
+    return;
+  }
+
+  const ViewGroupID viewGroupID = pCigiView->GetViewGroupID();
+  if (viewGroupID != UnknownViewGroupID && dynamic_cast<CCigiViewGroup*>(g_CigiLibGlobals.pViewManager->GetViewGroup(viewGroupID)) == nullptr)
+  {
+    return;
+  }
+
   SPositionResponseGeodeticCoordinates positionResponse;
   positionResponse.eObjectClass = EObjectClass::VIEW;
   auto worldTransform = pCigiView->GetWorldTransform();
@@ -449,6 +492,19 @@ void CCigiEntityControlHandler::RequestLocalViewPosition(sbio::ViewID viewID)
   {
     return;
   }
+
+  CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(pCigiView->GetAttachedEntityID()));
+  if (!pCigiEntity)
+  {
+    return;
+  }
+
+  const ViewGroupID viewGroupID = pCigiView->GetViewGroupID();
+  if (viewGroupID != UnknownViewGroupID && dynamic_cast<CCigiViewGroup*>(g_CigiLibGlobals.pViewManager->GetViewGroup(viewGroupID)) == nullptr)
+  {
+    return;
+  }
+
   SPositionResponseParentEntityCoordinates positionResponse;
   positionResponse.eObjectClass = EObjectClass::VIEW;
   TCigiBodyTransform childTransform = pCigiView->GetChildTransform();
@@ -460,55 +516,85 @@ void CCigiEntityControlHandler::RequestLocalViewPosition(sbio::ViewID viewID)
 
 void CCigiEntityControlHandler::RequestGeodeticViewGroupPosition(sbio::ViewGroupID viewGroupID)
 {
-  CViewGroup* pViewGroup = g_CigiLibGlobals.pViewManager->GetViewGroup(viewGroupID);
+  CCigiViewGroup* pViewGroup = dynamic_cast<CCigiViewGroup*>(g_CigiLibGlobals.pViewManager->GetViewGroup(viewGroupID));
 
   if (!pViewGroup)
   {
     return;
   }
 
-  CCigiView* pCigiView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(pViewGroup->GetCenterViewID()));
+  CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(pViewGroup->GetAttachedEntityID()));
 
-  if (!pCigiView)
+  if (!pCigiEntity)
   {
     return;
   }
   SPositionResponseGeodeticCoordinates positionResponse;
   positionResponse.eObjectClass = EObjectClass::VIEW_GROUP;
-  auto worldTransform = pCigiView->GetWorldTransform();
+  auto worldTransform = pViewGroup->GetWorldTransform();
   positionResponse.geodeticCoordinates = ConvertCigiWorldToGeodeticCoordinates(worldTransform.pos);
   positionResponse.rotation = ConvertToCigiBodyEulerRotation(ConvertCigiWorldRotationToBodyEulerRotation(worldTransform));
-  positionResponse.objectID = pCigiView->GetViewID().Value();
+  positionResponse.objectID = viewGroupID.Value();
   m_ImageGenerator.GetPacketSenders()->SendPositionResponse(&positionResponse, sbio::cigi::EPositionResponseType::GEODETIC);
 }
 
 void sbio::cigi::ig::CCigiEntityControlHandler::RequestLocalViewGroupPosition(sbio::ViewGroupID viewGroupID)
 {
-  CViewGroup* pViewGroup = g_CigiLibGlobals.pViewManager->GetViewGroup(viewGroupID);
+  CCigiViewGroup* pViewGroup = dynamic_cast<CCigiViewGroup*>(g_CigiLibGlobals.pViewManager->GetViewGroup(viewGroupID));
 
   if (!pViewGroup)
   {
     return;
   }
 
-  CCigiView* pCigiView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(pViewGroup->GetCenterViewID()));
+  CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(pViewGroup->GetAttachedEntityID()));
 
-  if (!pCigiView)
+  if (!pCigiEntity)
   {
     return;
   }
 
   SPositionResponseParentEntityCoordinates positionResponse;
-  positionResponse.eObjectClass = EObjectClass::VIEW;
-  TCigiBodyTransform childTransform = pCigiView->GetChildTransform();
+  positionResponse.eObjectClass = EObjectClass::VIEW_GROUP;
+  TCigiBodyTransform childTransform = pViewGroup->GetChildTransform();
   positionResponse.offset = childTransform.pos;
   positionResponse.rotation = ConvertToCigiBodyEulerRotation(ConvertBodyRotationToBodyEulerRotation(ConvertCigiBodyRotationToBodyRotation(childTransform.rotation)));
-  positionResponse.objectID = pCigiView->GetViewID().Value();
+  positionResponse.objectID = viewGroupID.Value();
   m_ImageGenerator.GetPacketSenders()->SendPositionResponse(&positionResponse, sbio::cigi::EPositionResponseType::PARENT);
 }
 
 void CCigiEntityControlHandler::RequestMotionTrackerPosition(sbio::MotionTrackerID motionTrackerID)
 {
+  if (g_CigiLibGlobals.pEventMessenger == nullptr)
+  {
+    return;
+  }
+
+  Vec3 offset;
+  TBodyEulerRotation rotation;
+  if (!g_CigiLibGlobals.pEventMessenger->GetMotionTrackerPosition(motionTrackerID, offset, rotation))
+  {
+    return;
+  }
+
+  SPositionResponseParentEntityCoordinates response;
+  response.eObjectClass = EObjectClass::MOTION_TRACKER;
+  response.objectID = motionTrackerID.Value();
+  response.offset = CigiBodyCoordinates(offset);
+  response.rotation = ConvertToCigiBodyEulerRotation(rotation);
+  m_ImageGenerator.GetPacketSenders()->SendPositionResponse(&response, EPositionResponseType::PARENT);
+}
+
+void CCigiEntityControlHandler::Reset()
+{
+  m_ContinuousEntityIDPositionRequests.clear();
+  m_ContinuousChildEntityIDPositionRequests.clear();
+  m_ContinuousArticulatedPartIDPositionRequests.clear();
+  m_ContinuousGeodeticViewIDPositionRequests.clear();
+  m_ContinuousLocalViewIDPositionRequests.clear();
+  m_ContinuousLocalViewGroupIDPositionRequests.clear();
+  m_ContinuousGeodeticViewGroupIDPositionRequests.clear();
+  m_ContinuousMotionTrackerPositionRequests.clear();
 }
 
 void CCigiEntityControlHandler::Update()
@@ -530,7 +616,7 @@ void CCigiEntityControlHandler::Update()
   for (auto it = m_ContinuousChildEntityIDPositionRequests.begin(); it != m_ContinuousChildEntityIDPositionRequests.end();)
   {
     CCigiEntity* pCigiEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(*it));
-    if (pCigiEntity != nullptr)
+    if (pCigiEntity != nullptr && pCigiEntity->IsChild())
     {
       RequestChildEntityPosition(pCigiEntity);
       ++it;
@@ -564,6 +650,11 @@ void CCigiEntityControlHandler::Update()
   for (auto viewGroupID : m_ContinuousLocalViewGroupIDPositionRequests)
   {
     RequestLocalViewGroupPosition(viewGroupID);
+  }
+
+  for (auto motionTrackerID : m_ContinuousMotionTrackerPositionRequests)
+  {
+    RequestMotionTrackerPosition(motionTrackerID);
   }
 }
 

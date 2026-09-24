@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending collision detection segment definition packets.
-   * @param event The command event.
+   * @brief Builds a collision-segment definition from the controls and submits it to the active session.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available. No collision result or delivery status is returned.
    */
   void OnSend(wxCommandEvent& event);
 

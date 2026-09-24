@@ -4,8 +4,8 @@
  * @brief Declares the `CIGResponseEventDispatcher` class for forwarding IG responses to packet senders and engine events.
  *
  * Provides the `CIGResponseEventDispatcher` class used by `IGCigiLib` to route generated IG-to-host response data structures.
- * Some responses are sent directly through the active packet senders, while terrain and line-of-sight responses are raised as engine events.
- * The dispatcher is stateless and relies on the active global `IGCigiLib` image generator and event infrastructure.
+ * All responses are copied into a thread-safe queue. On the IG update thread, notifications are forwarded
+ * to the active packet senders and terrain and line-of-sight responses are raised as engine events.
  *
  * @see sbio::cigi::ig::CIGResponseEventDispatcher
  * @see sbio::cigi::ig::CCigiImageGenerator
@@ -19,6 +19,9 @@
 #define SIMBLOCKS_CIGI_LIB_IG_RESPONSE_EVENT_DISPATCHER_H
 
 #include "CigiLib/CigiTypesIGToHost.h"
+#include <functional>
+#include <mutex>
+#include <vector>
 
 namespace sbio
 {
@@ -32,9 +35,15 @@ namespace sbio
       class CIGResponseEventDispatcher
       {
       public:
+        /** @brief Delivers all queued responses and notifications on the IG update thread. Name retained for compatibility. */
+        void DispatchTerrainResponses();
+        /** @brief Permanently rejects all responses and notifications and discards pending payloads. Call on the IG thread. */
+        void CloseTerrainResponses();
+
         /// @name Forwarded response helpers
-        /// Each method forwards an already-populated IG response or notification to the exported
-        /// messaging path used by the surrounding SDK.
+        /// Each method copies an already-populated response or notification into the synchronized queue.
+        /// These methods may be called from engine worker threads; delivery occurs on the IG update thread.
+        /// Calls on a closed dispatcher are discarded, including callbacks using retained old-session handles.
         /// @{
         /**
          * @brief Sends a collision detection segment notification message.
@@ -67,8 +76,8 @@ namespace sbio
          */
         void SendEventNotification(const sbio::cigi::SEventNotification& data);
         /**
-         * @brief Sends a height of terrain response message.
-         * @param data The height of terrain response message data.
+         * @brief Queues a height above terrain response event.
+         * @param data Height above terrain response to copy.
          */
         void SendHeightAboveTerrainResponse(const sbio::cigi::SHeightAboveTerrainResponse& data);
         /**
@@ -93,6 +102,10 @@ namespace sbio
          */
         void SendLineOfSightResponse(const sbio::cigi::SLineOfSightResponse& data);
 
+        /**
+         * @brief Queues a line-of-sight entity response event for the IG update thread.
+         * @param data Response to copy; discarded if this dispatcher is closed.
+         */
         void SendLineOfSightEntityResponse(const sbio::cigi::SLineOfSightEntityResponse& data);
         /**
          * @brief Sends a line of sight extended response message.
@@ -128,6 +141,16 @@ namespace sbio
          */
         void SendSensorExtendedEntityResponse(const sbio::cigi::SSensorExtendedEntityResponse& data);
         /// @}
+
+      private:
+        /**
+         * @brief Enqueues a delivery callback under the queue lock unless the dispatcher is closed.
+         * @param response Callback retained until dispatch or closure; must own any data needed for delivery.
+         */
+        void QueueTerrainResponse(std::function<void()> response);
+        std::mutex m_TerrainResponseMutex;
+        std::vector<std::function<void()>> m_TerrainResponses;
+        bool m_bTerrainResponsesClosed = false;
       };
     }
   }

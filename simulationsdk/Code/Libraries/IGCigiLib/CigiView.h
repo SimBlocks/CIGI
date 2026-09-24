@@ -3,7 +3,7 @@
  * @file CigiView.h
  * @brief Declares the CCigiView class for SimBlocks CIGI IG view management and entity attachment.
  *
- * Provides the CCigiView class for representing and managing CIGI views attached to entities in the SimBlocks CIGI IG library.
+ * Provides the CCigiView class for representing and managing CIGI views attached to entities in the SimBlocks IGCigiLib library.
  * Inherits from sbio::view::CView and implements sbio::cigi::ig::IIGCIGIEventListener for event-driven view management.
  * Supports entity attachment, transformation, rotation, offset, mirror mode, view group management, and event handling for simulation views.
  *
@@ -90,6 +90,12 @@ namespace sbio
          * @brief Resets view-specific attachment and transform state.
          */
         virtual void Reset();
+
+        /**
+         * @brief Requests that the engine composite this view above other views in its channel.
+         */
+        virtual void BringToTop() override;
+
         /**
          * @brief Sets the attached entity identifier.
          * @param entityID Entity to which this view should be attached.
@@ -124,12 +130,12 @@ namespace sbio
          * @brief Sets the pitch component of the cached rotation.
          * @param fPitch Pitch angle in degrees.
          */
-        void SetPitch(Degrees fPitch);
+        void SetPitch(Degrees90 fPitch);
         /**
          * @brief Sets the roll component of the cached rotation.
          * @param fRoll Roll angle in degrees.
          */
-        void SetRoll(Degrees fRoll);
+        void SetRoll(Degrees180 fRoll);
         /**
          * @brief Sets the mirror mode used by this view.
          * @param mirrorMode Mirror mode to store.
@@ -165,6 +171,12 @@ namespace sbio
         const sbio::cigi::TCigiBodyEulerRotation& GetRotation() const;
 
       private:
+        /**
+         * @brief Combines the view offset and Euler angles with those of its assigned CIGI view group.
+         * @param transform Output child transform; unchanged if the assigned group cannot be resolved.
+         * @return True if computed, including ungrouped views; false if the assigned CIGI group is unavailable.
+         */
+        bool GetEffectiveChildTransform(sbio::cigi::TCigiBodyTransform& transform) const;
         sbio::ViewGroupID m_ViewGroupID = UnknownViewGroupID;///< View group currently associated with this view.
         sbio::cigi::CigiBodyCoordinates m_vOffset;///< Cached body-frame offset relative to the attachment target.
         sbio::cigi::TCigiBodyEulerRotation m_Rotation;///< Cached body-frame rotation relative to the attachment target.

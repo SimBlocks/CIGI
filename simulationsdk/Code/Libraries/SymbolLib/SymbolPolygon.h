@@ -27,6 +27,7 @@ namespace sbio
      *
      * `CSymbolPolygon` stores the current `SSymbolPolygon` definition and keeps the embedded `symbolID`
      * synchronized with the identifier supplied by the caller when constructed or updated.
+     * It stores vertices and drawing attributes; it does not triangulate vertices or issue rendering commands.
      *
      * @invariant `m_SymbolPolygon.symbolID` matches the symbol ID last supplied to the constructor or `Set()`.
      */
@@ -36,6 +37,7 @@ namespace sbio
       /**
        * @brief Constructs polygon geometry for a symbol.
        * @param symbolID Symbol ID to store in the embedded `SSymbolPolygon` properties.
+       * Construction selects `ESymbolType::POLYGON` without registering a symbol or surface.
        */
       CSymbolPolygon(sbio::symbol::SymbolID symbolID);
 
@@ -45,14 +47,15 @@ namespace sbio
        *
        * Copies properties only when `pSymbolGeometry` is a `CSymbolPolygon`. The stored symbol ID is preserved.
        *
-       * @ownership `pSymbolGeometry` remains owned by the caller.
+       * @ownership The source is borrowed; vertices are copied into destination-owned storage.
        * @failurecases If `pSymbolGeometry` is `nullptr` or does not reference `CSymbolPolygon`, the function has no effect.
        */
       virtual void CopyFrom(CSymbolGeometry* pSymbolGeometry) override;
 
       /**
        * @brief Returns the stored polygon properties.
-       * @return Const reference to the internal `SSymbolPolygon` properties.
+       * @return Borrowed reference to the live `SSymbolPolygon` properties, valid for this geometry's lifetime.
+       * Later updates change the referenced value and may invalidate references or iterators into its vertex vector.
        *
        * @ownership The returned reference remains owned by this object.
        */
@@ -64,6 +67,7 @@ namespace sbio
        * @param symbolID Symbol ID to write into the stored properties after copying.
        *
        * The `symbolID` embedded in `symbolPolygonProperties` is ignored and overwritten with `symbolID`.
+       * Vertices are copied. Primitive type, vertex count, and drawing attributes are not validated.
        */
       void Set(const sbio::symbol::SSymbolPolygon& symbolPolygonProperties, sbio::symbol::SymbolID symbolID);
 

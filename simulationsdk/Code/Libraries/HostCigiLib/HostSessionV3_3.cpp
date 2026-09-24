@@ -10,6 +10,7 @@
 #include "HostCigiLib/HostCigiLib.h"
 #include "HostCigiLib/Host.h"
 #include "UtilitiesLib/Buffer.h"
+#include "UtilitiesLib/Endian.h"
 #include "UtilitiesLib/EventDispatcher.h"
 #include "UtilitiesLib/Logger.h"
 #include "ScriptRuntime.h"
@@ -112,7 +113,6 @@ void CHostSessionV3_3::ParseStartOfFramePacket(uint8_t* buffer)
 
   m_ActualIGMode = ConvertToIGMode33(static_cast<CIGI::V33::SoF::IGMode>(startOfFramePacket.igMode));
   m_LastReceivedIGFrame = FrameNumber(startOfFramePacket.igFrameNumber);
-  DatabaseID databaseID = DatabaseID(startOfFramePacket.dbNumber);
 
   HostCigiStartOfFrameEventArgs startOfFrameArgs;
   startOfFrameArgs.startOfFrame.eVersion = ECigiVersion::VERSION_3_3;
@@ -121,44 +121,12 @@ void CHostSessionV3_3::ParseStartOfFramePacket(uint8_t* buffer)
   startOfFrameArgs.startOfFrame.bTimestampValid = startOfFramePacket.timestampValid != 0;
   startOfFrameArgs.startOfFrame.bEarthReferenceModel = startOfFramePacket.earthReferenceModel != 0;
   startOfFrameArgs.startOfFrame.igFrameNumber = m_LastReceivedIGFrame;
-  startOfFrameArgs.startOfFrame.microseconds = Microsecond(startOfFramePacket.timestamp);
+  startOfFrameArgs.startOfFrame.microseconds = Microsecond(static_cast<uint64_t>(startOfFramePacket.timestamp) * 10);
   startOfFrameArgs.startOfFrame.lastHostFrameNumber = FrameNumber(startOfFramePacket.lastHostFrameNumber);
-  Event::Raise<HostCigiEvent>(startOfFrameArgs);
+  RaiseSessionEvent(startOfFrameArgs);
 
+  UpdateDatabaseState(CigiDatabaseNumber(startOfFramePacket.dbNumber));
   NotifyStartOfFrameReceived();
-
-  // handle IG-controlled database
-  if (hostSetupOptions.bDatabaseIGControlled)
-  {
-    m_eDatabaseState = EHostSessionDatabaseState::IG_CONTROLLED;
-  }
-
-  if (m_DesiredIGMode == EIGMode::OPERATE)
-  {
-    if (!hostSetupOptions.bDatabaseIGControlled)
-    {
-      if (startOfFramePacket.dbNumber == -128)
-      {
-        // If the Host requests a database that does not exist or fails to load, the IG shall set this parameter to -128.
-      }
-      else if (startOfFramePacket.dbNumber >= -127 && startOfFramePacket.dbNumber < 0)
-      {
-        // IG is loading database
-        m_eDatabaseState = EHostSessionDatabaseState::LOADING_ACKNOWLEDGED;
-      }
-      else if (startOfFramePacket.dbNumber > 0)
-      {
-        if (m_eDatabaseState != EHostSessionDatabaseState::LOADED)
-        {
-          m_eDatabaseState = EHostSessionDatabaseState::LOADED;
-
-          HostCigiDatabaseLoadedEventArgs args;
-          args.eDatabaseID = databaseID;
-          Event::Raise<HostCigiEvent>(args);
-        }
-      }
-    }
-  }
 }
 
 void CHostSessionV3_3::ParseHatHotResponsePacket(uint8_t* buffer)
@@ -178,7 +146,7 @@ void CHostSessionV3_3::ParseHatHotResponsePacket(uint8_t* buffer)
                     << "Response Type: " << ((hatHotResponsePacket.responseType == CIGI::V32::HATHOTResponse::eResponseType_HAT) ? "HAT" : "HOT") << "\n"
                     << "Host Frame Number LSN: " << std::to_string(hatHotResponsePacket.hostFrameNumberLSN) << "\n"
                     << "Height: " << std::to_string(hatHotResponsePacket.height);
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   if (hatHotResponsePacket.responseType == CIGI::V32::HATHOTResponse::eResponseType_HAT)
   {
@@ -187,7 +155,7 @@ void CHostSessionV3_3::ParseHatHotResponsePacket(uint8_t* buffer)
     hatArgs.hatResponse.hostFrameLSN = hatHotResponsePacket.hostFrameNumberLSN;
     hatArgs.hatResponse.HATHOTID = HATHOTID(hatHotResponsePacket.HATHOTId);
     hatArgs.hatResponse.heightAboveTerrain = hatHotResponsePacket.height;
-    Event::Raise<HostCigiEvent>(hatArgs);
+    RaiseSessionEvent(hatArgs);
   }
   else
   {
@@ -196,7 +164,7 @@ void CHostSessionV3_3::ParseHatHotResponsePacket(uint8_t* buffer)
     hotArgs.hotResponse.hostFrameLSN = hatHotResponsePacket.hostFrameNumberLSN;
     hotArgs.hotResponse.HATHOTID = HATHOTID(hatHotResponsePacket.HATHOTId);
     hotArgs.hotResponse.heightOfTerrain = HeightRelativeToWGS84Ellipsoid(hatHotResponsePacket.height);
-    Event::Raise<HostCigiEvent>(hotArgs);
+    RaiseSessionEvent(hotArgs);
   }
 }
 
@@ -206,33 +174,40 @@ void CHostSessionV3_3::SendEntityControl(const sbio::cigi::SEntityControl& entit
   {
     HostCigiErrorEventArgs args;
     args.sError = "CIGI 3.3 entity control only supports short entity types.";
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
     return;
   }
 
-  STopLevelEntityPosition topLevelEntityPosition;
-  topLevelEntityPosition.entityID = entityControl.entityID;
-  topLevelEntityPosition.bAttached = entityControl.bHasParent;
-  topLevelEntityPosition.eClamp = EClamp::NONE;
-
-  if (entityControl.bHasParent)
+  try
   {
-    SChildEntityPosition childEntityPosition;
-    childEntityPosition.entityID = entityControl.entityID;
-    childEntityPosition.bAttached = true;
-    childEntityPosition.parentID = entityControl.parentID;
+    CIGI::V33::EntityCtrl entityCtrl;
+    const auto it = m_Entities.find(entityControl.entityID);
+    if (it != m_Entities.end())
+    {
+      entityCtrl = it->second;
+    }
+    else
+    {
+      entityCtrl.animationLoopMode = false;
+    }
 
-    SCigiAnimationControl animationControl;
-    animationControl.entityID = entityControl.entityID;
-
-    SendChildEntityControl(entityControl, childEntityPosition, animationControl);
-    return;
+    entityCtrl.entityId = entityControl.entityID.Value();
+    entityCtrl.entityState = ConvertToEntityState(entityControl.eState);
+    entityCtrl.attachState = entityControl.bHasParent ? CIGI::V33::EntityCtrl::eAttachState_Attached : CIGI::V33::EntityCtrl::eAttachState_Detached;
+    entityCtrl.parentId = entityControl.parentID.Value();
+    entityCtrl.entityType = entityControl.shortEntityTypeID.Value();
+    entityCtrl.collisionReportEnable = entityControl.bCollisionReportingEnabled;
+    entityCtrl.inheritAlpha = entityControl.bInheritAlpha;
+    entityCtrl.extrapolationEnable = entityControl.bSmoothingEnabled;
+    entityCtrl.alpha = entityControl.alpha;
+    SendEntityControlPacket(entityCtrl);
   }
-
-  SCigiAnimationControl animationControl;
-  animationControl.entityID = entityControl.entityID;
-
-  SendTopLevelEntityControl(entityControl, topLevelEntityPosition, animationControl);
+  catch (const std::exception& ex)
+  {
+    HostCigiErrorEventArgs args;
+    args.sError = ex.what();
+    RaiseSessionEvent(args);
+  }
 }
 
 void CHostSessionV3_3::ParseHatHotExtendedResponsePacket(uint8_t* buffer)
@@ -255,7 +230,7 @@ void CHostSessionV3_3::ParseHatHotExtendedResponsePacket(uint8_t* buffer)
                        << "Material Code: " << std::to_string(hatHotExtendedResponsePacket.materialCode) << "\n"
                        << "Normal Vector Azimuth: " << std::to_string(hatHotExtendedResponsePacket.normalVectorAzimuth) << "\n"
                        << "Normal Vector Elevation: " << std::to_string(hatHotExtendedResponsePacket.normalVectorElevation);
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   HostCigiHatHotExtendedResponseEventArgs hatHotArgs;
   hatHotArgs.hatHotExtendedResponse.bValid = hatHotExtendedResponsePacket.valid != 0;
@@ -266,7 +241,7 @@ void CHostSessionV3_3::ParseHatHotExtendedResponsePacket(uint8_t* buffer)
   hatHotArgs.hatHotExtendedResponse.materialCode = MaterialID(hatHotExtendedResponsePacket.materialCode);
   hatHotArgs.hatHotExtendedResponse.normalVectorAzimuth = Degrees180(hatHotExtendedResponsePacket.normalVectorAzimuth);
   hatHotArgs.hatHotExtendedResponse.normalVectorElevation = Degrees90(hatHotExtendedResponsePacket.normalVectorElevation);
-  Event::Raise<HostCigiEvent>(hatHotArgs);
+  RaiseSessionEvent(hatHotArgs);
 }
 
 void CHostSessionV3_3::ParseLineOfSightResponsePacket(uint8_t* buffer)
@@ -289,7 +264,7 @@ void CHostSessionV3_3::ParseLineOfSightResponsePacket(uint8_t* buffer)
                        << "Host Frame Number LSN: " << std::to_string(lineOfSightResponsePacket.hostFrameNumberLSN) << "\n"
                        << "Response Count: " << std::to_string(lineOfSightResponsePacket.responseCount) << "\n"
                        << "Range: " << std::to_string(lineOfSightResponsePacket.range) << "\n";
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   if (lineOfSightResponsePacket.entityIdValid)
   {
@@ -301,7 +276,7 @@ void CHostSessionV3_3::ParseLineOfSightResponsePacket(uint8_t* buffer)
     lineOfSightArgs.lineOfSightEntityResponse.hostFrameLSN = lineOfSightResponsePacket.hostFrameNumberLSN;
     lineOfSightArgs.lineOfSightEntityResponse.responseCount = lineOfSightResponsePacket.responseCount;
     lineOfSightArgs.lineOfSightEntityResponse.dRange = lineOfSightResponsePacket.range;
-    Event::Raise<HostCigiEvent>(lineOfSightArgs);
+    RaiseSessionEvent(lineOfSightArgs);
   }
   else
   {
@@ -311,7 +286,7 @@ void CHostSessionV3_3::ParseLineOfSightResponsePacket(uint8_t* buffer)
     lineOfSightArgs.lineOfSightResponse.hostFrameLSN = lineOfSightResponsePacket.hostFrameNumberLSN;
     lineOfSightArgs.lineOfSightResponse.responseCount = lineOfSightResponsePacket.responseCount;
     lineOfSightArgs.lineOfSightResponse.dRange = lineOfSightResponsePacket.range;
-    Event::Raise<HostCigiEvent>(lineOfSightArgs);
+    RaiseSessionEvent(lineOfSightArgs);
   }
 }
 
@@ -330,7 +305,10 @@ void CHostSessionV3_3::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
 
   if (eResponseCoordinateSystem == ETopLevelCoordinateSystem::UNKNOWN)
   {
-    g_HostCigiLibGlobals.pLogger->LogWarning("Received Line of Sight Extended Response with unknown requested coordinate system.");
+    if (g_HostCigiLibGlobals.pLogger != nullptr)
+    {
+      g_HostCigiLibGlobals.pLogger->LogWarning("Received Line of Sight Extended Response with unknown requested coordinate system.");
+    }
     return;
   }
 
@@ -368,7 +346,7 @@ void CHostSessionV3_3::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
                        << "Material Code: " << std::to_string(lineOfSightExtendedResponsePacket.materialCode) << "\n"
                        << "Normal Vector Azimuth: " << std::to_string(lineOfSightExtendedResponsePacket.normalVectorAzimuth) << "\n"
                        << "Normal Vector Elevation: " << std::to_string(lineOfSightExtendedResponsePacket.normalVectorElevation) << "\n";
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   if (lineOfSightExtendedResponsePacket.entityIdValid != 0)
   {
@@ -388,13 +366,14 @@ void CHostSessionV3_3::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.fNormalVectorElevation = lineOfSightExtendedResponsePacket.normalVectorElevation;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.latitude = Latitude(lineOfSightExtendedResponsePacket.latitudeXOffset);
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.longitude = Longitude(lineOfSightExtendedResponsePacket.longitudeYOffset);
-      lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(lineOfSightExtendedResponsePacket.altitudeZOffset);
+      lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.altitude =
+        HeightRelativeToWGS84Ellipsoid(lineOfSightExtendedResponsePacket.altitudeZOffset);
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor = sbio::SColor32();
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.r = lineOfSightExtendedResponsePacket.red;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-      Event::Raise<HostCigiEvent>(lineOfSightArgs);
+      RaiseSessionEvent(lineOfSightArgs);
     }
     else
     {
@@ -418,7 +397,7 @@ void CHostSessionV3_3::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-      Event::Raise<HostCigiEvent>(lineOfSightArgs);
+      RaiseSessionEvent(lineOfSightArgs);
     }
   }
   else
@@ -438,13 +417,14 @@ void CHostSessionV3_3::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.fNormalVectorElevation = lineOfSightExtendedResponsePacket.normalVectorElevation;
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.geodeticCoordinates.latitude = Latitude(lineOfSightExtendedResponsePacket.latitudeXOffset);
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.geodeticCoordinates.longitude = Longitude(lineOfSightExtendedResponsePacket.longitudeYOffset);
-      lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(lineOfSightExtendedResponsePacket.altitudeZOffset);
+      lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.geodeticCoordinates.altitude =
+        HeightRelativeToWGS84Ellipsoid(lineOfSightExtendedResponsePacket.altitudeZOffset);
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor = sbio::SColor32();
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.r = lineOfSightExtendedResponsePacket.red;
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
       lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-      Event::Raise<HostCigiEvent>(lineOfSightArgs);
+      RaiseSessionEvent(lineOfSightArgs);
     }
     else
     {
@@ -468,7 +448,7 @@ void CHostSessionV3_3::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-      Event::Raise<HostCigiEvent>(lineOfSightArgs);
+      RaiseSessionEvent(lineOfSightArgs);
     }
   }
 }
@@ -527,7 +507,7 @@ void CHostSessionV3_3::ParseSensorResponsePacket(uint8_t* buffer)
                     << "Gate X Position: " << std::to_string(sensorResponsePacket.gateXPosition) << "\n"
                     << "Gate Y Position: " << std::to_string(sensorResponsePacket.gateYPosition) << "\n"
                     << "Host Frame Number: " << std::to_string(sensorResponsePacket.hostFrameCounter);
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiSensorResponseEventArgs sensorArgs;
   sensorArgs.sensorResponse.sensorID = SensorID(sensorResponsePacket.sensorId);
@@ -538,7 +518,7 @@ void CHostSessionV3_3::ParseSensorResponsePacket(uint8_t* buffer)
   sensorArgs.sensorResponse.gatePosition[1] = sensorResponsePacket.gateYPosition;
   sensorArgs.sensorResponse.hostFrameNumber = FrameNumber(sensorResponsePacket.hostFrameCounter);
   sensorArgs.sensorResponse.eSensorStatus = ConvertSensorStatusV32(sensorResponsePacket.sensorStatus);
-  Event::Raise<HostCigiEvent>(sensorArgs);
+  RaiseSessionEvent(sensorArgs);
 }
 
 void CHostSessionV3_3::ParseSensorExtendedResponsePacket(uint8_t* buffer)
@@ -566,7 +546,7 @@ void CHostSessionV3_3::ParseSensorExtendedResponsePacket(uint8_t* buffer)
                     << "Track Point Latitude: " << std::to_string(sensorExtendedResponsePacket.trackPointLatitude) << "\n"
                     << "Track Point Longitude: " << std::to_string(sensorExtendedResponsePacket.trackPointLongitude) << "\n"
                     << "Track Point Altitude: " << std::to_string(sensorExtendedResponsePacket.trackPointAltitude);
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   if (sensorExtendedResponsePacket.entityIdValid)
   {
@@ -583,7 +563,7 @@ void CHostSessionV3_3::ParseSensorExtendedResponsePacket(uint8_t* buffer)
     sensorArgs.sensorExtendedEntityResponse.trackPoint.longitude = Longitude(sensorExtendedResponsePacket.trackPointLongitude);
     sensorArgs.sensorExtendedEntityResponse.trackPoint.altitude = HeightRelativeToWGS84Ellipsoid(sensorExtendedResponsePacket.trackPointAltitude);
     sensorArgs.sensorExtendedEntityResponse.eSensorStatus = ConvertSensorStatusV32(sensorExtendedResponsePacket.sensorStatus);
-    Event::Raise<HostCigiEvent>(sensorArgs);
+    RaiseSessionEvent(sensorArgs);
   }
   else
   {
@@ -599,7 +579,7 @@ void CHostSessionV3_3::ParseSensorExtendedResponsePacket(uint8_t* buffer)
     sensorArgs.sensorExtendedResponse.trackPoint.longitude = Longitude(sensorExtendedResponsePacket.trackPointLongitude);
     sensorArgs.sensorExtendedResponse.trackPoint.altitude = HeightRelativeToWGS84Ellipsoid(sensorExtendedResponsePacket.trackPointAltitude);
     sensorArgs.sensorExtendedResponse.eSensorStatus = ConvertSensorStatusV32(sensorExtendedResponsePacket.sensorStatus);
-    Event::Raise<HostCigiEvent>(sensorArgs);
+    RaiseSessionEvent(sensorArgs);
   }
 }
 
@@ -693,7 +673,7 @@ void CHostSessionV3_3::ParsePositionResponsePacket(uint8_t* buffer)
     args.sDataMessage << "Roll: " << std::to_string(positionResponsePacket.roll) << "\n"
                       << "Pitch: " << std::to_string(positionResponsePacket.pitch) << "\n"
                       << "Yaw: " << std::to_string(positionResponsePacket.yaw);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 
   if (eCoordinateSystem == CIGI::V30::PositionResponse::CoordinateSystem::eCoordinateSystem_Geodetic)
@@ -704,13 +684,14 @@ void CHostSessionV3_3::ParsePositionResponsePacket(uint8_t* buffer)
     positionResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(positionResponsePacket.altitudeZOffset);
     positionResponse.eObjectClass = ConvertPositionObjectClassV30(eObjectClass);
     positionResponse.objectID = positionResponsePacket.objectId;
-    positionResponse.rotation.roll = Degrees(positionResponsePacket.roll);
-    positionResponse.rotation.pitch = Degrees(positionResponsePacket.pitch);
+    positionResponse.articulatedPartID = ArticulatedPartID(positionResponsePacket.articulatedPartId);
+    positionResponse.rotation.roll = Degrees180(positionResponsePacket.roll);
+    positionResponse.rotation.pitch = Degrees90(positionResponsePacket.pitch);
     positionResponse.rotation.yaw = Degrees(positionResponsePacket.yaw);
 
     HostCigiPositionResponseEventArgs args(positionResponse);
     args.ePositionResponseType = EPositionResponseType::GEODETIC;
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
   else if (eCoordinateSystem == CIGI::V30::PositionResponse::CoordinateSystem::eCoordinateSystem_ParentEntity)
   {
@@ -720,13 +701,14 @@ void CHostSessionV3_3::ParsePositionResponsePacket(uint8_t* buffer)
     positionResponse.offset[2] = positionResponsePacket.altitudeZOffset;
     positionResponse.eObjectClass = ConvertPositionObjectClassV30(eObjectClass);
     positionResponse.objectID = positionResponsePacket.objectId;
-    positionResponse.rotation.roll = Degrees(positionResponsePacket.roll);
-    positionResponse.rotation.pitch = Degrees(positionResponsePacket.pitch);
+    positionResponse.articulatedPartID = ArticulatedPartID(positionResponsePacket.articulatedPartId);
+    positionResponse.rotation.roll = Degrees180(positionResponsePacket.roll);
+    positionResponse.rotation.pitch = Degrees90(positionResponsePacket.pitch);
     positionResponse.rotation.yaw = Degrees(positionResponsePacket.yaw);
 
     HostCigiPositionResponseEventArgs args(positionResponse);
     args.ePositionResponseType = EPositionResponseType::PARENT;
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
   else if (eCoordinateSystem == CIGI::V30::PositionResponse::CoordinateSystem::eCoordinateSystem_Submodel)
   {
@@ -737,13 +719,13 @@ void CHostSessionV3_3::ParsePositionResponsePacket(uint8_t* buffer)
     positionResponse.articulatedPartID = ArticulatedPartID(positionResponsePacket.articulatedPartId);
     positionResponse.eObjectClass = ConvertPositionObjectClassV30(eObjectClass);
     positionResponse.objectID = positionResponsePacket.objectId;
-    positionResponse.rotation.roll = Degrees(positionResponsePacket.roll);
-    positionResponse.rotation.pitch = Degrees(positionResponsePacket.pitch);
+    positionResponse.rotation.roll = Degrees180(positionResponsePacket.roll);
+    positionResponse.rotation.pitch = Degrees90(positionResponsePacket.pitch);
     positionResponse.rotation.yaw = Degrees(positionResponsePacket.yaw);
 
     HostCigiPositionResponseEventArgs args(positionResponse);
     args.ePositionResponseType = EPositionResponseType::ARTICULATED;
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -767,7 +749,7 @@ void CHostSessionV3_3::ParseWeatherConditionsResponsePacket(uint8_t* buffer)
                     << "Vertical Wind Speed: " << std::to_string(weatherConditionsResponsePacket.verticalWindSpeed) << "\n"
                     << "Wind Direction: " << std::to_string(weatherConditionsResponsePacket.windDirection) << "\n"
                     << "Barometric Pressure: " << std::to_string(weatherConditionsResponsePacket.barometricPressure);
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiWeatherConditionsResponseEventArgs responseArgs;
   responseArgs.weatherConditionsResponse.requestID = weatherConditionsResponsePacket.requestId;
@@ -778,7 +760,7 @@ void CHostSessionV3_3::ParseWeatherConditionsResponsePacket(uint8_t* buffer)
   responseArgs.weatherConditionsResponse.windSpeedHorVer.verticalWindSpeed = weatherConditionsResponsePacket.verticalWindSpeed;
   responseArgs.weatherConditionsResponse.fWindDirection = weatherConditionsResponsePacket.windDirection;
   responseArgs.weatherConditionsResponse.fBarometricPressure = weatherConditionsResponsePacket.barometricPressure;
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV3_3::ParseAerosolConcentrationResponsePacket(uint8_t* buffer)
@@ -796,13 +778,13 @@ void CHostSessionV3_3::ParseAerosolConcentrationResponsePacket(uint8_t* buffer)
                     << "Request ID: " << std::to_string(aerosolConcentrationResponsePacket.requestId) << "\n"
                     << "Layer ID: " << std::to_string(aerosolConcentrationResponsePacket.layerId) << "\n"
                     << "Aerosol Concentration: " << std::to_string(aerosolConcentrationResponsePacket.aerosolConcentration);
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiAerosolConcentrationResponseEventArgs responseArgs;
   responseArgs.aerosolConcentrationResponse.requestID = aerosolConcentrationResponsePacket.requestId;
   responseArgs.aerosolConcentrationResponse.layerID = aerosolConcentrationResponsePacket.layerId;
   responseArgs.aerosolConcentrationResponse.fAerosolConcentration = aerosolConcentrationResponsePacket.aerosolConcentration;
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV3_3::ParseMaritimeSurfaceConditionsResponsePacket(uint8_t* buffer)
@@ -821,14 +803,14 @@ void CHostSessionV3_3::ParseMaritimeSurfaceConditionsResponsePacket(uint8_t* buf
                     << "Sea Surface Height: " << std::to_string(maritimeSurfaceConditionsResponsePacket.seaSurfaceHeight) << "\n"
                     << "Surface Water Temperature: " << std::to_string(maritimeSurfaceConditionsResponsePacket.surfaceWaterTemperature) << "\n"
                     << "Surface Clarity: " << std::to_string(maritimeSurfaceConditionsResponsePacket.surfaceClarity) << "%";
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiMaritimeSurfaceConditionsResponseEventArgs responseArgs;
   responseArgs.maritimeSurfaceConditionsResponse.requestID = maritimeSurfaceConditionsResponsePacket.requestId;
   responseArgs.maritimeSurfaceConditionsResponse.fSeaSurfaceHeight = HeightRelativeToWGS84Ellipsoid(maritimeSurfaceConditionsResponsePacket.seaSurfaceHeight);
   responseArgs.maritimeSurfaceConditionsResponse.fSurfaceWaterTemperature = TemperatureCelsius(maritimeSurfaceConditionsResponsePacket.surfaceWaterTemperature);
   responseArgs.maritimeSurfaceConditionsResponse.surfaceClarity = Percentage(maritimeSurfaceConditionsResponsePacket.surfaceClarity / 100.0f);
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV3_3::ParseTerrestrialSurfaceConditionsResponsePacket(uint8_t* buffer)
@@ -845,12 +827,12 @@ void CHostSessionV3_3::ParseTerrestrialSurfaceConditionsResponsePacket(uint8_t* 
   args.sDataMessage << "Received: " << GetCigiOpCodeName(ECigiOpCodeV3::TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE) << "\n"
                     << "Request ID: " << std::to_string(terrestrialSurfaceConditionsResponsePacket.requestId) << "\n"
                     << "Surface Condition ID: " << std::to_string(terrestrialSurfaceConditionsResponsePacket.surfaceConditionId) << "\n";
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiTerrestrialSurfaceConditionsResponseEventArgs responseArgs;
   responseArgs.terrestrialSurfaceConditionsResponse.requestID = terrestrialSurfaceConditionsResponsePacket.requestId;
   responseArgs.terrestrialSurfaceConditionsResponse.surfaceConditionID = terrestrialSurfaceConditionsResponsePacket.surfaceConditionId;
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV3_3::ParseCollisionDetectionSegmentNotificationPacket(uint8_t* buffer)
@@ -878,7 +860,7 @@ void CHostSessionV3_3::ParseCollisionDetectionSegmentNotificationPacket(uint8_t*
   }
   msgArgs.sDataMessage << "Material Code: " << std::to_string(collisionDetectionSegmentNotificationPacket.materialCode) << "\n"
                        << "Intersection Distance: " << std::to_string(collisionDetectionSegmentNotificationPacket.intersectionDistance);
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   if (collisionDetectionSegmentNotificationPacket.collisionType == 0)
   {
@@ -887,7 +869,7 @@ void CHostSessionV3_3::ParseCollisionDetectionSegmentNotificationPacket(uint8_t*
     collisionSegmentArgs.collisionDetectionSegmentNotification.segmentID = SegmentID(collisionDetectionSegmentNotificationPacket.segmentId);
     collisionSegmentArgs.collisionDetectionSegmentNotification.fIntersectionDistance = collisionDetectionSegmentNotificationPacket.intersectionDistance;
     collisionSegmentArgs.collisionDetectionSegmentNotification.materialCode = MaterialID(collisionDetectionSegmentNotificationPacket.materialCode);
-    Event::Raise<HostCigiEvent>(collisionSegmentArgs);
+    RaiseSessionEvent(collisionSegmentArgs);
   }
   else if (collisionDetectionSegmentNotificationPacket.collisionType == 1)
   {
@@ -897,7 +879,7 @@ void CHostSessionV3_3::ParseCollisionDetectionSegmentNotificationPacket(uint8_t*
     collisionSegmentArgs.collisionDetectionSegmentEntityNotification.fIntersectionDistance = collisionDetectionSegmentNotificationPacket.intersectionDistance;
     collisionSegmentArgs.collisionDetectionSegmentEntityNotification.materialCode = MaterialID(collisionDetectionSegmentNotificationPacket.materialCode);
     collisionSegmentArgs.collisionDetectionSegmentEntityNotification.contactedEntityID = EntityID(collisionDetectionSegmentNotificationPacket.contactedEntityId);
-    Event::Raise<HostCigiEvent>(collisionSegmentArgs);
+    RaiseSessionEvent(collisionSegmentArgs);
   }
 }
 
@@ -925,7 +907,7 @@ void CHostSessionV3_3::ParseCollisionDetectionVolumeNotificationPacket(uint8_t* 
     msgArgs.sDataMessage << "Collision Type: Entity\n";
   }
   msgArgs.sDataMessage << "Contacted Volume ID: " << std::to_string(collisionDetectionVolumeNotificationPacket.contactedVolumeId);
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   if (collisionDetectionVolumeNotificationPacket.collisionType == 0)
   {
@@ -933,7 +915,7 @@ void CHostSessionV3_3::ParseCollisionDetectionVolumeNotificationPacket(uint8_t* 
     collisionVolumeArgs.collisionDetectionVolumeNotification.entityID = EntityID(collisionDetectionVolumeNotificationPacket.entityId);
     collisionVolumeArgs.collisionDetectionVolumeNotification.volumeID = VolumeID(collisionDetectionVolumeNotificationPacket.volumeId);
     collisionVolumeArgs.collisionDetectionVolumeNotification.contactedVolumeID = VolumeID(collisionDetectionVolumeNotificationPacket.contactedVolumeId);
-    Event::Raise<HostCigiEvent>(collisionVolumeArgs);
+    RaiseSessionEvent(collisionVolumeArgs);
   }
   else if (collisionDetectionVolumeNotificationPacket.collisionType == 1)
   {
@@ -942,7 +924,7 @@ void CHostSessionV3_3::ParseCollisionDetectionVolumeNotificationPacket(uint8_t* 
     collisionVolumeArgs.collisionDetectionVolumeEntityNotification.volumeID = VolumeID(collisionDetectionVolumeNotificationPacket.volumeId);
     collisionVolumeArgs.collisionDetectionVolumeEntityNotification.contactedEntityID = EntityID(collisionDetectionVolumeNotificationPacket.contactedEntityId);
     collisionVolumeArgs.collisionDetectionVolumeEntityNotification.contactedVolumeID = VolumeID(collisionDetectionVolumeNotificationPacket.contactedVolumeId);
-    Event::Raise<HostCigiEvent>(collisionVolumeArgs);
+    RaiseSessionEvent(collisionVolumeArgs);
   }
 }
 
@@ -959,11 +941,11 @@ void CHostSessionV3_3::ParseAnimationStopNotificationPacket(uint8_t* buffer)
   HostCigiDataMessageEventArgs args;
   args.sDataMessage << "Received: " << GetCigiOpCodeName(ECigiOpCodeV3::ANIMATION_STOP_NOTIFICATION) << "\n"
                     << "Entity ID: " << std::to_string(animationStopNotificationPacket.entityId);
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiAnimationStopNotificationEventArgs animationArgs;
   animationArgs.animationStopNotification.entityID = EntityID(animationStopNotificationPacket.entityId);
-  Event::Raise<HostCigiEvent>(animationArgs);
+  RaiseSessionEvent(animationArgs);
 }
 
 void CHostSessionV3_3::ParseEventNotificationPacket(uint8_t* buffer)
@@ -981,7 +963,7 @@ void CHostSessionV3_3::ParseEventNotificationPacket(uint8_t* buffer)
   eventArgs.eventData[0] = eventNotificationPacket.eventData1;
   eventArgs.eventData[1] = eventNotificationPacket.eventData2;
   eventArgs.eventData[2] = eventNotificationPacket.eventData3;
-  Event::Raise<HostCigiEvent>(eventArgs);
+  RaiseSessionEvent(eventArgs);
 }
 
 void CHostSessionV3_3::ParseImageGeneratorMessagePacket(uint8_t* buffer)
@@ -1006,7 +988,7 @@ void CHostSessionV3_3::ParseImageGeneratorMessagePacket(uint8_t* buffer)
   args.sDataMessage << "Received: " << GetCigiOpCodeName(ECigiOpCodeV3::IMAGE_GENERATOR_MESSAGE);
   args.sDataMessage << "\nImage Generator Message ID " << imageGeneratorMessagePacket.messageId;
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiImageGeneratorMessageEventArgs messageArgs;
   messageArgs.messageID = imageGeneratorMessagePacket.messageId;
@@ -1015,7 +997,7 @@ void CHostSessionV3_3::ParseImageGeneratorMessagePacket(uint8_t* buffer)
   {
     messageArgs.sMessage.assign(reinterpret_cast<const char*>(buffer) + CIGI::V33::IGMessage::kBasePacketSize, nMessageLength);
   }
-  Event::Raise<HostCigiEvent>(messageArgs);
+  RaiseSessionEvent(messageArgs);
 }
 
 int CHostSessionV3_3::ProcessPacket(uint8_t* buffer, int nRemainingBytes)
@@ -1040,7 +1022,7 @@ int CHostSessionV3_3::ProcessPacket(uint8_t* buffer, int nRemainingBytes)
     HostCigiMessageEventArgs args;
     args.sMessage = "Received ";
     args.sMessage += GetCigiOpCodeName(packetHeader.eOpCode);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
   else
   {
@@ -1049,11 +1031,12 @@ int CHostSessionV3_3::ProcessPacket(uint8_t* buffer, int nRemainingBytes)
     {
       HostCigiErrorEventArgs args;
       args.sError = "Received undersized " + GetCigiOpCodeName(packetHeader.eOpCode) + " packet.";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
       return packetHeader.nPacketSize;
     }
 
     auto pFunction = itFunction->second;
+    m_bValidPacketReceived = true;
     (this->*pFunction)(buffer);
   }
 
@@ -1125,6 +1108,12 @@ void CHostSessionV3_3::Reset()
 {
   CHostSession::Reset();
 
+  m_IGControl = CIGI::V33::IGCtrl();
+}
+
+void CHostSessionV3_3::ClearSessionData()
+{
+  CHostSession::ClearSessionData();
   m_Entities.clear();
 }
 
@@ -1134,8 +1123,7 @@ void CHostSessionV3_3::SendIGControl(uint8_t*& pBuffer)
   {
     m_IGControl.hostFrameNumber = m_HostFrameNumber.Value();
     m_IGControl.lastIGFrameNumber = m_LastReceivedIGFrame.Value();
-    m_IGControl.timestamp = 0;
-    m_IGControl.timestampValid = true;
+    m_IGControl.timestampValid = GetHostTimestamp(m_IGControl.timestamp);
     m_IGControl.byteSwapMagicNumber = m_bByteSwap ? CIGI::V33::IGCtrl::kByteSwap : CIGI::V33::IGCtrl::kNoByteSwap;
 
     if (m_eDatabaseState == EHostSessionDatabaseState::NO_DATABASE)
@@ -1173,7 +1161,7 @@ void CHostSessionV3_3::SendIGControl(uint8_t*& pBuffer)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1217,7 +1205,7 @@ void CHostSessionV3_3::SendArticulatedPartControl(const sbio::cigi::SCigiArticul
                         << "Roll: " << std::to_string(articulatedPartControl.rotation.fRoll.Value()) << "\n"
                         << "Pitch: " << std::to_string(articulatedPartControl.rotation.fPitch.Value()) << "\n"
                         << "Yaw: " << std::to_string(articulatedPartControl.rotation.fYaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -1231,7 +1219,7 @@ void CHostSessionV3_3::SendArticulatedPartControl(const sbio::cigi::SCigiArticul
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1259,7 +1247,7 @@ void CHostSessionV3_3::SendTrajectoryDefinition(const sbio::cigi::SCigiEntityAcc
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1289,7 +1277,7 @@ void CHostSessionV3_3::SendAtmosphereControl(const sbio::cigi::SCigiAtmosphereCo
                         << "Global Vertical Wind Speed: " << std::to_string(atmosphereControl.fGlobalVerticalWindSpeed) << "\n"
                         << "Global Wind Direction: " << std::to_string(atmosphereControl.globalWindDirection.Value()) << "\n"
                         << "Global Barometric Pressure: " << std::to_string(atmosphereControl.fGlobalHorizontalWindSpeed);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -1303,7 +1291,7 @@ void CHostSessionV3_3::SendAtmosphereControl(const sbio::cigi::SCigiAtmosphereCo
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1337,7 +1325,7 @@ void CHostSessionV3_3::SendCelestialSphereControl(const sbio::cigi::SCigiCelesti
                         << "Month: " << std::to_string(ConvertToCigiMonth(celestialSphereControl.month).Value()) << "\n"
                         << "Day: " << std::to_string(celestialSphereControl.day.Value()) << "\n"
                         << "Star Field Intensity: " << std::to_string(ConvertToCigiFloatPercentage(celestialSphereControl.starFieldIntensity).Value()) << "%" << "\n";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -1351,7 +1339,7 @@ void CHostSessionV3_3::SendCelestialSphereControl(const sbio::cigi::SCigiCelesti
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1359,65 +1347,34 @@ void CHostSessionV3_3::SendChildEntityPosition(const sbio::cigi::SChildEntityPos
 {
   try
   {
-    SEntityControl entityControl;
-
     auto it = m_Entities.find(childEntityPosition.entityID);
     if (it == m_Entities.end())
     {
       return;
     }
-    else
-    {
-      entityControl = it->second;
-    }
 
-    CIGI::V33::EntityCtrl entityCtrl;
-    entityCtrl.entityId = entityControl.entityID.Value();
-    entityCtrl.entityState = ConvertToEntityState(entityControl.eState);
-    entityCtrl.attachState = ((entityControl.bHasParent) ? CIGI::V33::EntityCtrl::AttachState::eAttachState_Attached : CIGI::V33::EntityCtrl::AttachState::eAttachState_Detached);
-    entityCtrl.collisionReportEnable = entityControl.bCollisionReportingEnabled;
-    entityCtrl.inheritAlpha = entityControl.bInheritAlpha;
-
-    // need to setup: Ground/Ocean Clamp, Animation Direction, Animation Loop Mode, and Animation State
-    // entityCtrl.SetGrndClamp();
-    // entityCtrl.SetAnimationDir();
-    // entityCtrl.SetAnimationLoopMode();
-    // entityCtrl.SetAnimationState();
-
-    // Smoothing is te same as Linear Extrapolation/Interpolation Enable
-    entityCtrl.extrapolationEnable = entityControl.bSmoothingEnabled;
-    entityCtrl.alpha = entityControl.alpha;
-
-    // For Entity type Extended and short do not exist it is just a uint16_t
-    entityCtrl.entityType = entityControl.shortEntityTypeID.Value();
-
-    entityCtrl.parentId = entityControl.parentID.Value();
+    CIGI::V33::EntityCtrl entityCtrl = it->second;
+    entityCtrl.attachState = childEntityPosition.bAttached ? CIGI::V33::EntityCtrl::eAttachState_Attached : CIGI::V33::EntityCtrl::eAttachState_Detached;
+    entityCtrl.parentId = childEntityPosition.parentID.Value();
+    entityCtrl.groundOceanClamp = CIGI::V33::EntityCtrl::eGroundClamp_NoClamp;
 
     // Roll, Pitch, Yaw
     entityCtrl.roll = static_cast<float>(childEntityPosition.rotation.roll.Value());
     entityCtrl.pitch = static_cast<float>(childEntityPosition.rotation.pitch.Value());
     entityCtrl.yaw = static_cast<float>(childEntityPosition.rotation.yaw.Value());
 
-    if (entityControl.bHasParent)
-    {
-      entityCtrl.latitudeXOffset = childEntityPosition.offset[0];
-      entityCtrl.longitudeYOffset = childEntityPosition.offset[1];
-      entityCtrl.altitudeZOffset = childEntityPosition.offset[2];
-    }
+    entityCtrl.latitudeXOffset = childEntityPosition.offset[0];
+    entityCtrl.longitudeYOffset = childEntityPosition.offset[1];
+    entityCtrl.altitudeZOffset = childEntityPosition.offset[2];
 
-    if (m_bByteSwap)
-    {
-      entityCtrl.doByteSwapping();
-    }
-
-    Pack(&entityCtrl, sizeof(CIGI::V33::EntityCtrl));
+    SendEntityControlPacket(entityCtrl);
   }
   catch (const std::exception& ex)
   {
     std::cout << "Error sending Entity Control packet" << std::endl;
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1451,7 +1408,7 @@ void CHostSessionV3_3::SendCollisionDetectionSegment(const sbio::cigi::SCollisio
                         << "Y2: " << std::to_string(collDetSegment.end[1]) << "\n"
                         << "Z2: " << std::to_string(collDetSegment.end[2]) << "\n"
                         << "Material Mask: " << std::to_string(collDetSegment.nMaterialMask);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -1465,7 +1422,7 @@ void CHostSessionV3_3::SendCollisionDetectionSegment(const sbio::cigi::SCollisio
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1509,7 +1466,7 @@ void CHostSessionV3_3::SendCollisionDetectionCuboidVolume(const sbio::cigi::SCol
                         << "Roll: " << std::to_string(collVolCuboid.fRoll.Value()) << "\n"
                         << "Pitch: " << std::to_string(collVolCuboid.fPitch.Value()) << "\n"
                         << "Yaw: " << std::to_string(collVolCuboid.fYaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -1523,7 +1480,7 @@ void CHostSessionV3_3::SendCollisionDetectionCuboidVolume(const sbio::cigi::SCol
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1553,7 +1510,7 @@ void CHostSessionV3_3::SendCollisionDetectionSphereVolume(const sbio::cigi::SCol
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1652,21 +1609,89 @@ void CHostSessionV3_3::SendComponentControl(const sbio::cigi::SCigiComponentCont
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
-CIGI::V33::EntityCtrl::AnimationState ConvertToAnimationState(EAnimationState animState)
+static CIGI::V33::EntityCtrl::AnimationState ConvertToAnimationStateV3(const SCigiAnimationControl& animationControl)
 {
-  if (animState == EAnimationState::PLAY)
+  switch (animationControl.eAnimationState)
   {
-    return CIGI::V33::EntityCtrl::AnimationState::eAnimationState_Play;
+  case EAnimationState::PLAY:
+    if (animationControl.eAnimationFramePositionReset == EAnimationFramePositionReset::CONTINUE)
+    {
+      return CIGI::V33::EntityCtrl::eAnimationState_Continue;
+    }
+    else
+    {
+      return CIGI::V33::EntityCtrl::eAnimationState_Play;
+    }
+  case EAnimationState::STOP:
+    if (animationControl.eAnimationFramePositionReset == EAnimationFramePositionReset::CONTINUE)
+    {
+      return CIGI::V33::EntityCtrl::eAnimationState_Pause;
+    }
+    else
+    {
+      return CIGI::V33::EntityCtrl::eAnimationState_Stop;
+    }
+  case EAnimationState::PAUSE:
+    return CIGI::V33::EntityCtrl::eAnimationState_Pause;
+  case EAnimationState::CONTINUE:
+    return CIGI::V33::EntityCtrl::eAnimationState_Continue;
+  default:
+    return CIGI::V33::EntityCtrl::eAnimationState_Stop;
   }
-  else if (animState == EAnimationState::STOP)
+}
+
+void CHostSessionV3_3::SendEntityControlPacket(CIGI::V33::EntityCtrl entityControl)
+{
+  CIGI::V33::EntityCtrl packet = entityControl;
+  if (m_bByteSwap)
   {
-    return CIGI::V33::EntityCtrl::AnimationState::eAnimationState_Stop;
+    packet.doByteSwapping();
   }
-  return CIGI::V33::EntityCtrl::AnimationState::eAnimationState_Stop;
+  if (!Pack(&packet, sizeof(CIGI::V33::EntityCtrl)))
+  {
+    return;
+  }
+
+  auto& cached = m_Entities[EntityID(entityControl.entityId)];
+  cached = entityControl;
+  // Play resets the animation; later position/control updates must continue it instead.
+  if (cached.animationState == CIGI::V33::EntityCtrl::eAnimationState_Play)
+  {
+    cached.animationState = CIGI::V33::EntityCtrl::eAnimationState_Continue;
+  }
+}
+
+void CHostSessionV3_3::SendAnimationControl(const SCigiAnimationControl& animationControl)
+{
+  try
+  {
+    const auto it = m_Entities.find(animationControl.entityID);
+    if (it == m_Entities.end())
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "Cannot send CIGI 3.3 animation control before entity control.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
+    CIGI::V33::EntityCtrl entityCtrl = it->second;
+    entityCtrl.animationState = ConvertToAnimationStateV3(animationControl);
+    entityCtrl.animationLoopMode = animationControl.eAnimationLoopMode == EAnimationLoopMode::CONTINUOUS;
+    entityCtrl.animationDirection = animationControl.fAnimationSpeed < 0.0f;
+    entityCtrl.inheritAlpha = animationControl.bInheritAlpha;
+    entityCtrl.alpha = ConvertToCigiAlpha(animationControl.alpha);
+    SendEntityControlPacket(entityCtrl);
+  }
+  catch (const std::exception& ex)
+  {
+    HostCigiErrorEventArgs args;
+    args.sError = ex.what();
+    RaiseSessionEvent(args);
+  }
 }
 
 CIGI::V33::EntityCtrl::GroundClamp ConvertToClamp(sbio::EClamp eClamp)
@@ -1693,12 +1718,20 @@ CIGI::V33::EntityCtrl::GroundClamp ConvertToClamp(sbio::EClamp eClamp)
   }
 }
 
-void CHostSessionV3_3::SendTopLevelEntityControl(const sbio::cigi::SEntityControl& entityControl, const sbio::cigi::STopLevelEntityPosition& topLevelEntityPosition, const sbio::cigi::SCigiAnimationControl& animationControl)
+void CHostSessionV3_3::SendTopLevelEntityControl(const sbio::cigi::SEntityControl& entityControl, const sbio::cigi::STopLevelEntityPosition& topLevelEntityPosition,
+                                                 const sbio::cigi::SCigiAnimationControl& animationControl)
 {
+  // Extended entity types are not supported in CIGI 3.3
+  if (entityControl.eExtendedEntityType == EExtendedEntityType::EXTENDED)
+  {
+    HostCigiErrorEventArgs args;
+    args.sError = "CIGI 3.3 entity control only supports short entity types.";
+    RaiseSessionEvent(args);
+    return;
+  }
+
   try
   {
-    m_Entities[entityControl.entityID] = entityControl;
-
     CIGI::V33::EntityCtrl entityCtrl;
     entityCtrl.entityId = entityControl.entityID.Value();
     entityCtrl.entityState = ConvertToEntityState(entityControl.eState);
@@ -1707,7 +1740,8 @@ void CHostSessionV3_3::SendTopLevelEntityControl(const sbio::cigi::SEntityContro
     entityCtrl.inheritAlpha = entityControl.bInheritAlpha;
 
     // animation data
-    entityCtrl.animationState = ConvertToAnimationState(animationControl.eAnimationState);
+    entityCtrl.animationState = ConvertToAnimationStateV3(animationControl);
+    entityCtrl.animationDirection = animationControl.fAnimationSpeed < 0.0f;
     entityCtrl.animationLoopMode = animationControl.eAnimationLoopMode == EAnimationLoopMode::CONTINUOUS ? true : false;
     entityCtrl.alpha = ConvertToCigiAlpha(animationControl.alpha);
     entityCtrl.entityId = animationControl.entityID.Value();
@@ -1722,38 +1756,42 @@ void CHostSessionV3_3::SendTopLevelEntityControl(const sbio::cigi::SEntityContro
     entityCtrl.parentId = entityControl.parentID.Value();
 
     // top level entity
-    entityCtrl.attachState = (topLevelEntityPosition.bAttached) ? CIGI::V33::EntityCtrl::AttachState::eAttachState_Attached : CIGI::V33::EntityCtrl::AttachState::eAttachState_Detached;
+    entityCtrl.attachState =
+      (topLevelEntityPosition.bAttached) ? CIGI::V33::EntityCtrl::AttachState::eAttachState_Attached : CIGI::V33::EntityCtrl::AttachState::eAttachState_Detached;
     entityCtrl.groundOceanClamp = ConvertToClamp(topLevelEntityPosition.eClamp);
     entityCtrl.entityId = topLevelEntityPosition.entityID.Value();
     entityCtrl.roll = static_cast<float>(topLevelEntityPosition.rotation.roll.Value());
     entityCtrl.pitch = static_cast<float>(topLevelEntityPosition.rotation.pitch.Value());
     entityCtrl.yaw = static_cast<float>(topLevelEntityPosition.rotation.yaw.Value());
-    entityCtrl.latitudeXOffset = static_cast<float>(topLevelEntityPosition.geodeticCoordinates.latitude.Value());
-    entityCtrl.longitudeYOffset = static_cast<float>(topLevelEntityPosition.geodeticCoordinates.longitude.Value());
-    entityCtrl.altitudeZOffset = static_cast<float>(topLevelEntityPosition.geodeticCoordinates.altitude.Value());
+    entityCtrl.latitudeXOffset = topLevelEntityPosition.geodeticCoordinates.latitude.Value();
+    entityCtrl.longitudeYOffset = topLevelEntityPosition.geodeticCoordinates.longitude.Value();
+    entityCtrl.altitudeZOffset = topLevelEntityPosition.geodeticCoordinates.altitude.Value();
 
-    if (m_bByteSwap)
-    {
-      entityCtrl.doByteSwapping();
-    }
-
-    Pack(&entityCtrl, sizeof(CIGI::V33::EntityCtrl));
+    SendEntityControlPacket(entityCtrl);
   }
   catch (const std::exception& ex)
   {
     std::cout << "Error sending Entity Control packet" << std::endl;
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
-void CHostSessionV3_3::SendChildEntityControl(const sbio::cigi::SEntityControl& entityControl, const sbio::cigi::SChildEntityPosition& childEntityPosition, const sbio::cigi::SCigiAnimationControl& animationControl)
+void CHostSessionV3_3::SendChildEntityControl(const sbio::cigi::SEntityControl& entityControl, const sbio::cigi::SChildEntityPosition& childEntityPosition,
+                                              const sbio::cigi::SCigiAnimationControl& animationControl)
 {
+  // Extended entity types are not supported in CIGI 3.3
+  if (entityControl.eExtendedEntityType == EExtendedEntityType::EXTENDED)
+  {
+    HostCigiErrorEventArgs args;
+    args.sError = "CIGI 3.3 entity control only supports short entity types.";
+    RaiseSessionEvent(args);
+    return;
+  }
+
   try
   {
-    m_Entities[entityControl.entityID] = entityControl;
-
     CIGI::V33::EntityCtrl entityCtrl;
     entityCtrl.entityId = entityControl.entityID.Value();
     entityCtrl.entityState = ConvertToEntityState(entityControl.eState);
@@ -1762,7 +1800,8 @@ void CHostSessionV3_3::SendChildEntityControl(const sbio::cigi::SEntityControl& 
     entityCtrl.inheritAlpha = entityControl.bInheritAlpha;
 
     // animation data
-    entityCtrl.animationState = ConvertToAnimationState(animationControl.eAnimationState);
+    entityCtrl.animationState = ConvertToAnimationStateV3(animationControl);
+    entityCtrl.animationDirection = animationControl.fAnimationSpeed < 0.0f;
     entityCtrl.animationLoopMode = animationControl.eAnimationLoopMode == EAnimationLoopMode::CONTINUOUS ? true : false;
     entityCtrl.alpha = ConvertToCigiAlpha(animationControl.alpha);
     entityCtrl.entityId = animationControl.entityID.Value();
@@ -1774,10 +1813,11 @@ void CHostSessionV3_3::SendChildEntityControl(const sbio::cigi::SEntityControl& 
     // For Entity type Extended and short do not exist it is just a uint16_t
     entityCtrl.entityType = entityControl.shortEntityTypeID.Value();
 
-    entityCtrl.parentId = entityControl.parentID.Value();
+    entityCtrl.parentId = childEntityPosition.parentID.Value();
 
     // child entity data
-    entityCtrl.attachState = (childEntityPosition.bAttached) ? CIGI::V33::EntityCtrl::AttachState::eAttachState_Attached : CIGI::V33::EntityCtrl::AttachState::eAttachState_Detached;
+    entityCtrl.attachState =
+      (childEntityPosition.bAttached) ? CIGI::V33::EntityCtrl::AttachState::eAttachState_Attached : CIGI::V33::EntityCtrl::AttachState::eAttachState_Detached;
     entityCtrl.groundOceanClamp = CIGI::V33::EntityCtrl::GroundClamp::eGroundClamp_NoClamp;// Clamp is not supported for child entities
     entityCtrl.entityId = childEntityPosition.entityID.Value();
     entityCtrl.roll = static_cast<float>(childEntityPosition.rotation.roll.Value());
@@ -1787,19 +1827,14 @@ void CHostSessionV3_3::SendChildEntityControl(const sbio::cigi::SEntityControl& 
     entityCtrl.longitudeYOffset = childEntityPosition.offset[1];
     entityCtrl.altitudeZOffset = childEntityPosition.offset[2];
 
-    if (m_bByteSwap)
-    {
-      entityCtrl.doByteSwapping();
-    }
-
-    Pack(&entityCtrl, sizeof(CIGI::V33::EntityCtrl));
+    SendEntityControlPacket(entityCtrl);
   }
   catch (const std::exception& ex)
   {
     std::cout << "Error sending Entity Control packet" << std::endl;
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1810,21 +1845,35 @@ void CHostSessionV3_3::SendConformalClampedEntityPosition(const sbio::cigi::SCig
     CIGI::V33::ConformalClampedEntityCtrl confClampEntity;
     confClampEntity.entityId = conformalClampedEntityControl.entityID.Value();
     confClampEntity.yaw = static_cast<float>(conformalClampedEntityControl.fYaw.Value());
-    confClampEntity.latitude = static_cast<float>(conformalClampedEntityControl.latitude.Value());
-    confClampEntity.longitude = static_cast<float>(conformalClampedEntityControl.longitude.Value());
+    confClampEntity.latitude = conformalClampedEntityControl.latitude.Value();
+    confClampEntity.longitude = conformalClampedEntityControl.longitude.Value();
 
+    const auto nativePacket = confClampEntity;
     if (m_bByteSwap)
     {
       confClampEntity.doByteSwapping();
     }
 
-    Pack(&confClampEntity, sizeof(CIGI::V33::ConformalClampedEntityCtrl));
+    if (!Pack(&confClampEntity, sizeof(CIGI::V33::ConformalClampedEntityCtrl)))
+    {
+      return;
+    }
+
+    // Update the cached entity control with the new yaw, position, and clamp values
+    const auto it = m_Entities.find(conformalClampedEntityControl.entityID);
+    if (it != m_Entities.end())
+    {
+      it->second.yaw = nativePacket.yaw;
+      it->second.latitudeXOffset = nativePacket.latitude;
+      it->second.longitudeYOffset = nativePacket.longitude;
+      it->second.groundOceanClamp = CIGI::V33::EntityCtrl::eGroundClamp_Conformal;
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1848,7 +1897,7 @@ void CHostSessionV3_3::SendEarthReferenceModelDefinition(const SCigiEarthReferen
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1856,61 +1905,33 @@ void CHostSessionV3_3::SendTopLevelEntityPosition(const sbio::cigi::STopLevelEnt
 {
   try
   {
-    SEntityControl entityControl;
-
     auto it = m_Entities.find(topLevelEntityPosition.entityID);
     if (it == m_Entities.end())
     {
       return;
     }
-    else
-    {
-      entityControl = it->second;
-    }
 
-    CIGI::V33::EntityCtrl entityCtrl;
-    entityCtrl.entityId = entityControl.entityID.Value();
-    entityCtrl.entityState = ConvertToEntityState(entityControl.eState);
-    entityCtrl.attachState = ((entityControl.bHasParent) ? CIGI::V33::EntityCtrl::AttachState::eAttachState_Attached : CIGI::V33::EntityCtrl::AttachState::eAttachState_Detached);
-    entityCtrl.collisionReportEnable = entityControl.bCollisionReportingEnabled;
-    entityCtrl.inheritAlpha = entityControl.bInheritAlpha;
-
-    // need to setup: Ground/Ocean Clamp, Animation Direction, Animation Loop Mode, and Animation State
-    // entityCtrl.SetGrndClamp();
-    // entityCtrl.SetAnimationDir();
-    // entityCtrl.SetAnimationLoopMode();
-    // entityCtrl.SetAnimationState();
-
-    // Smoothing is te same as Linear Extrapolation/Interpolation Enable
-    entityCtrl.extrapolationEnable = entityControl.bSmoothingEnabled;
-    entityCtrl.alpha = entityControl.alpha;
-
-    // For Entity type Extended and short do not exist it is just a uint16_t
-    entityCtrl.entityType = entityControl.shortEntityTypeID.Value();
-
-    entityCtrl.parentId = entityControl.parentID.Value();
+    CIGI::V33::EntityCtrl entityCtrl = it->second;
+    entityCtrl.attachState = topLevelEntityPosition.bAttached ? CIGI::V33::EntityCtrl::eAttachState_Attached : CIGI::V33::EntityCtrl::eAttachState_Detached;
+    entityCtrl.groundOceanClamp = ConvertToClamp(topLevelEntityPosition.eClamp);
 
     // Roll, Pitch, Yaw
     entityCtrl.roll = static_cast<float>(topLevelEntityPosition.rotation.roll.Value());
     entityCtrl.pitch = static_cast<float>(topLevelEntityPosition.rotation.pitch.Value());
     entityCtrl.yaw = static_cast<float>(topLevelEntityPosition.rotation.yaw.Value());
 
-    entityCtrl.latitudeXOffset = static_cast<float>(topLevelEntityPosition.geodeticCoordinates.latitude.Value());
-    entityCtrl.longitudeYOffset = static_cast<float>(topLevelEntityPosition.geodeticCoordinates.longitude.Value());
-    entityCtrl.altitudeZOffset = static_cast<float>(topLevelEntityPosition.geodeticCoordinates.altitude.Value());
-    if (m_bByteSwap)
-    {
-      entityCtrl.doByteSwapping();
-    }
+    entityCtrl.latitudeXOffset = topLevelEntityPosition.geodeticCoordinates.latitude.Value();
+    entityCtrl.longitudeYOffset = topLevelEntityPosition.geodeticCoordinates.longitude.Value();
+    entityCtrl.altitudeZOffset = topLevelEntityPosition.geodeticCoordinates.altitude.Value();
 
-    Pack(&entityCtrl, sizeof(CIGI::V33::EntityCtrl));
+    SendEntityControlPacket(entityCtrl);
   }
   catch (const std::exception& ex)
   {
     std::cout << "Error sending Entity Control packet" << std::endl;
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1953,7 +1974,7 @@ void CHostSessionV3_3::SendEnvironmentalConditionsRequest(const SEnvironmentalCo
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1987,7 +2008,7 @@ void CHostSessionV3_3::SendEnvironmentalRegionControl(const SCigiEnvironmentalRe
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2017,7 +2038,7 @@ void CHostSessionV3_3::SendHatHotRequest(const SHATHOTGlobalRequest& hatHotReque
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2047,7 +2068,7 @@ void CHostSessionV3_3::SendHatHotRequest(const SHATHOTEntityRequest& hatHotReque
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2092,7 +2113,7 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestGeodeticToGeodeticBasic(cons
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2133,14 +2154,16 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestGeodeticToGeodeticExtended(c
       losSegmentRequest.doByteSwapping();
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest));
+    if (Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest)))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2185,7 +2208,7 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestGeodeticToEntityBasic(const 
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2225,14 +2248,16 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestGeodeticToEntityExtended(con
       losSegmentRequest.doByteSwapping();
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest));
+    if (Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest)))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2242,6 +2267,7 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestEntityToGeodeticBasic(const 
   {
     CIGI::V33::LineOfSightSegmentRequest losSegmentRequest;
     losSegmentRequest.LOSId = losRequest.requestID.Value();
+    losSegmentRequest.entityId = losRequest.sourceEntityID.Value();
     losSegmentRequest.requestType = CIGI::V33::LineOfSightSegmentRequest::Type::eType_Basic;
     losSegmentRequest.sourceCoordinateSystem = CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Entity;
     losSegmentRequest.destinationCoordinateSystem = CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
@@ -2270,14 +2296,13 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestEntityToGeodeticBasic(const 
       losSegmentRequest.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest));
-    m_nSendBufferLength += sizeof(CIGI::V33::LineOfSightSegmentRequest);
+    Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2287,6 +2312,7 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestEntityToGeodeticExtended(con
   {
     CIGI::V33::LineOfSightSegmentRequest losSegmentRequest;
     losSegmentRequest.LOSId = losRequest.requestID.Value();
+    losSegmentRequest.entityId = losRequest.sourceEntityID.Value();
     losSegmentRequest.requestType = CIGI::V33::LineOfSightSegmentRequest::Type::eType_Extended;
     losSegmentRequest.sourceCoordinateSystem = CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Entity;
     losSegmentRequest.destinationCoordinateSystem = CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem::eCoordinateSystem_Geodetic;
@@ -2316,15 +2342,16 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestEntityToGeodeticExtended(con
       losSegmentRequest.doByteSwapping();
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest));
-    m_nSendBufferLength += sizeof(CIGI::V33::LineOfSightSegmentRequest);
+    if (Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest)))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2369,7 +2396,7 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestEntityToEntityBasic(const SL
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2409,14 +2436,16 @@ void CHostSessionV3_3::SendLineOfSightSegmentRequestEntityToEntityExtended(const
       losSegmentRequest.doByteSwapping();
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest));
+    if (Pack(&losSegmentRequest, sizeof(CIGI::V33::LineOfSightSegmentRequest)))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2458,7 +2487,7 @@ void CHostSessionV3_3::SendLineOfSightVectorRequestGeodeticBasic(const SLineOfSi
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2495,14 +2524,16 @@ void CHostSessionV3_3::SendLineOfSightVectorRequestGeodeticExtended(const SLineO
       losVectorRequest.doByteSwapping();
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    Pack(&losVectorRequest, sizeof(CIGI::V33::LineOfSightVectorRequest));
+    if (Pack(&losVectorRequest, sizeof(CIGI::V33::LineOfSightVectorRequest)))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2528,7 +2559,8 @@ void CHostSessionV3_3::SendLineOfSightVectorRequestEntityBasic(const sbio::cigi:
     losVectorRequest.sourceAltitudeZOffset = losRequest.sourceOffset[2];
     losVectorRequest.materialMask = losRequest.nMaterialMask;
     losVectorRequest.updatePeriod = losRequest.updatePeriod.Value();
-    losVectorRequest.responseCoordinateSystem = CIGI::V33::LineOfSightVectorRequest::CoordinateSystem::eCoordinateSystem_Geodetic;// entity basic does not have a response coordinate system
+    losVectorRequest.responseCoordinateSystem =
+      CIGI::V33::LineOfSightVectorRequest::CoordinateSystem::eCoordinateSystem_Geodetic;// entity basic does not have a response coordinate system
 
     if (m_bByteSwap)
     {
@@ -2541,7 +2573,7 @@ void CHostSessionV3_3::SendLineOfSightVectorRequestEntityBasic(const sbio::cigi:
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2567,7 +2599,8 @@ void CHostSessionV3_3::SendLineOfSightVectorRequestEntityExtended(const sbio::ci
     losVectorRequest.sourceAltitudeZOffset = static_cast<float>(losRequest.sourceOffset[2]);
     losVectorRequest.materialMask = losRequest.nMaterialMask;
     losVectorRequest.updatePeriod = losRequest.updatePeriod.Value();
-    losVectorRequest.responseCoordinateSystem = CIGI::V33::LineOfSightVectorRequest::CoordinateSystem::eCoordinateSystem_Geodetic;// entity Extended does not have a response coordinate system
+    losVectorRequest.responseCoordinateSystem =
+      CIGI::V33::LineOfSightVectorRequest::CoordinateSystem::eCoordinateSystem_Geodetic;// entity Extended does not have a response coordinate system
 
     losVectorRequest.responseCoordinateSystem = ConvertToCoordSysGrp(losRequest.eResponseCoordinateSystem);
 
@@ -2576,14 +2609,16 @@ void CHostSessionV3_3::SendLineOfSightVectorRequestEntityExtended(const sbio::ci
       losVectorRequest.doByteSwapping();
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    Pack(&losVectorRequest, sizeof(CIGI::V33::LineOfSightVectorRequest));
+    if (Pack(&losVectorRequest, sizeof(CIGI::V33::LineOfSightVectorRequest)))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2611,7 +2646,7 @@ void CHostSessionV3_3::SendEntityMaritimeSurfaceConditionsControl(EntityID entit
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2639,7 +2674,7 @@ void CHostSessionV3_3::SendRegionMaritimeSurfaceConditionsControl(RegionID regio
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2666,7 +2701,7 @@ void CHostSessionV3_3::SendGlobalMaritimeSurfaceConditionsControl(const sbio::ci
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2697,7 +2732,7 @@ void CHostSessionV3_3::SendMotionTrackerViewControl(const SMotionTrackerViewCont
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2710,6 +2745,7 @@ void CHostSessionV3_3::SendMotionTrackerViewGroupControl(const SMotionTrackerVie
     motionTrack.trackerEnable = motionTrackerControl.bEnable;
     motionTrack.trackerId = motionTrackerControl.motionTrackerID.Value();
     motionTrack.viewViewGroupId = motionTrackerControl.viewGroupID.Value();
+    motionTrack.viewViewGroupSelect = CIGI::V33::MotionTrackerCtrl::eAttachment_Group;
     motionTrack.xEnable = motionTrackerControl.bXEnable;
     motionTrack.yEnable = motionTrackerControl.bYEnable;
     motionTrack.zEnable = motionTrackerControl.bZEnable;
@@ -2728,7 +2764,7 @@ void CHostSessionV3_3::SendMotionTrackerViewGroupControl(const SMotionTrackerVie
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2739,7 +2775,8 @@ void CHostSessionV3_3::SendPositionRequest(const sbio::cigi::SPositionRequest& p
     CIGI::V33::PositionRequest posRequest;
     posRequest.objectId = positionRequest.nObjectID;
     posRequest.articulatedPartId = positionRequest.articulatedPartID.Value();
-    posRequest.updateMode = positionRequest.bContinuous ? CIGI::V33::PositionRequest::UpdateMode::eUpdateMode_Continuous : CIGI::V33::PositionRequest::UpdateMode::eUpdateMode_OneShot;
+    posRequest.updateMode =
+      positionRequest.bContinuous ? CIGI::V33::PositionRequest::UpdateMode::eUpdateMode_Continuous : CIGI::V33::PositionRequest::UpdateMode::eUpdateMode_OneShot;
     posRequest.objectClass = GetCigiObjectClassGrp(positionRequest.eObjectClass);
     posRequest.coordinateSystem = ConvertToCoordSysGrp(positionRequest.eCoordinateSystem);
 
@@ -2754,7 +2791,7 @@ void CHostSessionV3_3::SendPositionRequest(const sbio::cigi::SPositionRequest& p
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2811,7 +2848,7 @@ void CHostSessionV3_3::SendSensorControl(const SCigiSensorControl& sensorControl
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2841,7 +2878,7 @@ void CHostSessionV3_3::SendShortArticulatedPartControl(const sbio::cigi::SCigiSh
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2868,7 +2905,7 @@ void CHostSessionV3_3::SendShortComponentControl(const SCigiShortComponentContro
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2955,7 +2992,7 @@ void CHostSessionV3_3::SendShortSymbolControl(const SShortSymbolControl& shortSy
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2963,6 +3000,14 @@ void CHostSessionV3_3::SendSymbolCircleDefinition(const SSymbolCircle& circleDef
 {
   try
   {
+    if (circleDef.circles.size() > CIGI::V33::SymbolCircleDefinition::kMaxRecords)
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "CIGI 3.3 symbol circle definition exceeds the maximum record count.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
     CIGI::V33::SymbolCircleDefinition symbolCircle;
     symbolCircle.symbolId = circleDef.symbolID.Value();
     symbolCircle.drawingStyle = ConvertToDrawingStyleGrp(circleDef.eDrawingStyle);
@@ -2975,8 +3020,8 @@ void CHostSessionV3_3::SendSymbolCircleDefinition(const SSymbolCircle& circleDef
     for (const auto& circleProperties : circleDef.circles)
     {
       CIGI::V33::SymbolCircleDefinition::Circle circle;
-      circle.centerU = circleProperties.centerUV.U;
-      circle.centerV = circleProperties.centerUV.V;
+      circle.centerU = static_cast<float>(circleProperties.centerUV.U);
+      circle.centerV = static_cast<float>(circleProperties.centerUV.V);
       circle.radius = static_cast<float>(circleProperties.fRadius);
       circle.innerRadius = static_cast<float>(circleProperties.fInnerRadius);
       circle.startAngle = static_cast<float>(circleProperties.startAngle.Value());
@@ -3016,7 +3061,7 @@ void CHostSessionV3_3::SendSymbolCircleDefinition(const SSymbolCircle& circleDef
         << "Start Angle: " << std::to_string(circleDef.startAngle.Value()) << "\n"
         << "End Angle: " << std::to_string(circleDef.endAngle.Value());*/
       }
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     if (m_bByteSwap)
@@ -3025,7 +3070,8 @@ void CHostSessionV3_3::SendSymbolCircleDefinition(const SSymbolCircle& circleDef
     }
 
     int numRecords = CIGI::V33::SymbolCircleDefinition::RecordHelper::numRecords(symbolCircle);
-    std::unique_ptr<TBuffer<char>> pPacketBuffer = std::make_unique<TBuffer<char>>(CIGI::V33::SymbolCircleDefinition::kBasePacketSize + numRecords * static_cast<int>(sizeof(CIGI::V33::SymbolCircleDefinition::Record)));
+    std::unique_ptr<TBuffer<char>> pPacketBuffer =
+      std::make_unique<TBuffer<char>>(CIGI::V33::SymbolCircleDefinition::kBasePacketSize + numRecords * static_cast<int>(sizeof(CIGI::V33::SymbolCircleDefinition::Record)));
     memcpy(pPacketBuffer->GetBuffer(), &symbolCircle, CIGI::V33::SymbolCircleDefinition::kBasePacketSize);
     memcpy(pPacketBuffer->GetBuffer() + CIGI::V33::SymbolCircleDefinition::kBasePacketSize, symbolCircle.records, numRecords * sizeof(CIGI::V33::SymbolCircleDefinition::Record));
     Pack(pPacketBuffer->GetBuffer(), pPacketBuffer->GetSize());
@@ -3034,7 +3080,7 @@ void CHostSessionV3_3::SendSymbolCircleDefinition(const SSymbolCircle& circleDef
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3071,7 +3117,7 @@ void CHostSessionV3_3::SendSymbolClone(const SSymbolClone& symbolCloneStruct)
       }
 
       args.sDataMessage << "Source ID: " << std::to_string(symbolCloneStruct.sourceID.Value()) << "\n";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3085,7 +3131,7 @@ void CHostSessionV3_3::SendSymbolClone(const SSymbolClone& symbolCloneStruct)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3168,7 +3214,7 @@ void CHostSessionV3_3::SendSymbolControl(const SSymbolControl& symbolControl)
       }
       args.sDataMessage << "Scale U: " << std::to_string(symbolControl.fScaleU) << "\n"
                         << "Scale V: " << std::to_string(symbolControl.fScaleV);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3182,14 +3228,27 @@ void CHostSessionV3_3::SendSymbolControl(const SSymbolControl& symbolControl)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
+}
+
+void CHostSessionV3_3::SendSymbolPolygonDefinition(const SSymbolPolygon& symbolPolygon)
+{
+  SendSymbolLineDefinition(symbolPolygon);
 }
 
 void CHostSessionV3_3::SendSymbolLineDefinition(const SSymbolPolygon& symbolLine)
 {
   try
   {
+    if (symbolLine.vertices.size() > CIGI::V33::SymbolLineDefinition::kMaxRecords)
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "CIGI 3.3 symbol line definition exceeds the maximum record count.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
     CIGI::V33::SymbolLineDefinition symbolLineDef;
     symbolLineDef.symbolId = symbolLine.symbolID.Value();
 
@@ -3243,7 +3302,8 @@ void CHostSessionV3_3::SendSymbolLineDefinition(const SSymbolPolygon& symbolLine
     }
 
     int numRecords = CIGI::V33::SymbolLineDefinition::RecordHelper::numRecords(symbolLineDef);
-    std::unique_ptr<TBuffer<char>> pPacketBuffer = std::make_unique<TBuffer<char>>(CIGI::V33::SymbolLineDefinition::kBasePacketSize + numRecords * static_cast<int>(sizeof(CIGI::V33::SymbolLineDefinition::Record)));
+    std::unique_ptr<TBuffer<char>> pPacketBuffer =
+      std::make_unique<TBuffer<char>>(CIGI::V33::SymbolLineDefinition::kBasePacketSize + numRecords * static_cast<int>(sizeof(CIGI::V33::SymbolLineDefinition::Record)));
     memcpy(pPacketBuffer->GetBuffer(), &symbolLineDef, CIGI::V33::SymbolLineDefinition::kBasePacketSize);
     memcpy(pPacketBuffer->GetBuffer() + CIGI::V33::SymbolLineDefinition::kBasePacketSize, symbolLineDef.records, numRecords * sizeof(CIGI::V33::SymbolLineDefinition::Record));
     Pack(pPacketBuffer->GetBuffer(), pPacketBuffer->GetSize());
@@ -3252,7 +3312,7 @@ void CHostSessionV3_3::SendSymbolLineDefinition(const SSymbolPolygon& symbolLine
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3290,7 +3350,7 @@ void CHostSessionV3_3::SendEntitySymbolSurfaceDefinition(const SEntitySymbolSurf
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3305,6 +3365,11 @@ void CHostSessionV3_3::SendEntityBillboardSymbolSurfaceDefinition(const SEntityB
     symbolSurfaceDef.billboard = CIGI::V33::SymbolSurfaceDefinition::Billboard::eBillboard_Billboard;
     symbolSurfaceDef.perspectiveGrowthEnable = symbolSurfaceDefinition.bPerspectiveGrowthEnabled;
     symbolSurfaceDef.entityIdViewId = symbolSurfaceDefinition.entityID.Value();
+    symbolSurfaceDef.xOffsetLeft = symbolSurfaceDefinition.offsetToEntity[0];
+    symbolSurfaceDef.yOffsetRight = symbolSurfaceDefinition.offsetToEntity[1];
+    symbolSurfaceDef.zOffsetTop = symbolSurfaceDefinition.offsetToEntity[2];
+    symbolSurfaceDef.width = symbolSurfaceDefinition.width;
+    symbolSurfaceDef.height = symbolSurfaceDefinition.height;
     symbolSurfaceDef.minU = symbolSurfaceDefinition.uvMin[0];
     symbolSurfaceDef.maxU = symbolSurfaceDefinition.uvMax[0];
     symbolSurfaceDef.minV = symbolSurfaceDefinition.uvMin[1];
@@ -3321,7 +3386,7 @@ void CHostSessionV3_3::SendEntityBillboardSymbolSurfaceDefinition(const SEntityB
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3354,7 +3419,7 @@ void CHostSessionV3_3::SendViewSymbolSurfaceDefinition(const SViewSymbolSurfaceD
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3404,38 +3469,26 @@ void CHostSessionV3_3::SendSymbolTextDefinition(const SSymbolTextDefinition& sym
 
       args.sDataMessage << "Font Size: " << std::to_string(symbolTextDef.fFontSize) << "\n"
                         << "Octet n:" << "\n" << symbolTextDef.sText;
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     int nStringLength = static_cast<int>(strnlen(symTextDef.data, CIGI::V33::SymbolTextDefinition::kMaxDataLength)) + 1;
-    int nSpare = nStringLength % 8;
-
-    if (nStringLength < 3)
-    {
-      nSpare = 4 - nSpare;
-    }
-    else if (nSpare != 0)
-    {
-      nSpare = 8 - nSpare;
-    }
+    const int nPacketSize = (CIGI::V33::SymbolTextDefinition::kBasePacketSize + nStringLength + 7) / 8 * 8;
+    const int nDataSize = nPacketSize - CIGI::V33::SymbolTextDefinition::kBasePacketSize;
+    symTextDef.size = static_cast<CIGI::ui8>(nPacketSize);
 
     if (m_bByteSwap)
     {
       symTextDef.doByteSwapping();
     }
 
-    symTextDef.size += static_cast<CIGI::ui8>(nStringLength + nSpare);
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &symTextDef, CIGI::V33::SymbolTextDefinition::kBasePacketSize);
-    m_nSendBufferLength += CIGI::V33::SymbolTextDefinition::kBasePacketSize;
-
-    memcpy(&m_sendBuffer[m_nSendBufferLength], symTextDef.data, nStringLength + nSpare);
-    m_nSendBufferLength += nStringLength + nSpare;
+    Pack(&symTextDef, CIGI::V33::SymbolTextDefinition::kBasePacketSize, symTextDef.data, nDataSize);
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3457,14 +3510,13 @@ void CHostSessionV3_3::SendEntityTerrestrialSurfaceConditionsControl(EntityID en
       terrestrialSurfaceCtrl.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &terrestrialSurfaceCtrl, sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl));
-    m_nSendBufferLength += sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl);
+    Pack(&terrestrialSurfaceCtrl, sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3486,14 +3538,13 @@ void CHostSessionV3_3::SendRegionTerrestrialSurfaceConditionsControl(RegionID re
       terrestrialSurfaceCtrl.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &terrestrialSurfaceCtrl, sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl));
-    m_nSendBufferLength += sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl);
+    Pack(&terrestrialSurfaceCtrl, sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3514,15 +3565,24 @@ void CHostSessionV3_3::SendGlobalTerrestrialSurfaceConditionsControl(const sbio:
       terrestrialSurfaceCtrl.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &terrestrialSurfaceCtrl, sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl));
-    m_nSendBufferLength += sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl);
+    Pack(&terrestrialSurfaceCtrl, sizeof(CIGI::V33::TerrestrialSurfaceConditionsCtrl));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
+}
+
+void CHostSessionV3_3::SendVelocityControl(const SCigiEntityVelocityControl& velocityControl)
+{
+  SendRateControl(velocityControl);
+}
+
+void CHostSessionV3_3::SendVelocityControl(const SCigiArticulatedPartVelocityControl& velocityControl)
+{
+  SendRateControl(velocityControl);
 }
 
 void CHostSessionV3_3::SendRateControl(const SCigiEntityVelocityControl& rateControl)
@@ -3579,7 +3639,7 @@ void CHostSessionV3_3::SendRateControl(const SCigiEntityVelocityControl& rateCon
                         << "Roll Angular Velocity: " << std::to_string(rateControl.angularVelocity.fRoll.Value()) << "\n"
                         << "Pitch Angular Velocity: " << std::to_string(rateControl.angularVelocity.fPitch.Value()) << "\n"
                         << "Yaw Angular Velocity: " << std::to_string(rateControl.angularVelocity.fYaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3587,14 +3647,13 @@ void CHostSessionV3_3::SendRateControl(const SCigiEntityVelocityControl& rateCon
       rateCtrl.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &rateCtrl, sizeof(CIGI::V33::RateCtrl));
-    m_nSendBufferLength += sizeof(CIGI::V33::RateCtrl);
+    Pack(&rateCtrl, sizeof(CIGI::V33::RateCtrl));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3629,7 +3688,7 @@ void CHostSessionV3_3::SendRateControl(const sbio::cigi::SCigiArticulatedPartVel
                         << "Roll Angular Velocity: " << std::to_string(rateControl.angularVelocity.fRoll.Value()) << "\n"
                         << "Pitch Angular Velocity: " << std::to_string(rateControl.angularVelocity.fPitch.Value()) << "\n"
                         << "Yaw Angular Velocity: " << std::to_string(rateControl.angularVelocity.fYaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3637,14 +3696,13 @@ void CHostSessionV3_3::SendRateControl(const sbio::cigi::SCigiArticulatedPartVel
       rateCtrl.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &rateCtrl, sizeof(CIGI::V33::RateCtrl));
-    m_nSendBufferLength += sizeof(CIGI::V33::RateCtrl);
+    Pack(&rateCtrl, sizeof(CIGI::V33::RateCtrl));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3688,7 +3746,7 @@ void CHostSessionV3_3::SendViewControl(const sbio::cigi::SCigiViewControl& viewC
                         << "Roll: " << std::to_string(viewControl.rotation.fRoll.Value()) << "\n"
                         << "Pitch: " << std::to_string(viewControl.rotation.fPitch.Value()) << "\n"
                         << "Yaw: " << std::to_string(viewControl.rotation.fYaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3696,14 +3754,13 @@ void CHostSessionV3_3::SendViewControl(const sbio::cigi::SCigiViewControl& viewC
       viewCtrl.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &viewCtrl, sizeof(CIGI::V33::ViewCtrl));
-    m_nSendBufferLength += sizeof(CIGI::V33::ViewCtrl);
+    Pack(&viewCtrl, sizeof(CIGI::V33::ViewCtrl));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3754,7 +3811,8 @@ void CHostSessionV3_3::SendViewDefinition(const SCigiViewDefinition& viewDefinit
                         << "Top Enable: " << EnableToString(viewDefinition.bTopEnabled) << "\n"
                         << "Bottom Enable: " << EnableToString(viewDefinition.bBottomEnabled) << "\n"
                         << "Mirror Mode: " << ConvertCigiMirrorModeToString(viewDefinition.eMirrorMode) << "\n"
-                        << "Pixel Replication Mode: " << g_pScriptRuntime->GetPixelReplicationModeString(viewDefinition.pixelReplicationMode) << "\n";
+                        << "Pixel Replication Mode: " << (g_pScriptRuntime ? g_pScriptRuntime->GetPixelReplicationModeString(viewDefinition.pixelReplicationMode) :
+    std::to_string(viewDefinition.pixelReplicationMode.Value())) << "\n";
 
       if (viewDefinition.eProjectionMode == EProjectionMode::ORTHOGRAPHIC)
       {
@@ -3785,7 +3843,7 @@ void CHostSessionV3_3::SendViewDefinition(const SCigiViewDefinition& viewDefinit
                         << "Right: " << std::to_string(viewDefinition.fRight) << "\n"
                         << "Top: " << std::to_string(viewDefinition.fTop) << "\n"
                         << "Bottom: " << std::to_string(viewDefinition.fBottom);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3793,18 +3851,18 @@ void CHostSessionV3_3::SendViewDefinition(const SCigiViewDefinition& viewDefinit
       viewDef.doByteSwapping();
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &viewDef, sizeof(CIGI::V33::ViewDefinition));
-    m_nSendBufferLength += sizeof(CIGI::V33::ViewDefinition);
+    Pack(&viewDef, sizeof(CIGI::V33::ViewDefinition));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
-void CHostSessionV3_3::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition, const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
+void CHostSessionV3_3::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition,
+                                          const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
   // Global
   try
@@ -3840,11 +3898,12 @@ void CHostSessionV3_3::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLay
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
-void CHostSessionV3_3::SendWeatherControl(RegionID regionID, sbio::RegionalLayeredWeatherID regionalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition, const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
+void CHostSessionV3_3::SendWeatherControl(RegionID regionID, sbio::RegionalLayeredWeatherID regionalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition,
+                                          const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
   // Region
   try
@@ -3881,7 +3940,7 @@ void CHostSessionV3_3::SendWeatherControl(RegionID regionID, sbio::RegionalLayer
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3927,7 +3986,8 @@ void CHostSessionV3_3::SendWeatherControl(sbio::EntityID entityID, const sbio::c
                         //<< "Scud Enable: " << "" << "\n"
                         << "Random Winds Enable: " << EnableToString(weatherCondition.bRandomWindsEnabled) << "\n"
                         << "Random Lightning Enable: " << EnableToString(weatherCondition.bRandomLightningEnabled) << "\n"
-                        << "Cloud Type: " << g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) << "\n"
+                        << "Cloud Type: " << (g_pScriptRuntime ? g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) :
+    std::to_string(weatherCondition.cloudType.Value())) << "\n"
                         << "Scope: " << "Entity" << "\n"
                         << "Severity: " << std::to_string(weatherCondition.severity.Value()) << "\n"
                         << "Top Scud Enable: " << EnableToString(weatherCondition.bTopScudEnabled) << "\n"
@@ -3940,7 +4000,7 @@ void CHostSessionV3_3::SendWeatherControl(sbio::EntityID entityID, const sbio::c
                         << "Wind Direction: " << std::to_string(weatherCondition.WindDirection) << "\n"
                         << "Barometric Pressure: " << std::to_string(weatherCondition.fBarometricPressure) << "\n"
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }*/
 
     if (m_bByteSwap)
@@ -3954,7 +4014,7 @@ void CHostSessionV3_3::SendWeatherControl(sbio::EntityID entityID, const sbio::c
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 

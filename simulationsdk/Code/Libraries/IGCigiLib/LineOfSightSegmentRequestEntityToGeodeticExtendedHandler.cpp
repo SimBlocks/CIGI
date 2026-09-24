@@ -17,7 +17,9 @@ using namespace sbio::ig::terrain;
 
 extern SIGCigiLibGlobals g_CigiLibGlobals;
 
-CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler::CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler(const sbio::cigi::SLineOfSightSegmentRequestEntityToGeodeticExtended& request) : CLineOfSightRequestHandler(), m_Request(request)
+CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler::CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler(
+  const sbio::cigi::SLineOfSightSegmentRequestEntityToGeodeticExtended& request) :
+  CLineOfSightRequestHandler(0.0, request.sourceEntityID), m_Request(request)
 {
 }
 
@@ -34,6 +36,8 @@ bool CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler::Handle()
 
   SLineOfSightSegmentRequestExtendedMessage data;
   data.LosID = m_Request.requestID;
+  data.RequestGeneration = GetRequestGeneration();
+  data.HostFrameLSN = GetHostFrameLSN();
   data.AlphaThreshold = m_Request.nAlphaThreshold / 255.f;
   data.MaterialMask = m_Request.nMaterialMask;
   data.eResponseCoordinateSystem = m_Request.eResponseCoordinateSystem;

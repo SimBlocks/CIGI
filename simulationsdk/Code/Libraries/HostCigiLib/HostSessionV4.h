@@ -35,6 +35,11 @@ namespace sbio
        * Includes CIGI 4.0-specific packet parsing and handler logic.
        * This specialization implements the packet layouts and capabilities required for
        * communication with CIGI 4.0 image generators.
+       *
+       * Send helpers serialize data into the session queues; `SendPackets()` performs UDP transmission.
+       * `SendIGControl()` instead writes directly to a supplied buffer. Input references are not retained;
+       * void send helpers do not report queue acceptance or delivery. Methods not overridden here retain
+       * the base class's no-op behavior, including legacy rate, trajectory, and symbol-line helpers.
        */
       class CHostSessionV4 : public CHostSession
       {
@@ -47,112 +52,128 @@ namespace sbio
         /// @name Packet parsing and serialization overrides
         /// @{
         /**
-         * @brief Returns the result of `ProcessPacket`.
-         * @param buffer Buffer containing the data to read or write.
-         * @param nRemainingBytes Remaining bytes numeric value.
-         * @return Number of bytes consumed while processing the packet.
+         * @brief Validates a CIGI 4.0 header and dispatches one recognized response packet.
+         * @param buffer Readable packet bytes beginning with the header; not retained.
+         * @param nRemainingBytes Number of bytes available at `buffer`.
+         * @return Declared packet size, or zero for a missing header or invalid declared length.
+         *         Unsupported opcodes and undersized known payloads are skipped with a positive size
+         *         and a diagnostic event; only recognized, sufficiently sized packets mark valid traffic.
          */
         virtual int ProcessPacket(uint8_t* buffer, int nRemainingBytes) override;
         /**
-         * @brief Gets outgoing packet size.
-         * @param buffer Buffer containing the data to read or write.
-         * @param nRemainingBytes Remaining bytes numeric value.
-         * @return Outgoing packet size value.
+         * @brief Reads the length of a queued CIGI 4.0 packet using the configured byte order.
+         * @param buffer Readable packet bytes beginning with the header.
+         * @param nRemainingBytes Number of available bytes.
+         * @return Declared size, or zero if the header is incomplete, the size is below the header size,
+         *         or the size exceeds available bytes. Does not validate opcode-specific payload fields.
          */
         virtual int GetOutgoingPacketSize(const uint8_t* buffer, int nRemainingBytes) const override;
         /**
-         * @brief Sends igcontrol.
-         * @param pBuffer Buffer pointer used by the operation.
+         * @brief Resets the CIGI 4.0 session state.
+         *
+         * Performs the base reset (including socket closure) and restores the cached IG Control packet,
+         * explicitly clearing its reserved fields.
+         */
+        virtual void Reset() override;
+        /**
+         * @brief Writes CIGI 4.0 IG Control with current frame counters, timestamp, and database handshake state.
+         * @param pBuffer Writable cursor with room for `sizeof(CIGI::V40::IGCtrl)` bytes; advanced by that size.
+         *                Applies the configured byte order; does not queue or transmit the packet.
          */
         virtual void SendIGControl(uint8_t*& pBuffer) override;
         /// @}
 
         /// @name Response packet parsers
         /// These helpers decode individual inbound CIGI 4.0 packets and raise host events.
+        /// Callers must supply a complete packet, including its header and declared variable data.
+        /// These helpers do not validate buffer capacity; use `ProcessPacket()` for length checks.
+        /// Packet bytes are copied and decoded using the session byte-swap flag, not retained.
         /// @{
         /**
-         * @brief Parses start of frame packet.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes start-of-frame state, raises its event, updates database state, and handles synchronous sending.
+         * @param buffer Complete CIGI 4.0 Start of Frame packet.
          */
         void ParseStartOfFramePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseHatHotResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes a terrain-height response and raises a HAT or HOT event.
+         * @param buffer Complete CIGI 4.0 HAT/HOT Response packet.
          */
         void ParseHatHotResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseHatHotExtendedResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes terrain heights and surface data and raises an extended HAT/HOT event.
+         * @param buffer Complete CIGI 4.0 HAT/HOT Extended Response packet.
          */
         void ParseHatHotExtendedResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseLineOfSightResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes a line-of-sight response and selects the entity or non-entity event variant.
+         * @param buffer Complete CIGI 4.0 Line of Sight Response packet.
          */
         void ParseLineOfSightResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseLineOfSightExtendedResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes an extended line-of-sight response using the recorded request coordinate system.
+         * @param buffer Complete CIGI 4.0 Line of Sight Extended Response packet.
+         *
+         * A response with no recorded coordinate system is ignored, with a warning when a logger is available.
          */
         void ParseLineOfSightExtendedResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseSensorResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes sensor tracking state and raises a sensor-response event.
+         * @param buffer Complete CIGI 4.0 Sensor Response packet.
          */
         void ParseSensorResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseSensorExtendedResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes extended tracking data and selects the entity or non-entity sensor event variant.
+         * @param buffer Complete CIGI 4.0 Sensor Extended Response packet.
          */
         void ParseSensorExtendedResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParsePositionResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes object position and raises a position event with a borrowed response payload.
+         * @param buffer Complete CIGI 4.0 Position Response packet.
          */
         void ParsePositionResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseWeatherConditionsResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes queried weather conditions and raises the corresponding response event.
+         * @param buffer Complete CIGI 4.0 Weather Conditions Response packet.
          */
         void ParseWeatherConditionsResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseAerosolConcentrationResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes queried aerosol concentration and raises the corresponding response event.
+         * @param buffer Complete CIGI 4.0 Aerosol Concentration Response packet.
          */
         void ParseAerosolConcentrationResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseMaritimeSurfaceConditionsResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes queried maritime conditions and raises the corresponding response event.
+         * @param buffer Complete CIGI 4.0 Maritime Surface Conditions Response packet.
          */
         void ParseMaritimeSurfaceConditionsResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseTerrestrialSurfaceConditionsResponsePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes queried terrestrial conditions and raises the corresponding response event.
+         * @param buffer Complete CIGI 4.0 Terrestrial Surface Conditions Response packet.
          */
         void ParseTerrestrialSurfaceConditionsResponsePacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseCollisionDetectionSegmentNotificationPacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes a segment collision and selects the entity or non-entity notification variant.
+         * @param buffer Complete CIGI 4.0 Collision Detection Segment Notification packet.
          */
         void ParseCollisionDetectionSegmentNotificationPacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseCollisionDetectionVolumeNotificationPacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes a volume collision and selects the entity or non-entity notification variant.
+         * @param buffer Complete CIGI 4.0 Collision Detection Volume Notification packet.
          */
         void ParseCollisionDetectionVolumeNotificationPacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseAnimationStopNotificationPacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes an entity animation-stop notification and raises its event.
+         * @param buffer Complete CIGI 4.0 Animation Stop Notification packet.
          */
         void ParseAnimationStopNotificationPacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseEventNotificationPacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Decodes an event identifier and three data words and raises an IG event notification.
+         * @param buffer Complete CIGI 4.0 Event Notification packet.
          */
         void ParseEventNotificationPacket(uint8_t* buffer);
         /**
-         * @brief Constructs a `ParseImageGeneratorMessagePacket` instance.
-         * @param buffer Buffer containing the data to read or write.
+         * @brief Copies an IG message identifier and declared text bytes into a message event.
+         * @param buffer Complete CIGI 4.0 IG Message packet, including any text payload.
          */
         void ParseImageGeneratorMessagePacket(uint8_t* buffer);
         /// @}
@@ -475,7 +496,8 @@ namespace sbio
          * @param weatherCondition Weather condition value.
          * @param spatialWeatherCondition Spatial weather condition value.
          */
-        virtual void SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition, const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition) override;
+        virtual void SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition,
+                                        const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition) override;
         /**
          * @brief Sends weather control.
          * @param regionID Region id value.
@@ -483,7 +505,8 @@ namespace sbio
          * @param weatherCondition Weather condition value.
          * @param spatialWeatherCondition Spatial weather condition value.
          */
-        virtual void SendWeatherControl(sbio::RegionID regionID, sbio::RegionalLayeredWeatherID regionlLayeredWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition, const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition) override;
+        virtual void SendWeatherControl(sbio::RegionID regionID, sbio::RegionalLayeredWeatherID regionlLayeredWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition,
+                                        const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition) override;
         /**
          * @brief Sends weather control.
          * @param entityID Entity id value.
@@ -492,33 +515,34 @@ namespace sbio
         virtual void SendWeatherControl(sbio::EntityID entityID, const sbio::cigi::SCigiWeatherCondition& weatherCondition) override;
 
         /**
-         * @brief Sets igcontrol.
-         * @param databaseID Database id value.
-         * @param bEntityTypeSubstitutionEnabled Whether entity type substitution enabled.
-         * @param eIGMode Igmode enumeration value.
-         * @param bSmoothingEnabled Whether smoothing enabled.
-         * @return `true` when the IG control packet state is updated; otherwise `false`.
+         * @brief Updates base IG-control state and cached CIGI 4.0 control flags.
+         * @param databaseID Database request number passed to `CHostSession::SetIGControl()`.
+         * @param bEntityTypeSubstitutionEnabled Enables the entity-type substitution flag when true.
+         * @param eIGMode Requested reset, operate, or debug mode.
+         * @param bSmoothingEnabled Enables the smoothing flag when true.
+         * @return `true` if the base request is accepted; `false` if disconnected or the mode is unsupported.
+         *         Does not transmit the cached packet.
          */
         virtual bool SetIGControl(sbio::cigi::CigiDatabaseNumber databaseID, bool bEntityTypeSubstitutionEnabled, sbio::cigi::EIGMode eIGMode, bool bSmoothingEnabled) override;
         /**
-         * @brief Handles the host cigi sensor response event event.
-         * @param args Event payload supplied with the dispatch.
+         * @brief Raises formatted sensor diagnostics when logging is enabled; otherwise does nothing.
+         * @param args Sensor response to format; the diagnostic is tagged with this session's ID.
          */
         virtual void OnHostCigiSensorResponseEvent(const HostCigiSensorResponseEventArgs& args);
 
       protected:
         /**
-         * @brief Returns the minimum valid payload size for a CIGI 4.0 opcode.
-          * @param eOpCode Op code enumeration value.
-          * @return Minimum incoming packet size v4 value.
+         * @brief Gets the minimum complete packet size required by a supported CIGI 4.0 parser.
+         * @param eOpCode Incoming opcode to check.
+         * @return Minimum size in bytes, including the header, or zero for an unrecognized opcode.
          */
         int GetMinimumIncomingPacketSizeV4(ECigiOpCodeV4 eOpCode) const;
 
         /**
          * @brief Reads a CIGI 4.0 packet header and applies byte swapping when required.
-          * @param buffer Buffer containing the data to read or write.
-          * @param bByteSwap Whether byte swap.
-          * @return Packet header v4 value.
+         * @param buffer Readable memory containing at least `sizeof(SCigiPacketHeaderV4)` bytes.
+         * @param bByteSwap Whether to swap the copied packet-size and opcode fields.
+         * @return Copied header in the requested byte order; no length or opcode validation is performed.
          */
         SCigiPacketHeaderV4 GetPacketHeaderV4(const uint8_t* buffer, bool bByteSwap) const;
 

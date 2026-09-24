@@ -32,18 +32,21 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the destination point coordinate system radio button event.
-   * @param event The command event.
+   * @brief Relabels destination fields for the current geodetic/entity coordinate selection without converting values.
+   * @param event Unused command event; reads the radio control's current selection.
    */
   void OnDestinationPointCoordinateSystemRadio(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending line of sight segment request packets.
-   * @param event The command event.
+   * @brief Submits the basic segment request matching the selected source/destination coordinate systems.
+   * @param event Unused command event; requires an active session.
+   *
+   * Unrecognized coordinate combinations send nothing. The entity-to-geodetic branch currently leaves destination
+   * coordinates at their request defaults rather than reading the destination fields. Submission does not confirm delivery.
    */
   void OnSend(wxCommandEvent& event);
   /**
-   * @brief Handles the source point coordinate system radio button event.
-   * @param event The command event.
+   * @brief Relabels source fields for the current geodetic/entity coordinate selection without converting values.
+   * @param event Unused command event; reads the radio control's current selection.
    */
   void OnSourcePointCoordinateSystemRadio(wxCommandEvent& event);
 

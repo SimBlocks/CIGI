@@ -24,7 +24,7 @@ namespace sbio
      * The pure virtual function has a default implementation in the `.cpp` file that forwards
      * the event arguments to all listeners currently registered for the supplied event name.
      *
-     * @note The dispatcher stores handlers through `std::unique_ptr`, so a registered handler has unique ownership within `CEventDispatcher`.
+     * @note Registration transfers ownership to the dispatcher; active dispatches retain shared ownership until their visit completes.
      */
     class EventHandler
     {
@@ -44,6 +44,7 @@ namespace sbio
        *
        * @ownership `event` and `args` remain owned by the caller.
        * @sideeffects Implementations may invoke arbitrary listener or handler code.
+       * @note The default implementation skips listeners unregistered by earlier callbacks in the same dispatch.
        * @failurecases The default implementation returns immediately when no global dispatcher is configured.
        * @failurecases Exceptions from derived implementations or listener callbacks are not intercepted here.
        */

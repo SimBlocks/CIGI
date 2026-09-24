@@ -25,11 +25,9 @@ namespace sbio
   namespace entity
   {
     /**
-     * @brief Leaf node in the loaded entity-type hierarchy.
+     * @brief Specific entry stored beneath an entity subcategory in the loaded hierarchy.
      *
-     * Invariants:
-     * - `entitySpecificID` identifies the specific entry.
-     * - `sDescription` stores the textual description parsed for that entry.
+     * Stores the specific identifier and its parsed description; no extra-level entries are represented.
      */
     struct SEntitySpecific
     {
@@ -100,7 +98,7 @@ namespace sbio
       /**
        * @brief Adds or replaces a category in this entity-type grouping.
        *
-       * @param pEntityCategory Unique pointer whose ownership is transferred to this object.
+       * @param pEntityCategory Non-null category pointer moved into this object; empty on successful return.
        *
        * Side effects:
        * - Stores the category under `pEntityCategory->entityCategoryID`.
@@ -115,7 +113,8 @@ namespace sbio
        * @brief Gets a category by identifier.
        *
        * @param entityCategoryID Category identifier to look up.
-       * @return Non-owning pointer to the matching category, or `nullptr` when no category exists for that identifier.
+       * @return Non-owning, mutable pointer to the matching category, or `nullptr` when the identifier is absent.
+       *         The pointer remains valid until that category is replaced or this object is destroyed.
        */
       SEntityCategory* GetCategory(sbio::SisoEntityCategoryID entityCategoryID) const;
 

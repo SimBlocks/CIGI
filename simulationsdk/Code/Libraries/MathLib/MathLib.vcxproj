@@ -79,6 +79,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AABB.h" />
+    <ClInclude Include="EigenTypes.h" />
     <ClInclude Include="FlatEarthProjection.h" />
     <ClInclude Include="CoordinateConversions.h" />
     <ClInclude Include="Math.h" />

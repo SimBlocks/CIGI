@@ -167,7 +167,7 @@ void SetupDialog::OnOk(wxCommandEvent& event)
   const sbio::SessionID sessionID = g_pHostEmulatorGuiApp != nullptr ? g_pHostEmulatorGuiApp->GetSelectedSessionID() : sbio::SessionID(0);
   SHostSessionSetupOptions sessionOptions = GetSessionSetupOptions(options, sessionID);
 
-  //Validate the IP Address
+  // Validate the IP Address
   options.igIPAddress = ipAddressControl->GetValue();
   if (!regexIpAddress->Matches(options.igIPAddress))
   {

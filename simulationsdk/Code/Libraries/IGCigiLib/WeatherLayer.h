@@ -3,7 +3,7 @@
  * @file WeatherLayer.h
  * @brief Declares the CCigiWeatherLayer class for SimBlocks CIGI IG weather layer management and simulation.
  *
- * Provides the CCigiWeatherLayer class for representing and managing weather layers in the SimBlocks CIGI IG library.
+ * Provides the CCigiWeatherLayer class for representing and managing weather layers in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI types for weather condition state, spatial condition, activation, and weather simulation.
  * Supports activation state, scud, random winds, random lightning, weather condition setting and retrieval, spatial condition, and contribution calculation for simulation.
  *

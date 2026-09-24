@@ -114,8 +114,14 @@ void CHostEmulatorGuiApp::LaunchImageGenerator()
 #endif
 }
 
+/** @brief Factory supplying plain CView instances for the host view manager's configuration loader. */
 class HostViewCreator : public sbio::view::IViewCreator
 {
+  /**
+   * @brief Allocates a base view without registering it with a manager.
+   * @param viewID Identifier stored by the new view.
+   * @return Owning pointer to the new view; allocation exceptions propagate.
+   */
   virtual std::unique_ptr<CView> CreateView(ViewID viewID) override
   {
     return std::make_unique<CView>(viewID);
@@ -294,7 +300,8 @@ void CHostEmulatorGuiApp::OnOk(wxCommandEvent& event)
     wxMessageBox(wxT("String conversion failed"));
     return;
   }
-  //Validate the IP Address
+
+  // Validate the IP Address
   if (!dialog->IsIPAddressValid())
   {
     HostCigiErrorEventArgs args;
@@ -305,7 +312,7 @@ void CHostEmulatorGuiApp::OnOk(wxCommandEvent& event)
     return;
   }
 
-  //Validate default database
+  // Validate default database
   if (options.defaultDatabaseID.Value() < 0 || options.defaultDatabaseID.Value() > 127)
   {
     HostCigiErrorEventArgs args;

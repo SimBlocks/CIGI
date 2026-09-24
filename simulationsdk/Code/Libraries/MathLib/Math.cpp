@@ -15,6 +15,7 @@
  */
 #include "Math.h"
 #include <Eigen/Geometry>
+#include <cmath>
 #include <limits>
 
 #define _USE_MATH_DEFINES
@@ -42,7 +43,7 @@ namespace sbio
      */
     double DegreesToRadians(double degrees)
     {
-      return degrees * static_cast<double>(M_PI) / 180.0;
+      return degrees * (static_cast<double>(M_PI) / 180.0);
     }
 
     /**
@@ -51,6 +52,16 @@ namespace sbio
      * @return The angle in radians (strong type) in [0, 2*PI].
      */
     Radians DegreesToRadians(Degrees degrees)
+    {
+      return DegreesToRadiansInternal(degrees);
+    }
+
+    Radians DegreesToRadians(Degrees90 degrees)
+    {
+      return DegreesToRadiansInternal(degrees);
+    }
+
+    Radians DegreesToRadians(Degrees180 degrees)
     {
       return DegreesToRadiansInternal(degrees);
     }
@@ -76,13 +87,18 @@ namespace sbio
     }
 
     /**
-     * @brief Converts radians to degrees (strong type).
+     * @brief Converts radians to unsigned degrees, adding one turn to negative angles.
      * @param radians The angle in radians (strong type).
-     * @return The angle in degrees (strong type).
+     * @return The equivalent angle in [0, 360] for valid input.
      */
     Degrees RadiansToDegrees(Radians radians)
     {
-      return Degrees(RadiansToDegrees(radians.Value()));
+      double degrees = RadiansToDegrees(radians.Value());
+      if (degrees < 0)
+      {
+        degrees += 360.0;
+      }
+      return Degrees(degrees);
     }
 
     /**
@@ -96,6 +112,12 @@ namespace sbio
       if (a == b)
       {
         return true;
+      }
+
+      // Check for NaN or infinity
+      if (!std::isfinite(a) || !std::isfinite(b))
+      {
+        return false;
       }
 
       const float fDifference = std::fabs(a - b);
@@ -115,6 +137,12 @@ namespace sbio
       if (a == b)
       {
         return true;
+      }
+
+      // Check for NaN or infinity
+      if (!std::isfinite(a) || !std::isfinite(b))
+      {
+        return false;
       }
 
       const double fDifference = std::fabs(a - b);

@@ -5,9 +5,7 @@
 using namespace sbio::cigi;
 using namespace sbio::math;
 
-/// <summary>
-/// Add result of B onto A
-/// </summary>
+// Returns a combined condition without modifying either input
 SCigiWeatherCondition SCigiWeatherCondition::Sum(const SCigiWeatherCondition& a, const SCigiWeatherCondition& b)
 {
   SCigiWeatherCondition result;
@@ -28,10 +26,43 @@ SCigiWeatherCondition SCigiWeatherCondition::Sum(const SCigiWeatherCondition& a,
   result.fVisibilityRange = a.fVisibilityRange + b.fVisibilityRange;
   result.HorizontalWindSpeed = a.HorizontalWindSpeed + b.HorizontalWindSpeed;
   result.VerticalWindSpeed = a.VerticalWindSpeed + b.VerticalWindSpeed;
-  result.WindDirection = a.WindDirection + b.WindDirection;
   result.coverage = a.coverage + b.coverage;
   result.bottomScudFrequency = a.bottomScudFrequency + b.bottomScudFrequency;
   result.topScudFrequency = a.topScudFrequency + b.topScudFrequency;
+
+  // Convert wind directions to vector components, sum them, and convert back to degrees
+  double windDirectionX = 0.0;
+  double windDirectionY = 0.0;
+
+  // Only include valid wind directions in the sum
+  if (a.WindDirection.CheckValid())
+  {
+    // Convert weather condition a to vector components and sum
+    const Radians direction = DegreesToRadians(a.WindDirection);
+    windDirectionX += std::cos(direction.Value());
+    windDirectionY += std::sin(direction.Value());
+  }
+
+  if (b.WindDirection.CheckValid())
+  {
+    // Convert weather condition b to vector components and sum
+    const Radians direction = DegreesToRadians(b.WindDirection);
+    windDirectionX += std::cos(direction.Value());
+    windDirectionY += std::sin(direction.Value());
+  }
+
+  // Initialize the result wind direction to unknown; it will be updated if the summed vector is non-zero
+  // If the summed vector is zero, the wind direction remains unknown.
+  // This handles the case where both input wind directions are unknown or cancel each other out.
+  result.WindDirection = UnknownDegrees360;
+
+  // If the summed vector is non-zero, convert back to a wind direction in degrees
+  if (std::hypot(windDirectionX, windDirectionY) > 0.000001)
+  {
+    // Convert summed vector components back to a wind direction in degrees
+    const double degrees = RadiansToDegrees(Radians(std::atan2(windDirectionY, windDirectionX))).Value();
+    result.WindDirection = Degrees360(degrees < 0.0 ? degrees + 360.0 : degrees);
+  }
 
   return result;
 }
@@ -113,7 +144,8 @@ bool SCigiComponentKey::operator<(const SCigiComponentKey& key) const
 
 bool SCigiComponentControlState::operator==(const SCigiComponentControlState& state) const
 {
-  return (nComponentState == state.nComponentState) && (componentData[0] == state.componentData[0]) && (componentData[1] == state.componentData[1]) && (componentData[2] == state.componentData[2]) && (componentData[3] == state.componentData[3]) && (componentData[4] == state.componentData[4]) &&
+  return (nComponentState == state.nComponentState) && (componentData[0] == state.componentData[0]) && (componentData[1] == state.componentData[1]) &&
+         (componentData[2] == state.componentData[2]) && (componentData[3] == state.componentData[3]) && (componentData[4] == state.componentData[4]) &&
          (componentData[5] == state.componentData[5]);
 }
 

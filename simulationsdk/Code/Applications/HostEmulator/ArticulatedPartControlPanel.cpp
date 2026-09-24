@@ -65,8 +65,8 @@ void CArticulatedPartControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
   articulatedPartControl.offset[0] = GetFloat("X Offset");
   articulatedPartControl.offset[1] = GetFloat("Y Offset");
   articulatedPartControl.offset[2] = GetFloat("Z Offset");
-  articulatedPartControl.rotation.roll = Degrees(GetFloat("Roll"));
-  articulatedPartControl.rotation.pitch = Degrees(GetFloat("Pitch"));
+  articulatedPartControl.rotation.roll = Degrees180(GetFloat("Roll"));
+  articulatedPartControl.rotation.pitch = Degrees90(GetFloat("Pitch"));
   articulatedPartControl.rotation.yaw = Degrees(GetFloat("Yaw"));
 
   HostCigiErrorEventArgs args;
@@ -77,7 +77,7 @@ void CArticulatedPartControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     Event::Raise<HostCigiEvent>(args);
 
     wxLogError("Roll: Enter number between -180.0 and 180.0");
-    articulatedPartControl.rotation.roll = Degrees(ResetFloat("Roll"));
+    articulatedPartControl.rotation.roll = Degrees180(ResetFloat("Roll"));
   }
   if (articulatedPartControl.rotation.pitch.Value() < min || articulatedPartControl.rotation.pitch.Value() > max)
   {
@@ -85,7 +85,7 @@ void CArticulatedPartControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     Event::Raise<HostCigiEvent>(args);
 
     wxLogError("Pitch: Enter number between -180.0 and 180.0");
-    articulatedPartControl.rotation.pitch = Degrees(ResetFloat("Pitch"));
+    articulatedPartControl.rotation.pitch = Degrees90(ResetFloat("Pitch"));
   }
   if (articulatedPartControl.rotation.yaw.Value() < min || articulatedPartControl.rotation.yaw.Value() > max)
   {

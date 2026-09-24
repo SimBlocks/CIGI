@@ -8,6 +8,8 @@
 #include "IGCigiLib/CigiProjectionConversions.h"
 #include "EngineLib/IImageGeneratorEventMessenger.h"
 #include "EngineLib/ImageGeneratorEventMessenger.h"
+#include <algorithm>
+#include <cmath>
 
 using namespace sbio;
 using namespace sbio::cigi;
@@ -17,9 +19,14 @@ using namespace sbio::ig::atmosphere;
 
 extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
-CCigiEnvironmentalRegion::CCigiEnvironmentalRegion(RegionID regionID)
+CCigiEnvironmentalRegion::CCigiEnvironmentalRegion() = default;
+
+CCigiEnvironmentalRegion::CCigiEnvironmentalRegion(RegionID regionID) : m_Scope(ECigiScope::REGIONAL), m_RegionID(regionID)
 {
-  m_regionID = regionID.Value();
+}
+
+CCigiEnvironmentalRegion::CCigiEnvironmentalRegion(EntityID entityID) : m_Scope(ECigiScope::ENTITY), m_EntityID(entityID)
+{
 }
 
 void CCigiEnvironmentalRegion::SetActive(bool active)
@@ -44,7 +51,8 @@ GeocentricCoordinates CCigiEnvironmentalRegion::GetOrigin() const
 
 double CCigiEnvironmentalRegion::GetRadius() const
 {
-  return std::sqrt(m_SizeX * m_SizeX + m_SizeY * m_SizeY);
+  // Calculate the radius of the region based on its dimensions and transition perimeter.
+  return std::sqrt(m_SizeX * m_SizeX + m_SizeY * m_SizeY) + std::max(0.0f, m_TransitionPerimeter);
 }
 
 void CCigiEnvironmentalRegion::SetDimensions(float x, float y, float radius, float transitionPerimeter)
@@ -396,8 +404,12 @@ float CCigiEnvironmentalRegion::IntersectionTest(const SGeodeticCoordinates& que
   }
 }
 
-void SetWeatherData(SSetWeatherMessage& data, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition, RegionalLayeredWeatherID layerID)
+void CCigiEnvironmentalRegion::SetWeatherData(SSetWeatherMessage& data, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition,
+                                              RegionalLayeredWeatherID layerID) const
 {
+  data.Scope = m_Scope;
+  data.RegionID = m_RegionID;
+  data.EntityID = m_EntityID;
   data.AirTemperature = condition.fAirTemperature;
   data.BarometricPressure = condition.fBarometricPressure;
   data.AerosolConcentration = condition.fAerosolConcentration;
@@ -425,26 +437,18 @@ void SetWeatherData(SSetWeatherMessage& data, const SCigiWeatherCondition& condi
 
 void CCigiEnvironmentalRegion::SetWeatherCondition(const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
-  CCigiWeatherLayer* pLayer = nullptr;
-
   RegionalLayeredWeatherID regionaLayerWeatherID = RegionalLayeredWeatherID(0);// for entities
-  TRegionalWeatherLayers::iterator it = m_WeatherLayers.find(regionaLayerWeatherID);
+  auto& pLayer = m_WeatherLayers[regionaLayerWeatherID];
 
   // if not exist, create new layer
-  if (it == m_WeatherLayers.end())
+  if (!pLayer)
   {
-    pLayer = new CCigiWeatherLayer;
-  }
-  // reuse old layer
-  else
-  {
-    pLayer = it->second;
+    pLayer = std::make_unique<CCigiWeatherLayer>();
   }
 
   pLayer->SetWeatherCondition(condition);
 
-  m_WeatherLayers[regionaLayerWeatherID] = pLayer;
-  m_LastWeatherLayer = m_WeatherLayers[regionaLayerWeatherID];
+  m_LastWeatherLayer = pLayer.get();
 
   SSetWeatherMessage data;
   SetWeatherData(data, condition, spatialWeatherCondition, regionaLayerWeatherID);
@@ -454,28 +458,20 @@ void CCigiEnvironmentalRegion::SetWeatherCondition(const SCigiWeatherCondition& 
   }
 }
 
-void CCigiEnvironmentalRegion::SetWeatherCondition(RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition)
+void CCigiEnvironmentalRegion::SetWeatherCondition(RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition,
+                                                   const SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
-  CCigiWeatherLayer* pLayer = nullptr;
-
-  TRegionalWeatherLayers::iterator it = m_WeatherLayers.find(layerID);
+  auto& pLayer = m_WeatherLayers[layerID];
 
   // if not exist, create new layer
-  if (it == m_WeatherLayers.end())
+  if (pLayer == nullptr)
   {
-    pLayer = new CCigiWeatherLayer;
-  }
-  // reuse old layer
-  else
-  {
-    pLayer = it->second;
+    pLayer = std::make_unique<CCigiWeatherLayer>();
   }
 
   pLayer->SetWeatherCondition(condition);
   pLayer->SetSpatialWeatherCondition(spatialWeatherCondition);
-
-  m_WeatherLayers[layerID] = pLayer;
-  m_LastWeatherLayer = m_WeatherLayers[layerID];
+  m_LastWeatherLayer = pLayer.get();
 
   SSetWeatherMessage data;
   SetWeatherData(data, condition, spatialWeatherCondition, layerID);
@@ -535,26 +531,19 @@ uint64_t CCigiEnvironmentalRegion::GetUpdateSequence() const
   return m_UpdateSequence;
 }
 
-void CCigiEnvironmentalRegion::AddWeatherLayer(RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition)
+void CCigiEnvironmentalRegion::AddWeatherLayer(RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition,
+                                               const SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
-  CCigiWeatherLayer* pLayer = nullptr;
-
-  TRegionalWeatherLayers::iterator it = m_WeatherLayers.find(layerID);
+  auto& pLayer = m_WeatherLayers[layerID];
 
   // if did not find, create new layer
-  if (it == m_WeatherLayers.end())
+  if (pLayer == nullptr)
   {
-    pLayer = new CCigiWeatherLayer;
-  }
-  // reuse previous layer
-  else
-  {
-    pLayer = it->second;
+    pLayer = std::make_unique<CCigiWeatherLayer>();
   }
 
   pLayer->SetWeatherCondition(condition);
   pLayer->SetSpatialWeatherCondition(spatialWeatherCondition);
-  m_WeatherLayers[layerID] = pLayer;
 
   SSetWeatherMessage data;
   SetWeatherData(data, condition, spatialWeatherCondition, layerID);
@@ -574,42 +563,102 @@ void CCigiEnvironmentalRegion::RemoveWeatherLayer(RegionalLayeredWeatherID layer
     return;
   }
 
-  delete it->second;
+  if (m_LastWeatherLayer == it->second.get())
+  {
+    m_LastWeatherLayer = nullptr;
+  }
   m_WeatherLayers.erase(layerID);
 }
 
-void CCigiEnvironmentalRegion::QueryWeatherAtAltitude(sbio::math::HeightRelativeToWGS84Ellipsoid altitude, SCigiWeatherCondition& out, bool& used)
+std::map<uint8_t, CCigiEnvironmentalRegion::SAerosolLayerContribution> CCigiEnvironmentalRegion::QueryAerosolsAtAltitude(sbio::math::HeightRelativeToWGS84Ellipsoid altitude)
+{
+  std::map<uint8_t, SAerosolLayerContribution> result;
+  for (const auto& layer : m_WeatherLayers)
+  {
+    if (!layer.second->GetActive())
+    {
+      continue;
+    }
+
+    const float weight = static_cast<float>(layer.second->IntersectionTest(altitude));
+    if (!std::isfinite(weight) || weight <= 0)
+    {
+      continue;
+    }
+
+    auto& contribution = result[static_cast<uint8_t>(layer.first.Value())];
+    contribution.concentration = layer.second->GetWeatherCondition().fAerosolConcentration;
+    contribution.weight = weight;
+  }
+  return result;
+}
+
+float CCigiEnvironmentalRegion::QueryWeatherAtAltitude(sbio::math::HeightRelativeToWGS84Ellipsoid altitude, SCigiWeatherCondition& out, bool& used)
 {
   used = false;
   float sum = 0;
+  double windDirectionX = 0;
+  double windDirectionY = 0;
   SCigiWeatherCondition sumCondition;
 
   // for each weather layer
   for (TRegionalWeatherLayers::iterator it = m_WeatherLayers.begin(); it != m_WeatherLayers.end(); ++it)
   {
+    // if the layer is active, get its contribution at the given altitude
     if (it->second->GetActive())
     {
-      used = true;
-
+      // get the contribution of this layer at the given altitude
       CCigiWeatherLayer& weatherLayer = *it->second;
-      double contribution = weatherLayer.IntersectionTest(altitude);
-      sumCondition = SCigiWeatherCondition::Sum(sumCondition, weatherLayer.GetWeatherCondition());
 
-      sum += static_cast<float>(contribution);
+      // if the contribution is not finite or less than or equal to 0, skip this layer
+      const float contribution = static_cast<float>(weatherLayer.IntersectionTest(altitude));
+      if (!std::isfinite(contribution) || contribution <= 0.0f)
+      {
+        continue;
+      }
+
+      // get the weather condition for this layer and scale it by the contribution
+      SCigiWeatherCondition condition = weatherLayer.GetWeatherCondition();
+      SCigiWeatherCondition scaledCondition = condition.Scale(contribution);
+      sumCondition = used ? SCigiWeatherCondition::Sum(sumCondition, scaledCondition) : scaledCondition;
+      used = true;
+      sum += contribution;
+
+      // calculate wind direction vector sum
+      if (condition.WindDirection.CheckValid())
+      {
+        const Radians direction = DegreesToRadians(condition.WindDirection);
+        windDirectionX += std::cos(direction.Value()) * contribution;
+        windDirectionY += std::sin(direction.Value()) * contribution;
+      }
     }
   }
 
   out = sumCondition;
+  out.WindDirection = UnknownDegrees360;
 
   // divide by sum of contributions
   if (sum > 0)
   {
     out.fAerosolConcentration /= sum;
     out.fAirTemperature /= sum;
-
+    out.fBarometricPressure /= sum;
+    out.humidity /= sum;
+    out.fVisibilityRange /= sum;
+    out.coverage /= sum;
+    out.bottomScudFrequency /= sum;
+    out.topScudFrequency /= sum;
     out.VerticalWindSpeed /= sum;
     out.HorizontalWindSpeed /= sum;
+
+    // calculate wind direction from the weighted average of the wind direction vectors if the magnitude is significant
+    if (std::hypot(windDirectionX, windDirectionY) > 0.000001 * sum)
+    {
+      const double degrees = RadiansToDegrees(Radians(std::atan2(windDirectionY, windDirectionX))).Value();
+      out.WindDirection = Degrees360(degrees < 0.0 ? degrees + 360.0 : degrees);
+    }
   }
+  return std::min(1.0f, sum);
 }
 
 void CCigiEnvironmentalRegion::QueryMaritimeSurface(SCigiMaritimeSurfaceCondition& out, bool& used)
@@ -632,23 +681,15 @@ void CCigiEnvironmentalRegion::QueryTerrestrialSurface(SCigiTerrestrialSurfaceCo
 
 void CCigiEnvironmentalRegion::AddWave(RegionalWaveID waveID, const SCigiWaveCondition& condition)
 {
-  CCigiWaveLayer* layer;
-
-  auto it = m_WaveLayers.find(waveID);
+  auto& layer = m_WaveLayers[waveID];
 
   // if did not find, create new layer
-  if (it == m_WaveLayers.end())
+  if (layer == nullptr)
   {
-    layer = new CCigiWaveLayer;
-  }
-  // reuse previous layer
-  else
-  {
-    layer = it->second;
+    layer = std::make_unique<CCigiWaveLayer>();
   }
 
   layer->SetCondition(condition);
-  m_WaveLayers[waveID] = layer;
 }
 
 void CCigiEnvironmentalRegion::RemoveWave(RegionalWaveID waveID)
@@ -658,8 +699,6 @@ void CCigiEnvironmentalRegion::RemoveWave(RegionalWaveID waveID)
   // found wave
   if (it != m_WaveLayers.end())
   {
-    // delete memory
-    delete it->second;
     m_WaveLayers.erase(waveID);
   }
 }
@@ -669,7 +708,7 @@ void CCigiEnvironmentalRegion::QueryWave(TWaveResult& out, bool& used)
   TWaveResult result;
 
   // add regional wave effects
-  for (auto pair : m_WaveLayers)
+  for (const auto& pair : m_WaveLayers)
   {
     RegionalWaveID waveID = pair.first;
     auto it = result.find(waveID);
@@ -677,7 +716,7 @@ void CCigiEnvironmentalRegion::QueryWave(TWaveResult& out, bool& used)
     // couldn't find wave id, new wave, add to result
     if (it == result.end())
     {
-      result[waveID] = pair.second;
+      result[waveID] = pair.second.get();
     }
   }
 

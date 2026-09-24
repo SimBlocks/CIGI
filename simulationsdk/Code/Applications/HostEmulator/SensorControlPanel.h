@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending sensor control packets.
-   * @param event The command event.
+   * @brief Submits sensor-control values from the editor through the active session.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available. Does not wait for or return sensor responses.
    */
   void OnSend(wxCommandEvent& event);
 

@@ -24,46 +24,47 @@
 /**
  * @brief Message log page for displaying messages in the HostEmulator GUI.
  *
- * Receives message events and displays them in a text control. Allows clearing the message log and updating the GUI.
+ * Buffers message text until UpdateGUI() appends it to the control. Subscribes to HostCigiEvent when the global
+ * dispatcher is available. Callbacks and GUI refresh access unsynchronized state and are intended for the GUI thread.
  */
 class CMessageLogPage : public CNotebookPage, sbio::cigi::host::IHostCigiEventListener
 {
 public:
   /**
    * @brief Constructs the message log page.
-   * @param pParent Parent window pointer.
+   * @param pParent Parent window owning this page through the wxWidgets hierarchy.
    */
   CMessageLogPage(wxWindow* pParent);
   /**
-   * @brief Destroys CMessageLogPage instances.
+   * @brief Unregisters this listener from the current global dispatcher when available; child controls follow wxWidgets ownership.
    */
   virtual ~CMessageLogPage();
 
   /**
-   * @brief Handles message events and updates the message log display.
-   * @param args Message event arguments.
+   * @brief Appends generic message text to the pending buffer without refreshing the control.
+   * @param args Borrowed event arguments; sMessage is copied into the buffer.
    */
   virtual void OnHostCigiMessageEvent(const sbio::cigi::host::HostCigiMessageEventArgs& args) override;
   /**
-   * @brief Handles the host cigi data message event event.
-   * @param args Event data supplied with the dispatch.
+   * @brief Copies formatted packet text into the pending buffer without refreshing the control.
+   * @param args Borrowed event arguments; sDataMessage.str() is appended with newline separators.
    */
   virtual void OnHostCigiDataMessageEvent(const sbio::cigi::host::HostCigiDataMessageEventArgs& args) override;
   /**
-   * @brief Handles the host cigi clear message event event.
-   * @param args Event data supplied with the dispatch.
+   * @brief Clears both displayed text and pending messages immediately.
+   * @param args Unused clear-event arguments.
    */
   virtual void OnHostCigiClearMessageEvent(const sbio::cigi::host::HostCigiClearMessageEventArgs& args) override;
 
   /**
-   * @brief Updates the GUI with the latest message log content.
+   * @brief Appends pending text with newline separators and empties the buffer; does nothing when it is empty.
    */
   void UpdateGUI();
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the clear message log button event.
-   * @param event The command event.
+   * @brief Clears displayed and pending text without restoring the initial heading.
+   * @param event Unused command event.
    */
   void OnClearMessageLog(wxCommandEvent& event);
 

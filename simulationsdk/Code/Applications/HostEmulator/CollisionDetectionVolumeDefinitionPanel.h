@@ -31,13 +31,15 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending collision detection volume definition packets.
-   * @param event The command event.
+   * @brief Builds a sphere or cuboid definition from the controls and submits it to the active session.
+   * @param event Unused command event; requires an active session.
+   * Performs dimension and cuboid-angle checks with error reporting/control resets, then continues submission.
+   * Removes the active wxLog target afterward; no delivery result is exposed.
    */
   void OnSend(wxCommandEvent& event);
   /**
-   * @brief Handles the volume type selection event.
-   * @param event The command event.
+   * @brief Relabels the shared radius field as Radius for spheres or Height otherwise, without converting its value.
+   * @param event Radio event whose string selects Sphere versus the cuboid labels.
    */
   void OnVolumeType(wxCommandEvent& event);
 

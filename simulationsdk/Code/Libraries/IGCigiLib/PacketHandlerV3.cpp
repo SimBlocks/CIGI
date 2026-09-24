@@ -30,7 +30,6 @@
 #include "UtilitiesLib/EventDispatcher.h"
 #include "UtilitiesLib/EventHandler.h"
 #include "UtilitiesLib/Logger.h"
-#include "UtilitiesLib/Endian.h"
 #include "UtilitiesLib/UDPReceiveSocket.h"
 #include "UtilitiesLib/UDPSendSocket.h"
 #include "UtilitiesLib/PacketLoggerWriter.h"
@@ -109,7 +108,8 @@ using namespace sbio::cigi::ig;
 
 extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
-CCigiPacketHandlerV3::CCigiPacketHandlerV3(CCigiImageGenerator& imageGenerator, const std::string& sHostIP, int nHostToIgPort, int nIgToHostPort) : CCigiPacketHandler(imageGenerator, nHostToIgPort)
+CCigiPacketHandlerV3::CCigiPacketHandlerV3(CCigiImageGenerator& imageGenerator, const std::string& sHostIP, int nHostToIgPort, int nIgToHostPort) :
+  CCigiPacketHandler(imageGenerator, nHostToIgPort)
 {
   RegisterPacket<CIGI::V33::IGCtrl>(ECigiOpCodeV3::IG_CONTROL, &CCigiPacketHandlerV3::ParseIgControlPacket);
   RegisterPacket<CIGI::V33::EntityCtrl>(ECigiOpCodeV3::ENTITY_CONTROL, &CCigiPacketHandlerV3::ParseEntityControlPacket);
@@ -126,19 +126,23 @@ CCigiPacketHandlerV3::CCigiPacketHandlerV3(CCigiImageGenerator& imageGenerator, 
   RegisterPacket<CIGI::V33::WeatherCtrl>(ECigiOpCodeV3::WEATHER_CONTROL, &CCigiPacketHandlerV3::ParseWeatherControlPacket);
   RegisterPacket<CIGI::V33::MaritimeSurfaceConditionsCtrl>(ECigiOpCodeV3::MARITIME_SURFACE_CONDITIONS_CONTROL, &CCigiPacketHandlerV3::ParseMaritimeSurfaceConditionsControlPacket);
   RegisterPacket<CIGI::V33::WaveCtrl>(ECigiOpCodeV3::WAVE_CONTROL, &CCigiPacketHandlerV3::ParseWaveControlPacket);
-  RegisterPacket<CIGI::V33::TerrestrialSurfaceConditionsCtrl>(ECigiOpCodeV3::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL, &CCigiPacketHandlerV3::ParseTerrestrialSurfaceConditionsControlPacket);
+  RegisterPacket<CIGI::V33::TerrestrialSurfaceConditionsCtrl>(ECigiOpCodeV3::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL,
+                                                              &CCigiPacketHandlerV3::ParseTerrestrialSurfaceConditionsControlPacket);
   RegisterPacket<CIGI::V33::ViewCtrl>(ECigiOpCodeV3::VIEW_CONTROL, &CCigiPacketHandlerV3::ParseViewControlPacket);
   RegisterPacket<CIGI::V33::SensorCtrl>(ECigiOpCodeV3::SENSOR_CONTROL, &CCigiPacketHandlerV3::ParseSensorControlPacket);
   RegisterPacket<CIGI::V33::MotionTrackerCtrl>(ECigiOpCodeV3::MOTION_TRACKER_CONTROL, &CCigiPacketHandlerV3::ParseMotionTrackerControlPacket);
   RegisterPacket<CIGI::V33::EarthReferenceModelDefinition>(ECigiOpCodeV3::EARTH_REFERENCE_MODEL_DEFINITION, &CCigiPacketHandlerV3::ParseEarthReferenceModelDefinitionPacket);
   RegisterPacket<CIGI::V33::TrajectoryDefinition>(ECigiOpCodeV3::TRAJECTORY_DEFINITION, &CCigiPacketHandlerV3::ParseTrajectoryDefinitionPacket);
   RegisterPacket<CIGI::V33::ViewDefinition>(ECigiOpCodeV3::VIEW_DEFINITION, &CCigiPacketHandlerV3::ParseViewDefinitionPacket);
-  RegisterPacket<CIGI::V33::CollisionDetectionSegmentDefinition>(ECigiOpCodeV3::COLLISION_DETECTION_SEGMENT_DEFINITION, &CCigiPacketHandlerV3::ParseCollisionDetectionSegmentDefinitionPacket);
-  RegisterPacket<CIGI::V33::CollisionDetectionVolumeDefinition>(ECigiOpCodeV3::COLLISION_DETECTION_VOLUME_DEFINITION, &CCigiPacketHandlerV3::ParseCollisionDetectionVolumeDefinitionPacket);
+  RegisterPacket<CIGI::V33::CollisionDetectionSegmentDefinition>(ECigiOpCodeV3::COLLISION_DETECTION_SEGMENT_DEFINITION,
+                                                                 &CCigiPacketHandlerV3::ParseCollisionDetectionSegmentDefinitionPacket);
+  RegisterPacket<CIGI::V33::CollisionDetectionVolumeDefinition>(ECigiOpCodeV3::COLLISION_DETECTION_VOLUME_DEFINITION,
+                                                                &CCigiPacketHandlerV3::ParseCollisionDetectionVolumeDefinitionPacket);
   RegisterPacket<CIGI::V33::PositionRequest>(ECigiOpCodeV3::POSITION_REQUEST, &CCigiPacketHandlerV3::ParsePositionRequestPacket);
   RegisterPacket<CIGI::V33::EnvironmentalConditionsRequest>(ECigiOpCodeV3::ENVIRONMENTAL_CONDITIONS_REQUEST, &CCigiPacketHandlerV3::ParseEnvironmentalConditionsRequestPacket);
   RegisterPacket<CIGI::V33::SymbolSurfaceDefinition>(ECigiOpCodeV3::SYMBOL_SURFACE_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolSurfaceDefinitionPacket);
-  RegisterVariablePacket<CIGI::V33::SymbolTextDefinition>(ECigiOpCodeV3::SYMBOL_TEXT_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolTextDefinitionPacket, CIGI::V33::SymbolTextDefinition::kMinDataLength);
+  RegisterVariablePacket<CIGI::V33::SymbolTextDefinition>(
+    ECigiOpCodeV3::SYMBOL_TEXT_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolTextDefinitionPacket, CIGI::V33::SymbolTextDefinition::kMinDataLength);
   RegisterVariablePacket<CIGI::V33::SymbolCircleDefinition>(ECigiOpCodeV3::SYMBOL_CIRCLE_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolCircleDefinitionPacket);
   RegisterVariablePacket<CIGI::V33::SymbolLineDefinition>(ECigiOpCodeV3::SYMBOL_LINE_DEFINITION, &CCigiPacketHandlerV3::ParseSymbolLineDefinitonPacket);
   RegisterPacket<CIGI::V33::SymbolClone>(ECigiOpCodeV3::SYMBOL_CLONE, &CCigiPacketHandlerV3::ParseSymbolClonePacket);
@@ -243,8 +247,8 @@ void CCigiPacketHandlerV3::ParseArticulatedPartControlPacket(uint8_t* pBuffer)
   articulatedPart.bPitchEnabled = articulatedPartControlV3.pitchEnable;
   articulatedPart.bRollEnabled = articulatedPartControlV3.rollEnable;
   articulatedPart.rotation.yaw = Degrees(articulatedPartControlV3.yaw);
-  articulatedPart.rotation.pitch = Degrees(articulatedPartControlV3.pitch);
-  articulatedPart.rotation.roll = Degrees(articulatedPartControlV3.roll);
+  articulatedPart.rotation.pitch = Degrees90(articulatedPartControlV3.pitch);
+  articulatedPart.rotation.roll = Degrees180(articulatedPartControlV3.roll);
   m_pArticulatedPartHandler->Handle(articulatedPart);
 }
 
@@ -365,8 +369,8 @@ void CCigiPacketHandlerV3::ParseCollisionDetectionVolumeDefinitionPacket(uint8_t
 
     collisionDetectionVolumeDefinition.fDepth = collisionDetectionVolumeDefinitionV3.depth;
     collisionDetectionVolumeDefinition.rotation.yaw = Degrees(collisionDetectionVolumeDefinitionV3.yaw);
-    collisionDetectionVolumeDefinition.rotation.pitch = Degrees(collisionDetectionVolumeDefinitionV3.pitch);
-    collisionDetectionVolumeDefinition.rotation.roll = Degrees(collisionDetectionVolumeDefinitionV3.roll);
+    collisionDetectionVolumeDefinition.rotation.pitch = Degrees90(collisionDetectionVolumeDefinitionV3.pitch);
+    collisionDetectionVolumeDefinition.rotation.roll = Degrees180(collisionDetectionVolumeDefinitionV3.roll);
     collisionDetectionVolumeDefinition.fWidth = collisionDetectionVolumeDefinitionV3.width;
     collisionDetectionVolumeDefinition.fHeight = collisionDetectionVolumeDefinitionV3.heightRadius;
 
@@ -527,8 +531,8 @@ void CCigiPacketHandlerV3::ParseEntityControlPacket(uint8_t* pBuffer)
 
   TCigiBodyEulerRotation rotation;
   rotation.yaw = Degrees(entityControlV3.yaw);
-  rotation.pitch = Degrees(entityControlV3.pitch);
-  rotation.roll = Degrees(entityControlV3.roll);
+  rotation.pitch = Degrees90(entityControlV3.pitch);
+  rotation.roll = Degrees180(entityControlV3.roll);
 
   m_pEntityControlHandler->HandleCigiEntityPosition(entityID, parentID, ConvertAttachState33(attachState), ConvertClamp(clamp), position, rotation);
 }
@@ -544,9 +548,12 @@ void CCigiPacketHandlerV3::ParseEnvironmentalConditionsRequestPacket(uint8_t* pB
   }
 
   SEnvironmentalConditionsRequest request;
-  request.bAerosolConcentrationsRequest = environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_AerosolConcentrations;
-  request.bMaritimeSurfaceConditionsRequest = environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_MaritimeSurfaceConditions;
-  request.bTerrestrialSurfaceConditionsRequest = environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_TerrestrialSurfaceConditions;
+  request.bAerosolConcentrationsRequest =
+    environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_AerosolConcentrations;
+  request.bMaritimeSurfaceConditionsRequest =
+    environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_MaritimeSurfaceConditions;
+  request.bTerrestrialSurfaceConditionsRequest =
+    environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_TerrestrialSurfaceConditions;
   request.bWeatherConditionsRequest = environmentalRegionConditionsRequestV3.requestType & CIGI::V33::EnvironmentalConditionsRequest::RequestType::eRequestType_WeatherConditions;
 
   request.geodeticCoordinates.latitude = Latitude(environmentalRegionConditionsRequestV3.latitude);
@@ -746,8 +753,10 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
     losRequest.doByteSwapping();
   }
 
-  ETopLevelCoordinateSystem eSourceCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.sourceCoordinateSystem));
-  ETopLevelCoordinateSystem eDestinationCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.destinationCoordinateSystem));
+  ETopLevelCoordinateSystem eSourceCoordinateSystem =
+    ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.sourceCoordinateSystem));
+  ETopLevelCoordinateSystem eDestinationCoordinateSystem =
+    ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.destinationCoordinateSystem));
 
   if (losRequest.requestType == CIGI::V33::LineOfSightSegmentRequest::Type::eType_Basic)
   {
@@ -822,7 +831,8 @@ void CCigiPacketHandlerV3::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
   }
   else
   {
-    ETopLevelCoordinateSystem eResponseCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.responseCoordinateSystem));
+    ETopLevelCoordinateSystem eResponseCoordinateSystem =
+      ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.responseCoordinateSystem));
 
     if (eSourceCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC && eDestinationCoordinateSystem == ETopLevelCoordinateSystem::GEODETIC)
     {
@@ -923,7 +933,8 @@ void CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
     losRequest.doByteSwapping();
   }
 
-  ETopLevelCoordinateSystem eSourcePointCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightVectorRequest::CoordinateSystem>(losRequest.sourceCoordinateSystem));
+  ETopLevelCoordinateSystem eSourcePointCoordinateSystem =
+    ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightVectorRequest::CoordinateSystem>(losRequest.sourceCoordinateSystem));
 
   if (losRequest.requestType == CIGI::V33::LineOfSightVectorRequest::Type::eType_Basic)
   {
@@ -965,7 +976,8 @@ void CCigiPacketHandlerV3::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
   }
   else
   {
-    ETopLevelCoordinateSystem eResponseCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightVectorRequest::CoordinateSystem>(losRequest.responseCoordinateSystem));
+    ETopLevelCoordinateSystem eResponseCoordinateSystem =
+      ConvertCoordinateSystem(static_cast<CIGI::V33::LineOfSightVectorRequest::CoordinateSystem>(losRequest.responseCoordinateSystem));
 
     if (eSourcePointCoordinateSystem == ETopLevelCoordinateSystem::ENTITY)
     {
@@ -1426,10 +1438,10 @@ void ParseAttributeValue(SSymbolControl& symbolControl, CIGI::V33::ShortSymbolCt
   }
   case CIGI::V33::ShortSymbolCtrl::AttributeSelect::eAttributeSelect_Color:
   {
-    symbolControl.color.r = (attributeValue & 0xF000) >> 12;
-    symbolControl.color.b = (attributeValue & 0x0F00) >> 8;
-    symbolControl.color.g = (attributeValue & 0x00F0) >> 4;
-    symbolControl.color.a = attributeValue & 0x000F;
+    symbolControl.color.r = static_cast<uint8_t>((attributeValue >> 24) & 0xFF);
+    symbolControl.color.g = static_cast<uint8_t>((attributeValue >> 16) & 0xFF);
+    symbolControl.color.b = static_cast<uint8_t>((attributeValue >> 8) & 0xFF);
+    symbolControl.color.a = static_cast<uint8_t>(attributeValue & 0xFF);
 
     symbolControl.bSetColor = true;
     break;
@@ -1471,7 +1483,7 @@ void CCigiPacketHandlerV3::ParseShortSymbolControlPacket(uint8_t* pBuffer)
 
   ParseAttributeValue(symbolControl, static_cast<CIGI::V33::ShortSymbolCtrl::AttributeSelect>(symbolControlV3.attributeSelect1), symbolControlV3.attributeValue1);
   ParseAttributeValue(symbolControl, static_cast<CIGI::V33::ShortSymbolCtrl::AttributeSelect>(symbolControlV3.attributeSelect2), symbolControlV3.attributeValue2);
-  m_pSymbolHandler->Handle(symbolControl);
+  m_pSymbolHandler->HandleShort(symbolControl, static_cast<EAttributeSelect>(symbolControlV3.attributeSelect1), static_cast<EAttributeSelect>(symbolControlV3.attributeSelect2));
 }
 
 sbio::symbol::EDrawingStyle ConvertDrawingStyle33(CIGI::V33::SymbolCircleDefinition::DrawingStyle drawingStyle)
@@ -1810,7 +1822,6 @@ void CCigiPacketHandlerV3::ParseSymbolTextDefinitionPacket(uint8_t* pBuffer)
   if (m_bByteSwap)
   {
     symbolTextDefV3.doByteSwapping();
-    CEndian::Swap(symbolTextDefV3.fontSize);
   }
 
   const char* pTextBegin = reinterpret_cast<const char*>(pBuffer + CIGI::V33::SymbolTextDefinition::kBasePacketSize);
@@ -1902,8 +1913,8 @@ void CCigiPacketHandlerV3::ParseViewControlPacket(uint8_t* pBuffer)
   viewControl.bPitchEnabled = viewControlV3.pitchEnable;
   viewControl.bRollEnabled = viewControlV3.rollEnable;
   viewControl.rotation.yaw = Degrees(viewControlV3.yaw);
-  viewControl.rotation.pitch = Degrees(viewControlV3.pitch);
-  viewControl.rotation.roll = Degrees(viewControlV3.roll);
+  viewControl.rotation.pitch = Degrees90(viewControlV3.pitch);
+  viewControl.rotation.roll = Degrees180(viewControlV3.roll);
   viewControl.offsetEnabled[0] = viewControlV3.xOffsetEnable;
   viewControl.offsetEnabled[1] = viewControlV3.yOffsetEnable;
   viewControl.offsetEnabled[2] = viewControlV3.zOffsetEnable;
@@ -2112,15 +2123,15 @@ void CCigiPacketHandlerV3::ParseRateControlPacket(uint8_t* pBuffer)
   }
 
   CigiBodyCoordinates linearVelocity;
-  TCigiBodyEulerRotation angularVelocity;
+  TCigiBodyEulerVelocity angularVelocity;
 
   linearVelocity[0] = rateControl.xLinearRate;
   linearVelocity[1] = rateControl.yLinearRate;
   linearVelocity[2] = rateControl.zLinearRate;
 
-  angularVelocity.yaw = Degrees(rateControl.yawAngularRate);
-  angularVelocity.pitch = Degrees(rateControl.pitchAngularRate);
-  angularVelocity.roll = Degrees(rateControl.rollAngularRate);
+  angularVelocity.yaw = DegreesPerSecond(rateControl.yawAngularRate);
+  angularVelocity.pitch = DegreesPerSecond(rateControl.pitchAngularRate);
+  angularVelocity.roll = DegreesPerSecond(rateControl.rollAngularRate);
 
   if (rateControl.applyToArticulatedPart)
   {
@@ -2155,9 +2166,9 @@ void CCigiPacketHandlerV3::ParseTrajectoryDefinitionPacket(uint8_t* pBuffer)
   }
 
   SCigiEntityAcceleration acceleration;
-  acceleration.angularAcceleration.roll = Degrees(0);// not in 3.3
-  acceleration.angularAcceleration.pitch = Degrees(0);// not in 3.3
-  acceleration.angularAcceleration.yaw = Degrees(0);// not in 3.3
+  acceleration.angularAcceleration.roll = DegreesPerSecondSquared(0);// not in 3.3
+  acceleration.angularAcceleration.pitch = DegreesPerSecondSquared(0);// not in 3.3
+  acceleration.angularAcceleration.yaw = DegreesPerSecondSquared(0);// not in 3.3
 
   acceleration.linearAcceleration[0] = trajectoryDefV3.accelerationX;
   acceleration.linearAcceleration[1] = trajectoryDefV3.accelerationY;
@@ -2311,7 +2322,8 @@ void CCigiPacketHandlerV3::ProcessPackets()
         if (nPacketSize < itFunction->second.minimumPacketSize)
         {
           stringstream ss;
-          ss << "Skipping undersized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " is smaller than required size " << itFunction->second.minimumPacketSize << endl;
+          ss << "Skipping undersized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " is smaller than required size "
+             << itFunction->second.minimumPacketSize << endl;
           g_CigiLibGlobals.pLogger->LogWarning(ss.str());
           pBuffer += nPacketSize;
           continue;
@@ -2321,7 +2333,8 @@ void CCigiPacketHandlerV3::ProcessPackets()
         if (nPacketSize > itFunction->second.maximumPacketSize)
         {
           stringstream ss;
-          ss << "Skipping oversized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " exceeds maximum size " << itFunction->second.maximumPacketSize << endl;
+          ss << "Skipping oversized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " exceeds maximum size " << itFunction->second.maximumPacketSize
+             << endl;
           g_CigiLibGlobals.pLogger->LogWarning(ss.str());
           pBuffer += nPacketSize;
           continue;

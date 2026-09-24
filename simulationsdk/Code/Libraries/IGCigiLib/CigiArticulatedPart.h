@@ -3,8 +3,8 @@
  * @file CigiArticulatedPart.h
  * @brief Declares the CCigiArticulatedPart class for SimBlocks CIGI IG articulated part management.
  *
- * Provides the CCigiArticulatedPart class for managing articulated parts in the SimBlocks CIGI IG library, including degree of freedom application, transformation, and state updates.
- * Inherits from CArticulatedPart and integrates with SimBlocks entity, math, and CIGI types for simulation and articulated part control.
+ * Provides the CCigiArticulatedPart class for managing articulated parts in the SimBlocks IGCigiLib library, including degree of freedom application, transformation, and state
+ * updates. Inherits from CArticulatedPart and integrates with SimBlocks entity, math, and CIGI types for simulation and articulated part control.
  *
  * @see sbio::cigi::ig::CCigiArticulatedPart
  * @see sbio::entity::CArticulatedPart

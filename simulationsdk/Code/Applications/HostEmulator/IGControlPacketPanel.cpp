@@ -49,10 +49,6 @@ CIGControlPacketPanel::CIGControlPacketPanel(wxWindow* pParentWindow) : CBasePac
   vbox->Add(pSendButton, wxSizerFlags().Center());
 
   SetSizerAndFit(vbox);
-
-  //Connect(IG_IG_CONTROL_SEND_PACKET, EVT_BUTTON, wxEventHandler)
-
-  //Bind(ID_IG_CONTROL_SEND_PACKET, CIGControlPacketPanel::OnSend);
 }
 
 void CIGControlPacketPanel::OnSend(wxCommandEvent& WXUNUSED(event))

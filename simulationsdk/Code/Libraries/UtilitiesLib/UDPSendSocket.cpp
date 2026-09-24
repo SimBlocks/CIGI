@@ -54,8 +54,16 @@ CUDPSendSocket::CUDPSendSocket(const std::string& sIP, int nPort) : CUDPSocket(s
 {
   try
   {
+    // Validate the port number range.
+    if (nPort <= 0 || nPort > 65535)
+    {
+      LogSocketError("UDP send socket port must be in [1, 65535].");
+      return;
+    }
+
+    // Create a socket address for the specified IP and port, and create a datagram socket.
     m_pSocketAddress = make_unique<SocketAddress>(sIP, static_cast<Poco::UInt16>(nPort));
-    m_pDatagramSocket = make_unique<DatagramSocket>(SocketAddress::IPv4);
+    m_pDatagramSocket = make_unique<DatagramSocket>(m_pSocketAddress->family());
     m_pDatagramSocket->setBlocking(false);
   }
   catch (const Poco::Exception& exception)
@@ -79,16 +87,16 @@ CUDPSendSocket::CUDPSendSocket(const std::string& sIP, int nPort) : CUDPSocket(s
 }
 
 // Sends a datagram using a buffer.
-void CUDPSendSocket::Send(const char* buffer, int nLength) const
+bool CUDPSendSocket::Send(const char* buffer, int nLength) const
 {
   if (!m_pDatagramSocket || !m_pSocketAddress || buffer == nullptr || nLength <= 0)
   {
-    return;
+    return false;
   }
 
   try
   {
-    m_pDatagramSocket->sendTo(buffer, nLength, *m_pSocketAddress);
+    return m_pDatagramSocket->sendTo(buffer, nLength, *m_pSocketAddress) == nLength;
   }
   catch (const Poco::Exception& exception)
   {
@@ -102,6 +110,7 @@ void CUDPSendSocket::Send(const char* buffer, int nLength) const
   {
     LogSocketError("UDP send socket send failed with an unknown error.");
   }
+  return false;
 }
 
 // Sends a datagram using a string.

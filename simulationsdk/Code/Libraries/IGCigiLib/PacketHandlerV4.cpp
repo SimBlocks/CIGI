@@ -98,7 +98,8 @@ using namespace sbio::cigi::ig;
 
 extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
-CCigiPacketHandlerV4::CCigiPacketHandlerV4(CCigiImageGenerator& imageGenerator, const std::string& sHostIP, int nHostToIgPort, int nIgToHostPort) : CCigiPacketHandler(imageGenerator, nHostToIgPort)
+CCigiPacketHandlerV4::CCigiPacketHandlerV4(CCigiImageGenerator& imageGenerator, const std::string& sHostIP, int nHostToIgPort, int nIgToHostPort) :
+  CCigiPacketHandler(imageGenerator, nHostToIgPort)
 {
   RegisterPacket<CIGI::V40::AccelerationCtrl>(ECigiOpCodeV4::ACCELERATION_CONTROL, &CCigiPacketHandlerV4::ParseAccelerationControlPacket);
   RegisterPacket<CIGI::V40::AnimationCtrl>(ECigiOpCodeV4::ANIMATION_CONTROL, &CCigiPacketHandlerV4::ParseAnimationControlPacket);
@@ -106,8 +107,10 @@ CCigiPacketHandlerV4::CCigiPacketHandlerV4(CCigiImageGenerator& imageGenerator, 
   RegisterPacket<CIGI::V40::AtmosphereCtrl>(ECigiOpCodeV4::ATMOSPHERE_CONTROL, &CCigiPacketHandlerV4::ParseAtmosphereControlPacket);
   RegisterPacket<CIGI::V40::CelestialSphereCtrl>(ECigiOpCodeV4::CELESTIAL_SPHERE_CONTROL, &CCigiPacketHandlerV4::ParseCelestialSphereControlPacket);
 
-  RegisterPacket<CIGI::V40::CollisionDetectionSegmentDefinition>(ECigiOpCodeV4::COLLISION_DETECTION_SEGMENT_DEFINITION, &CCigiPacketHandlerV4::ParseCollisionDetectionSegmentDefinitionPacket);
-  RegisterPacket<CIGI::V40::CollisionDetectionVolumeDefinition>(ECigiOpCodeV4::COLLISION_DETECTION_VOLUME_DEFINITION, &CCigiPacketHandlerV4::ParseCollisionDetectionVolumeDefinitionPacket);
+  RegisterPacket<CIGI::V40::CollisionDetectionSegmentDefinition>(ECigiOpCodeV4::COLLISION_DETECTION_SEGMENT_DEFINITION,
+                                                                 &CCigiPacketHandlerV4::ParseCollisionDetectionSegmentDefinitionPacket);
+  RegisterPacket<CIGI::V40::CollisionDetectionVolumeDefinition>(ECigiOpCodeV4::COLLISION_DETECTION_VOLUME_DEFINITION,
+                                                                &CCigiPacketHandlerV4::ParseCollisionDetectionVolumeDefinitionPacket);
   RegisterPacket<CIGI::V40::ComponentCtrl>(ECigiOpCodeV4::COMPONENT_CONTROL, &CCigiPacketHandlerV4::ParseComponentControlPacket);
   RegisterPacket<CIGI::V40::ConformalClampedEntityPosition>(ECigiOpCodeV4::CONFORMAL_CLAMPED_ENTITY_POSITION, &CCigiPacketHandlerV4::ParseConformalClampedEntityPositionPacket);
   RegisterPacket<CIGI::V40::EarthReferenceModelDefinition>(ECigiOpCodeV4::EARTH_REFERENCE_MODEL_DEFINITION, &CCigiPacketHandlerV4::ParseEarthReferenceModelDefinitionPacket);
@@ -136,10 +139,14 @@ CCigiPacketHandlerV4::CCigiPacketHandlerV4(CCigiImageGenerator& imageGenerator, 
   RegisterVariablePacket<CIGI::V40::SymbolPolygonDefinition>(ECigiOpCodeV4::SYMBOL_POLYGON_DEFINITION, &CCigiPacketHandlerV4::ParseSymbolPolygonDefinitionPacket);
   RegisterPacket<CIGI::V40::SymbolSurfaceDefinition>(ECigiOpCodeV4::SYMBOL_SURFACE_DEFINITION, &CCigiPacketHandlerV4::ParseSymbolSurfaceDefinitionPacket);
 
-  RegisterVariablePacket<CIGI::V40::SymbolTextDefinition>(ECigiOpCodeV4::SYMBOL_TEXT_DEFINITION, &CCigiPacketHandlerV4::ParseSymbolTextDefinitionPacket, CIGI::V40::SymbolTextDefinition::kMinDataLength);
-  RegisterVariablePacket<CIGI::V40::SymbolTexturedCircleDefinition>(ECigiOpCodeV4::SYMBOL_TEXTURED_CIRCLE_DEFINITION, &CCigiPacketHandlerV4::ParseSymbolTexturedCircleDefinitionPacket);
-  RegisterVariablePacket<CIGI::V40::SymbolTexturedPolygonDefinition>(ECigiOpCodeV4::SYMBOL_TEXTURED_POLYGON_DEFINITION, &CCigiPacketHandlerV4::ParseSymbolTexturedPolygonDefinitionPacket);
-  RegisterPacket<CIGI::V40::TerrestrialSurfaceConditionsCtrl>(ECigiOpCodeV4::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL, &CCigiPacketHandlerV4::ParseTerrestrialSurfaceConditionsControlPacket);
+  RegisterVariablePacket<CIGI::V40::SymbolTextDefinition>(
+    ECigiOpCodeV4::SYMBOL_TEXT_DEFINITION, &CCigiPacketHandlerV4::ParseSymbolTextDefinitionPacket, CIGI::V40::SymbolTextDefinition::kMinDataLength);
+  RegisterVariablePacket<CIGI::V40::SymbolTexturedCircleDefinition>(ECigiOpCodeV4::SYMBOL_TEXTURED_CIRCLE_DEFINITION,
+                                                                    &CCigiPacketHandlerV4::ParseSymbolTexturedCircleDefinitionPacket);
+  RegisterVariablePacket<CIGI::V40::SymbolTexturedPolygonDefinition>(ECigiOpCodeV4::SYMBOL_TEXTURED_POLYGON_DEFINITION,
+                                                                     &CCigiPacketHandlerV4::ParseSymbolTexturedPolygonDefinitionPacket);
+  RegisterPacket<CIGI::V40::TerrestrialSurfaceConditionsCtrl>(ECigiOpCodeV4::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL,
+                                                              &CCigiPacketHandlerV4::ParseTerrestrialSurfaceConditionsControlPacket);
   RegisterPacket<CIGI::V40::VelocityCtrl>(ECigiOpCodeV4::VELOCITY_CONTROL, &CCigiPacketHandlerV4::ParseVelocityControlPacket);
 
   RegisterPacket<CIGI::V40::ViewCtrl>(ECigiOpCodeV4::VIEW_CONTROL, &CCigiPacketHandlerV4::ParseViewControlPacket);
@@ -242,9 +249,9 @@ void CCigiPacketHandlerV4::ParseAccelerationControlPacket(uint8_t* pBuffer)
   if (bApplyToArticulatedPart)
   {
     SCigiArticulatedPartAcceleration acceleration;
-    acceleration.angularAcceleration.roll = Degrees(accelerationCtrl.rollAngularAcceleration);
-    acceleration.angularAcceleration.pitch = Degrees(accelerationCtrl.pitchAngularAcceleration);
-    acceleration.angularAcceleration.yaw = Degrees(accelerationCtrl.yawAngularAcceleration);
+    acceleration.angularAcceleration.roll = DegreesPerSecondSquared(accelerationCtrl.rollAngularAcceleration);
+    acceleration.angularAcceleration.pitch = DegreesPerSecondSquared(accelerationCtrl.pitchAngularAcceleration);
+    acceleration.angularAcceleration.yaw = DegreesPerSecondSquared(accelerationCtrl.yawAngularAcceleration);
 
     acceleration.linearAcceleration[0] = accelerationCtrl.xLinearAcceleration;
     acceleration.linearAcceleration[1] = accelerationCtrl.yLinearAcceleration;
@@ -259,9 +266,9 @@ void CCigiPacketHandlerV4::ParseAccelerationControlPacket(uint8_t* pBuffer)
   else
   {
     SCigiEntityAcceleration acceleration;
-    acceleration.angularAcceleration.roll = Degrees(accelerationCtrl.rollAngularAcceleration);
-    acceleration.angularAcceleration.pitch = Degrees(accelerationCtrl.pitchAngularAcceleration);
-    acceleration.angularAcceleration.yaw = Degrees(accelerationCtrl.yawAngularAcceleration);
+    acceleration.angularAcceleration.roll = DegreesPerSecondSquared(accelerationCtrl.rollAngularAcceleration);
+    acceleration.angularAcceleration.pitch = DegreesPerSecondSquared(accelerationCtrl.pitchAngularAcceleration);
+    acceleration.angularAcceleration.yaw = DegreesPerSecondSquared(accelerationCtrl.yawAngularAcceleration);
 
     acceleration.linearAcceleration[0] = accelerationCtrl.xLinearAcceleration;
     acceleration.linearAcceleration[1] = accelerationCtrl.yLinearAcceleration;
@@ -288,7 +295,8 @@ void CCigiPacketHandlerV4::ParseAnimationControlPacket(uint8_t* pBuffer)
   animationControl.animationID = AnimationID(animationControlV4.animationId);// Animation ID new version 4.0
   animationControl.eAnimationLoopMode = ConvertToAnimationLoopMode(static_cast<CIGI::V40::AnimationCtrl::AnimationLoopMode>(animationControlV4.animationLoopMode));
   animationControl.bInheritAlpha = animationControlV4.inheritAlpha == CIGI::V40::AnimationCtrl::InheritAlpha::eInheritAlpha_Inherited ? true : false;
-  animationControl.eAnimationFramePositionReset = ConvertToAnimationFramePositionReset(static_cast<CIGI::V40::AnimationCtrl::AnimationFramePositionReset>(animationControlV4.animationFramePositionReset));
+  animationControl.eAnimationFramePositionReset =
+    ConvertToAnimationFramePositionReset(static_cast<CIGI::V40::AnimationCtrl::AnimationFramePositionReset>(animationControlV4.animationFramePositionReset));
   animationControl.eAnimationState = ConvertToAnimationState(static_cast<CIGI::V40::AnimationCtrl::AnimationState>(animationControlV4.animationState));
   animationControl.alpha = ConvertAlphaToPercentage(animationControlV4.alpha);
   animationControl.fAnimationSpeed = animationControlV4.animationSpeed;
@@ -328,8 +336,8 @@ void CCigiPacketHandlerV4::ParseArticulatedPartControlPacket(uint8_t* pBuffer)
   articulatedPart.bPitchEnabled = articulatedPartControlV4.pitchEnable;
   articulatedPart.bRollEnabled = articulatedPartControlV4.rollEnable;
   articulatedPart.rotation.yaw = Degrees(articulatedPartControlV4.yaw);
-  articulatedPart.rotation.pitch = Degrees(articulatedPartControlV4.pitch);
-  articulatedPart.rotation.roll = Degrees(articulatedPartControlV4.roll);
+  articulatedPart.rotation.pitch = Degrees90(articulatedPartControlV4.pitch);
+  articulatedPart.rotation.roll = Degrees180(articulatedPartControlV4.roll);
   m_pArticulatedPartHandler->Handle(articulatedPart);
 }
 
@@ -438,8 +446,8 @@ void CCigiPacketHandlerV4::ParseCollisionDetectionVolumeDefinitionPacket(uint8_t
 
     collisionDetectionVolumeDefinition.fDepth = collisionDetectionVolumeDefinitionV4.depth;
     collisionDetectionVolumeDefinition.rotation.yaw = Degrees(collisionDetectionVolumeDefinitionV4.yaw);
-    collisionDetectionVolumeDefinition.rotation.pitch = Degrees(collisionDetectionVolumeDefinitionV4.pitch);
-    collisionDetectionVolumeDefinition.rotation.roll = Degrees(collisionDetectionVolumeDefinitionV4.roll);
+    collisionDetectionVolumeDefinition.rotation.pitch = Degrees90(collisionDetectionVolumeDefinitionV4.pitch);
+    collisionDetectionVolumeDefinition.rotation.roll = Degrees180(collisionDetectionVolumeDefinitionV4.roll);
     collisionDetectionVolumeDefinition.fWidth = collisionDetectionVolumeDefinitionV4.width;
     collisionDetectionVolumeDefinition.fHeight = collisionDetectionVolumeDefinitionV4.heightRadius;
 
@@ -617,8 +625,8 @@ void CCigiPacketHandlerV4::ParseEntityPositionPacket(uint8_t* pBuffer)
 
   TCigiBodyEulerRotation rotation;
   rotation.yaw = Degrees(entityPositionV4.yaw);
-  rotation.pitch = Degrees(entityPositionV4.pitch);
-  rotation.roll = Degrees(entityPositionV4.roll);
+  rotation.pitch = Degrees90(entityPositionV4.pitch);
+  rotation.roll = Degrees180(entityPositionV4.roll);
 
   m_pEntityControlHandler->HandleCigiEntityPosition(EntityId, parentID, ConvertAttachState(attachState), ConvertClamp(clamp), position, rotation);
 }
@@ -634,9 +642,12 @@ void CCigiPacketHandlerV4::ParseEnvironmentalConditionsRequestPacket(uint8_t* pB
   }
 
   SEnvironmentalConditionsRequest request;
-  request.bAerosolConcentrationsRequest = environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_AerosolConcentrations;
-  request.bMaritimeSurfaceConditionsRequest = environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_MaritimeSurfaceConditions;
-  request.bTerrestrialSurfaceConditionsRequest = environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_TerrestrialSurfaceConditions;
+  request.bAerosolConcentrationsRequest =
+    environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_AerosolConcentrations;
+  request.bMaritimeSurfaceConditionsRequest =
+    environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_MaritimeSurfaceConditions;
+  request.bTerrestrialSurfaceConditionsRequest =
+    environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_TerrestrialSurfaceConditions;
   request.bWeatherConditionsRequest = environmentalRegionConditionsRequestV4.requestType & CIGI::V40::EnvironmentalConditionsRequest::RequestType::eRequestType_WeatherConditions;
 
   request.geodeticCoordinates.latitude = Latitude(environmentalRegionConditionsRequestV4.latitude);
@@ -661,9 +672,12 @@ void CCigiPacketHandlerV4::ParseEnvironmentalRegionControlPacket(uint8_t* pBuffe
   environmentalRegion.regionID = RegionID(environmentalRegionControlV4.regionId);
   environmentalRegion.eRegionState = ConvertRegion(static_cast<CIGI::V40::EnvironmentalRegionCtrl::RegionState>(environmentalRegionControlV4.regionState));
   environmentalRegion.eMergeWeatherProperties = ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeWeatherProperties));
-  environmentalRegion.eMergeAerosolConcentrations = ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeAerosolConcentrations));
-  environmentalRegion.eMergeMaritimeSurfaceConditions = ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeMaritimeSurfaceConditions));
-  environmentalRegion.eMergeTerrestrialSurfaceConditions = ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeTerrestrialSurfaceConditions));
+  environmentalRegion.eMergeAerosolConcentrations =
+    ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeAerosolConcentrations));
+  environmentalRegion.eMergeMaritimeSurfaceConditions =
+    ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeMaritimeSurfaceConditions));
+  environmentalRegion.eMergeTerrestrialSurfaceConditions =
+    ConvertMergeState(static_cast<CIGI::V40::EnvironmentalRegionCtrl::Merge>(environmentalRegionControlV4.mergeTerrestrialSurfaceConditions));
   environmentalRegion.latitude = Latitude(environmentalRegionControlV4.latitude);
   environmentalRegion.longitude = Longitude(environmentalRegionControlV4.longitude);
   environmentalRegion.size[0] = environmentalRegionControlV4.sizeX;
@@ -747,8 +761,10 @@ void CCigiPacketHandlerV4::ParseLineOfSightSegmentRequestPacket(uint8_t* pBuffer
     losRequest.doByteSwapping();
   }
 
-  ETopLevelCoordinateSystem eSourceCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.sourcePointCoordinateSystem));
-  ETopLevelCoordinateSystem eDestinationCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.destinationPointCoordinateSystem));
+  ETopLevelCoordinateSystem eSourceCoordinateSystem =
+    ConvertCoordinateSystem(static_cast<CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.sourcePointCoordinateSystem));
+  ETopLevelCoordinateSystem eDestinationCoordinateSystem =
+    ConvertCoordinateSystem(static_cast<CIGI::V40::LineOfSightSegmentRequest::CoordinateSystem>(losRequest.destinationPointCoordinateSystem));
 
   if (losRequest.requestType == 0)// basic
   {
@@ -908,7 +924,8 @@ void CCigiPacketHandlerV4::ParseLineOfSightVectorRequestPacket(uint8_t* pBuffer)
     losRequest.doByteSwapping();
   }
 
-  ETopLevelCoordinateSystem eSourcePointCoordinateSystem = ConvertCoordinateSystem(static_cast<CIGI::V40::LineOfSightVectorRequest::CoordinateSystem>(losRequest.sourcePointCoordinateSystem));
+  ETopLevelCoordinateSystem eSourcePointCoordinateSystem =
+    ConvertCoordinateSystem(static_cast<CIGI::V40::LineOfSightVectorRequest::CoordinateSystem>(losRequest.sourcePointCoordinateSystem));
 
   if (losRequest.requestType == CIGI::V40::LineOfSightVectorRequest::RequestType::eRequestType_Basic)
   {
@@ -1287,10 +1304,10 @@ void ParseAttributeValue(SSymbolControl& symbolControl, CIGI::V40::ShortSymbolCt
   }
   case CIGI::V40::ShortSymbolCtrl::AttributeSelect::eAttributeSelect_Color:
   {
-    symbolControl.color.r = (attributeValue & 0xF000) >> 12;
-    symbolControl.color.b = (attributeValue & 0x0F00) >> 8;
-    symbolControl.color.g = (attributeValue & 0x00F0) >> 4;
-    symbolControl.color.a = attributeValue & 0x000F;
+    symbolControl.color.r = static_cast<uint8_t>((attributeValue >> 24) & 0xFF);
+    symbolControl.color.g = static_cast<uint8_t>((attributeValue >> 16) & 0xFF);
+    symbolControl.color.b = static_cast<uint8_t>((attributeValue >> 8) & 0xFF);
+    symbolControl.color.a = static_cast<uint8_t>(attributeValue & 0xFF);
 
     symbolControl.bSetColor = true;
     break;
@@ -1332,7 +1349,7 @@ void CCigiPacketHandlerV4::ParseShortSymbolControlPacket(uint8_t* pBuffer)
 
   ParseAttributeValue(symbolControl, static_cast<CIGI::V40::ShortSymbolCtrl::AttributeSelect>(symbolControlV4.attributeSelect1), symbolControlV4.attributeValue1);
   ParseAttributeValue(symbolControl, static_cast<CIGI::V40::ShortSymbolCtrl::AttributeSelect>(symbolControlV4.attributeSelect2), symbolControlV4.attributeValue2);
-  m_pSymbolHandler->Handle(symbolControl);
+  m_pSymbolHandler->HandleShort(symbolControl, static_cast<EAttributeSelect>(symbolControlV4.attributeSelect1), static_cast<EAttributeSelect>(symbolControlV4.attributeSelect2));
 }
 
 void CCigiPacketHandlerV4::ParseSymbolCircleDefinitionPacket(uint8_t* pBuffer)
@@ -1343,6 +1360,7 @@ void CCigiPacketHandlerV4::ParseSymbolCircleDefinitionPacket(uint8_t* pBuffer)
   if (m_bByteSwap)
   {
     symbolCircleDefV4.doByteSwapping();
+    CEndian::Swap(symbolCircleDefV4.size);
   }
 
   SSymbolCircle symbolCircle;
@@ -1428,6 +1446,7 @@ void CCigiPacketHandlerV4::ParseSymbolPolygonDefinitionPacket(uint8_t* pBuffer)
   if (m_bByteSwap)
   {
     symbolPolygonDefV4.doByteSwapping();
+    CEndian::Swap(symbolPolygonDefV4.size);
   }
 
   SSymbolPolygon symbolPolygon;
@@ -1553,7 +1572,6 @@ void CCigiPacketHandlerV4::ParseSymbolTextDefinitionPacket(uint8_t* pBuffer)
   if (m_bByteSwap)
   {
     symbolTextDefV4.doByteSwapping();
-    CEndian::Swap(symbolTextDefV4.fontSize);
   }
 
   const char* pTextBegin = reinterpret_cast<const char*>(pBuffer + CIGI::V40::SymbolTextDefinition::kBasePacketSize);
@@ -1578,13 +1596,16 @@ void CCigiPacketHandlerV4::ParseSymbolTexturedCircleDefinitionPacket(uint8_t* pB
   if (m_bByteSwap)
   {
     symbolTexturedCircleDefV4.doByteSwapping();
+    CEndian::Swap(symbolTexturedCircleDefV4.size);
   }
 
   SSymbolTexturedCircle symbolTexturedCircle;
   symbolTexturedCircle.symbolID = SymbolID(symbolTexturedCircleDefV4.symbolId);
   symbolTexturedCircle.textureID = TextureID(symbolTexturedCircleDefV4.textureId);
-  symbolTexturedCircle.eTextureFilter = ConvertTextureFilterMode(static_cast<CIGI::V40::SymbolTexturedCircleDefinition::TextureFilterMode>(symbolTexturedCircleDefV4.textureFilterMode));
-  symbolTexturedCircle.eTextureWrap = ConvertTextureWrapMode(static_cast<CIGI::V40::SymbolTexturedCircleDefinition::TextureRepeatOrClamp>(symbolTexturedCircleDefV4.textureRepeatOrClamp));
+  symbolTexturedCircle.eTextureFilter =
+    ConvertTextureFilterMode(static_cast<CIGI::V40::SymbolTexturedCircleDefinition::TextureFilterMode>(symbolTexturedCircleDefV4.textureFilterMode));
+  symbolTexturedCircle.eTextureWrap =
+    ConvertTextureWrapMode(static_cast<CIGI::V40::SymbolTexturedCircleDefinition::TextureRepeatOrClamp>(symbolTexturedCircleDefV4.textureRepeatOrClamp));
 
   CIGI::VariableRecordHelper<CIGI::V40::SymbolTexturedCircleDefinition> helper(symbolTexturedCircleDefV4);
   int numCircles = helper.numRecords(symbolTexturedCircleDefV4);
@@ -1616,13 +1637,16 @@ void CCigiPacketHandlerV4::ParseSymbolTexturedPolygonDefinitionPacket(uint8_t* p
   if (m_bByteSwap)
   {
     symbolTexturedPolygonDefV4.doByteSwapping();
+    CEndian::Swap(symbolTexturedPolygonDefV4.size);
   }
 
   SSymbolTexturedPolygon symbolPolygon;
   symbolPolygon.symbolID = SymbolID(symbolTexturedPolygonDefV4.symbolId);
   symbolPolygon.ePrimitiveType = ConvertPrimitiveGrp(static_cast<CIGI::V40::SymbolPolygonDefinition::PrimitiveType>(symbolTexturedPolygonDefV4.primitiveType));
-  symbolPolygon.eTextureFilterMode = ConvertTextureFilterMode(static_cast<CIGI::V40::SymbolTexturedPolygonDefinition::TextureFilterMode>(symbolTexturedPolygonDefV4.textureFilterMode));
-  symbolPolygon.eTextureWrapMode = ConvertTextureWrapMode(static_cast<CIGI::V40::SymbolTexturedPolygonDefinition::TextureRepeatOrClamp>(symbolTexturedPolygonDefV4.textureRepeatOrClamp));
+  symbolPolygon.eTextureFilterMode =
+    ConvertTextureFilterMode(static_cast<CIGI::V40::SymbolTexturedPolygonDefinition::TextureFilterMode>(symbolTexturedPolygonDefV4.textureFilterMode));
+  symbolPolygon.eTextureWrapMode =
+    ConvertTextureWrapMode(static_cast<CIGI::V40::SymbolTexturedPolygonDefinition::TextureRepeatOrClamp>(symbolTexturedPolygonDefV4.textureRepeatOrClamp));
   symbolPolygon.textureID = TextureID(symbolTexturedPolygonDefV4.textureId);
 
   int numVertices = CIGI::VariableRecordHelper<CIGI::V40::SymbolTexturedPolygonDefinition>::numRecords(symbolTexturedPolygonDefV4);
@@ -1695,15 +1719,15 @@ void CCigiPacketHandlerV4::ParseVelocityControlPacket(uint8_t* pBuffer)
   }
 
   CigiBodyCoordinates linearVelocity;
-  TCigiBodyEulerRotation angularVelocity;
+  TCigiBodyEulerVelocity angularVelocity;
 
   linearVelocity[0] = velocityControlV4.xLinearVelocity;
   linearVelocity[1] = velocityControlV4.yLinearVelocity;
   linearVelocity[2] = velocityControlV4.zLinearVelocity;
 
-  angularVelocity.yaw = Degrees(velocityControlV4.yawAngularVelocity);
-  angularVelocity.pitch = Degrees(velocityControlV4.pitchAngularVelocity);
-  angularVelocity.roll = Degrees(velocityControlV4.rollAngularVelocity);
+  angularVelocity.yaw = DegreesPerSecond(velocityControlV4.yawAngularVelocity);
+  angularVelocity.pitch = DegreesPerSecond(velocityControlV4.pitchAngularVelocity);
+  angularVelocity.roll = DegreesPerSecond(velocityControlV4.rollAngularVelocity);
 
   if (velocityControlV4.applyToArticulatedPart)
   {
@@ -1754,8 +1778,8 @@ void CCigiPacketHandlerV4::ParseViewControlPacket(uint8_t* pBuffer)
   viewControl.bPitchEnabled = viewControlV4.pitchEnable;
   viewControl.bRollEnabled = viewControlV4.rollEnable;
   viewControl.rotation.yaw = Degrees(viewControlV4.yaw);
-  viewControl.rotation.pitch = Degrees(viewControlV4.pitch);
-  viewControl.rotation.roll = Degrees(viewControlV4.roll);
+  viewControl.rotation.pitch = Degrees90(viewControlV4.pitch);
+  viewControl.rotation.roll = Degrees180(viewControlV4.roll);
   viewControl.offsetEnabled[0] = viewControlV4.xOffsetEnable;
   viewControl.offsetEnabled[1] = viewControlV4.yOffsetEnable;
   viewControl.offsetEnabled[2] = viewControlV4.zOffsetEnable;
@@ -2039,7 +2063,8 @@ void CCigiPacketHandlerV4::ProcessPackets()
         if (nPacketSize < itFunction->second.minimumPacketSize)
         {
           stringstream ss;
-          ss << "Skipping undersized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " is smaller than required size " << itFunction->second.minimumPacketSize << endl;
+          ss << "Skipping undersized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " is smaller than required size "
+             << itFunction->second.minimumPacketSize << endl;
           g_CigiLibGlobals.pLogger->LogWarning(ss.str());
           pBuffer += nPacketSize;
           continue;
@@ -2049,7 +2074,8 @@ void CCigiPacketHandlerV4::ProcessPackets()
         if (nPacketSize > itFunction->second.maximumPacketSize)
         {
           stringstream ss;
-          ss << "Skipping oversized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " exceeds maximum size " << itFunction->second.maximumPacketSize << endl;
+          ss << "Skipping oversized packet: opcode " << (int)packetHeader.eOpCode << ", size " << nPacketSize << " exceeds maximum size " << itFunction->second.maximumPacketSize
+             << endl;
           g_CigiLibGlobals.pLogger->LogWarning(ss.str());
           pBuffer += nPacketSize;
           continue;

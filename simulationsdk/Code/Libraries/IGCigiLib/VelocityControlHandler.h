@@ -3,7 +3,7 @@
  * @file VelocityControlHandler.h
  * @brief Declares the CCigiVelocityControlHandler class for handling CIGI entity and articulated part velocity control messages.
  *
- * Provides the CCigiVelocityControlHandler class for processing velocity control messages for entities and articulated parts in the SimBlocks CIGI IG library.
+ * Provides the CCigiVelocityControlHandler class for processing velocity control messages for entities and articulated parts in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI types for simulation and velocity management.
  *
  * @see sbio::cigi::ig::CCigiVelocityControlHandler

@@ -62,19 +62,22 @@ void TerrainCigiEventHandler::Visit(const Event& e, const std::string& sEvent, c
     }
     case ETerrainCigiEvent::LINE_OF_SIGHT_EXTENDED_GEODETIC_COORDINATES_RESPONSE:
     {
-      const CigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs& terrainCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs = static_cast<const CigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs&>(args);
+      const CigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs& terrainCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs =
+        static_cast<const CigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs&>(args);
       pListener->OnCigiLineOfSightExtendedGeodeticCoordinatesResponseEvent(terrainCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs);
       break;
     }
     case ETerrainCigiEvent::LINE_OF_SIGHT_EXTENDED_ENTITY_COORDINATES_RESPONSE:
     {
-      const CigiLineOfSightExtendedEntityCoordinatesResponseEventArgs& terrainCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs = static_cast<const CigiLineOfSightExtendedEntityCoordinatesResponseEventArgs&>(args);
+      const CigiLineOfSightExtendedEntityCoordinatesResponseEventArgs& terrainCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs =
+        static_cast<const CigiLineOfSightExtendedEntityCoordinatesResponseEventArgs&>(args);
       pListener->OnCigiLineOfSightExtendedEntityCoordinatesResponseEvent(terrainCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs);
       break;
     }
     case ETerrainCigiEvent::LINE_OF_SIGHT_EXTENDED_ENTITY_GEODETIC_COORDINATES_RESPONSE:
     {
-      const CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& terrainCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs = static_cast<const CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs&>(args);
+      const CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& terrainCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs =
+        static_cast<const CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs&>(args);
       pListener->OnCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEvent(terrainCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs);
       break;
     }

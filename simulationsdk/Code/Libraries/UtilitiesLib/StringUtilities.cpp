@@ -35,9 +35,10 @@ namespace sbio
       }
 
       string hexString;
-      hexString.resize(static_cast<size_t>(sizeOfBufferInBytes) * 2);// Each byte becomes two hex characters
+      const size_t size = static_cast<size_t>(sizeOfBufferInBytes);
+      hexString.resize(size * 2);// Each byte becomes two hex characters
 
-      for (int i = 0; i < sizeOfBufferInBytes; i++)
+      for (size_t i = 0; i < size; i++)
       {
         hexString[i * 2] = hex_chars[(*inBuffer & 0xF0) >> 4];
         hexString[i * 2 + 1] = hex_chars[(*inBuffer++ & 0x0F)];

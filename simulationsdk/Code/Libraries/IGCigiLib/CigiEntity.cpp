@@ -33,8 +33,14 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 extern sbio::ig::SComponentData ConvertToComponentData(const uint32_t data[6]);
 
-CCigiEntity::CCigiEntity(EntityID entityID, const SEntityControl& entityControl) : CEntity(entityID), m_ShortEntityTypeID(entityControl.shortEntityTypeID), m_EntityState(entityControl.eState), m_bEnableCollision(entityControl.bCollisionReportingEnabled)
+CCigiEntity::CCigiEntity(EntityID entityID, const SEntityControl& entityControl) :
+  CEntity(entityID), m_ShortEntityTypeID(entityControl.shortEntityTypeID), m_EntityState(entityControl.eState)
 {
+  SetInterpolationEnabled(entityControl.bSmoothingEnabled);
+
+  // Seed the opposite collision state so the constructor's first update always notifies the engine.
+  m_bEnableCollision = !entityControl.bCollisionReportingEnabled;
+
   m_EntityType = entityControl.entityType;
 
   SCreateEntityMessage data;
@@ -52,9 +58,8 @@ CCigiEntity::CCigiEntity(EntityID entityID, const SEntityControl& entityControl)
   m_AttachState = entityControl.bHasParent ? EAttachState::ATTACH : EAttachState::DETACH;
 
   // A value of zero(0) corresponds to fully transparent; a value of 255 corresponds to fully opaque.
-  // TODO: handle inherit alpha
   float fAlpha = entityControl.alpha / (float)255;
-  SetAlpha(fAlpha);
+  SetAlpha(fAlpha, entityControl.bInheritAlpha);
   SetCollisionDetectionEnabled(entityControl.bCollisionReportingEnabled);
 }
 
@@ -77,8 +82,34 @@ void CCigiEntity::Remove()
 
 void CCigiEntity::SetAlpha(float alpha)
 {
-  if (m_fAlpha != alpha)
+  m_OwnAlpha = alpha;
+  UpdateEffectiveAlpha();
+}
+
+void CCigiEntity::SetAlpha(float alpha, bool inheritAlpha)
+{
+  m_bInheritAlpha = inheritAlpha;
+  SetAlpha(alpha);
+}
+
+bool CCigiEntity::GetInheritAlpha() const
+{
+  return m_bInheritAlpha;
+}
+
+void CCigiEntity::UpdateEffectiveAlpha()
+{
+  float alpha = m_OwnAlpha;
+  auto* pParent = dynamic_cast<CCigiEntity*>(m_pParent);
+
+  if (m_bInheritAlpha && pParent != nullptr)
   {
+    alpha = pParent->m_fAlpha;
+  }
+
+  if (!m_bAlphaInitialized || m_fAlpha != alpha)
+  {
+    m_bAlphaInitialized = true;
     m_fAlpha = alpha;
 
     SSetEntityAlphaMessage data;
@@ -89,12 +120,31 @@ void CCigiEntity::SetAlpha(float alpha)
     {
       g_CigiLibGlobals.pEventMessenger->SendSetEntityAlphaMessage(data);
     }
+
+    UpdateAnimationAlpha();
+
+    for (EntityID childID : m_Children)
+    {
+      auto* pChild = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(childID));
+      if (pChild != nullptr && pChild->m_pParent == this && pChild->m_bInheritAlpha)
+      {
+        pChild->UpdateEffectiveAlpha();
+      }
+    }
   }
 }
 
 ShortEntityTypeID CCigiEntity::GetShortEntityType() const
 {
   return m_ShortEntityTypeID;
+}
+
+void CCigiEntity::UpdateAnimationAlpha()
+{
+  for (auto& animation : m_Animations)
+  {
+    animation.second->UpdateEffectiveAlpha(m_fAlpha);
+  }
 }
 
 void CCigiEntity::SetEntityState(sbio::cigi::EActiveState EntityState, bool bForce)
@@ -131,31 +181,18 @@ void CCigiEntity::Unattach()
     data.EntityID = m_EntityID;
     g_CigiLibGlobals.pEventMessenger->SendSetEntityUnattachedMessage(data);
   }
+
+  UpdateEffectiveAlpha();
 }
 
 bool CCigiEntity::SetAttachState(EAttachState AttachState, EntityID parentID, bool inheritAlpha)
 {
-  if (m_AttachState != AttachState)
+  if (AttachState == EAttachState::ATTACH)
   {
-    if (AttachState == EAttachState::DETACH)
-    {
-      Unattach();
-    }
-
-    m_AttachState = AttachState;
-  }
-
-  if (m_AttachState == EAttachState::ATTACH)
-  {
-    if (m_ParentID != parentID && m_ParentID != UnknownEntityID)
-    {
-      std::stringstream ss;
-      ss << "Cannot attach child " << GetEntityID().Value() << " to entity " << parentID.Value() << " because child must first be detached from its existing parent " << m_ParentID.Value() << std::endl;
-      g_CigiLibGlobals.pLogger->LogInformation(ss);
-      return false;
-    }
-
+    // Attempt to retrieve the parent entity from the entity manager.
     CEntity* pEntity = g_CigiLibGlobals.pEntityManager->GetEntity(parentID);
+
+    // If the specified parent entity does not exist, log an error and return false.
     if (pEntity == nullptr)
     {
       std::stringstream ss;
@@ -164,9 +201,25 @@ bool CCigiEntity::SetAttachState(EAttachState AttachState, EntityID parentID, bo
       return false;
     }
 
+    // Attempt to attach to the specified parent entity.
     AttachToEntity(pEntity);
+
+    // If the attach failed, return false.
+    if (m_pParent != pEntity)
+    {
+      return false;
+    }
+  }
+  else if (m_AttachState != AttachState && AttachState == EAttachState::DETACH)
+  {
+    // If the entity is currently attached, detach it.
+    Unattach();
   }
 
+  // Update the attach state after a successful attach or detach operation.
+  m_AttachState = AttachState;
+  m_bInheritAlpha = inheritAlpha;
+  UpdateEffectiveAlpha();
   return true;
 }
 
@@ -181,8 +234,11 @@ void CCigiEntity::AttachToEntity(CEntity* pParent)
   }
 
   auto parentID = pCigiParent->m_EntityID;
-  pCigiParent->m_Children.insert(m_EntityID);
   CEntity::AttachToEntity(pCigiParent);
+  if (m_pParent != pCigiParent)
+  {
+    return;
+  }
 
   if (prevEntityID != parentID)
   {
@@ -195,6 +251,8 @@ void CCigiEntity::AttachToEntity(CEntity* pParent)
       g_CigiLibGlobals.pEventMessenger->SendSetEntityAttachedMessage(data);
     }
   }
+
+  UpdateEffectiveAlpha();
 }
 
 void CCigiEntity::UpdateAnimationDirection(const SCigiAnimationControl& control, bool bForce)
@@ -244,7 +302,7 @@ void CCigiEntity::UpdateAnimationState(const SCigiAnimationControl& control, boo
   }
 
   CCigiEntityAnimation* pAnim = itAnimation->second.get();
-  pAnim->SetAnimationState(control.eAnimationState, bForce);
+  pAnim->SetAnimationState(control.eAnimationState, control.eAnimationFramePositionReset, bForce);
 }
 
 void CCigiEntity::UpdateAnimationLoopMode(const SCigiAnimationControl& control, bool bForce)
@@ -273,6 +331,12 @@ void CCigiEntity::UpdateAnimation(const SCigiAnimationControl& animationControl)
   UpdateAnimationDirection(animationControl, bForce);
   UpdateAnimationSpeed(animationControl, bForce);
   UpdateAnimationLoopMode(animationControl, bForce);
+  // Legacy CIGI 3 entity control has neither animation alpha nor a frame-reset field.
+  if (animationControl.eAnimationFramePositionReset != EAnimationFramePositionReset::UNKNOWN)
+  {
+    m_Animations.at(animationControl.animationID)->SetAlpha(animationControl.alpha.Value(), animationControl.bInheritAlpha, m_fAlpha);
+  }
+
   UpdateAnimationState(animationControl, bForce);
 }
 
@@ -288,6 +352,15 @@ TCigiBodyTransform CCigiEntity::GetChildTransform() const
 void CCigiEntity::SetTransformationRateCoordinateSystem(EObjectCoordinateSystem coordinateSystem)
 {
   m_TransformationRateCoordinateSystem = coordinateSystem;
+}
+
+void CCigiEntity::SetAccelerationRateCoordinateSystem(EObjectCoordinateSystem coordinateSystem)
+{
+  m_AccelerationRateCoordinateSystem = coordinateSystem;
+  if (m_TransformationRateCoordinateSystem == EObjectCoordinateSystem::UNKNOWN)
+  {
+    m_TransformationRateCoordinateSystem = coordinateSystem;
+  }
 }
 
 void CCigiEntity::SetLocalBodyTransformationRate(const SLocalBodyTransformationRate& transformationRate)
@@ -310,25 +383,61 @@ void CCigiEntity::SetCigiWorldAccelerationRate(const SCigiWorldAccelerationRate&
   m_CigiWorldAccelerationRate = accelerationRate;
 }
 
+SLocalBodyAccelerationRate CCigiEntity::GetAccelerationInVelocityCoordinates() const
+{
+  SLocalBodyAccelerationRate acceleration = m_LocalBodyAccelerationRate;
+  if (IsTopLevel() && (m_AccelerationRateCoordinateSystem == EObjectCoordinateSystem::WORLD || m_AccelerationRateCoordinateSystem == EObjectCoordinateSystem::PARENT))
+  {
+    const auto& linear = m_CigiWorldAccelerationRate.linearAcceleration;
+    acceleration.linearAcceleration = ConvertCigiBodyCoordinatesToBodyCoordinates(CigiBodyCoordinates(linear[0], linear[1], linear[2]));
+    acceleration.angularAcceleration = m_CigiWorldAccelerationRate.angularAcceleration;
+  }
+
+  const bool accelerationIsLocal = m_AccelerationRateCoordinateSystem == EObjectCoordinateSystem::LOCAL;
+  const bool velocityIsLocal = m_TransformationRateCoordinateSystem == EObjectCoordinateSystem::LOCAL;
+  if (m_AccelerationRateCoordinateSystem != EObjectCoordinateSystem::UNKNOWN && accelerationIsLocal != velocityIsLocal)
+  {
+    // The entity attitude maps local axes to the parent axes (or NED for top-level entities).
+    TBodyRotation rotation = ConvertCigiBodyRotationToBodyRotation(SetupCigiObjectRotation(ConvertToCigiBodyEulerRotation(m_Rotation)));
+    if (velocityIsLocal)
+    {
+      rotation = rotation.inverse();
+    }
+
+    acceleration.linearAcceleration = BodyCoordinates(rotation * acceleration.linearAcceleration.toVec3());
+    const auto& angular = acceleration.angularAcceleration;
+    const CigiBodyCoordinates angularAxes(angular.roll.Value(), angular.pitch.Value(), angular.yaw.Value());
+    const auto rotatedAngular = ConvertBodyCoordinatesToCigiBodyCoordinates(BodyCoordinates(rotation * ConvertCigiBodyCoordinatesToBodyCoordinates(angularAxes).toVec3()));
+    acceleration.angularAcceleration.roll = DegreesPerSecondSquared(rotatedAngular[0]);
+    acceleration.angularAcceleration.pitch = DegreesPerSecondSquared(rotatedAngular[1]);
+    acceleration.angularAcceleration.yaw = DegreesPerSecondSquared(rotatedAngular[2]);
+  }
+
+  return acceleration;
+}
+
 void CCigiEntity::Interpolate(double deltaTime)
 {
+  const auto acceleration = GetAccelerationInVelocityCoordinates();
   if ((m_TransformationRateCoordinateSystem == EObjectCoordinateSystem::WORLD || m_TransformationRateCoordinateSystem == EObjectCoordinateSystem::PARENT) && IsTopLevel())
   {
-    m_CigiWorldTransformationRate.linearVelocity += m_CigiWorldAccelerationRate.linearAcceleration * deltaTime;
-    m_CigiWorldTransformationRate.angularVelocity.yaw += (m_CigiWorldAccelerationRate.angularAcceleration.yaw * static_cast<float>(deltaTime));
-    m_CigiWorldTransformationRate.angularVelocity.roll += (m_CigiWorldAccelerationRate.angularAcceleration.roll * static_cast<float>(deltaTime));
-    m_CigiWorldTransformationRate.angularVelocity.pitch += (m_CigiWorldAccelerationRate.angularAcceleration.pitch * static_cast<float>(deltaTime));
+    const auto linear = ConvertBodyCoordinatesToCigiBodyCoordinates(acceleration.linearAcceleration);
+    m_CigiWorldTransformationRate.linearVelocity += CigiNEDCoordinates(linear[0], linear[1], linear[2]) * deltaTime;
+    m_CigiWorldTransformationRate.angularVelocity.yaw += DegreesPerSecond(acceleration.angularAcceleration.yaw.Value() * deltaTime);
+    m_CigiWorldTransformationRate.angularVelocity.roll += DegreesPerSecond(acceleration.angularAcceleration.roll.Value() * deltaTime);
+    m_CigiWorldTransformationRate.angularVelocity.pitch += DegreesPerSecond(acceleration.angularAcceleration.pitch.Value() * deltaTime);
 
     // If the Host sets all rate components to zero, the entity or articulated part will become stationary.
-    if (m_CigiWorldTransformationRate.angularVelocity.pitch.IsZero() && m_CigiWorldTransformationRate.angularVelocity.roll.IsZero() && m_CigiWorldTransformationRate.angularVelocity.yaw.IsZero() && m_CigiWorldTransformationRate.linearVelocity.isZero())
+    if (m_CigiWorldTransformationRate.angularVelocity.pitch.IsZero() && m_CigiWorldTransformationRate.angularVelocity.roll.IsZero() &&
+        m_CigiWorldTransformationRate.angularVelocity.yaw.IsZero() && m_CigiWorldTransformationRate.linearVelocity.isZero())
     {
       return;
     }
 
     TCigiBodyEulerRotation angularRotation;
-    angularRotation.yaw = m_Rotation.yaw += m_CigiWorldTransformationRate.angularVelocity.yaw * (float)deltaTime;
-    angularRotation.pitch = m_Rotation.pitch += m_CigiWorldTransformationRate.angularVelocity.pitch * (float)deltaTime;
-    angularRotation.roll = m_Rotation.roll += m_CigiWorldTransformationRate.angularVelocity.roll * (float)deltaTime;
+    angularRotation.yaw = m_Rotation.yaw += Degrees(m_CigiWorldTransformationRate.angularVelocity.yaw.Value() * deltaTime);
+    angularRotation.pitch = m_Rotation.pitch += Degrees90(m_CigiWorldTransformationRate.angularVelocity.pitch.Value() * deltaTime);
+    angularRotation.roll = m_Rotation.roll += Degrees180(m_CigiWorldTransformationRate.angularVelocity.roll.Value() * deltaTime);
 
     CigiNEDCoordinates offset = m_CigiWorldTransformationRate.linearVelocity;
     offset[0] *= deltaTime;
@@ -343,21 +452,22 @@ void CCigiEntity::Interpolate(double deltaTime)
     return;
   }
 
-  m_LocalBodyTransformationRate.linearVelocity += m_LocalBodyAccelerationRate.linearAcceleration * deltaTime;
-  m_LocalBodyTransformationRate.angularVelocity.yaw += (m_LocalBodyAccelerationRate.angularAcceleration.yaw * static_cast<float>(deltaTime));
-  m_LocalBodyTransformationRate.angularVelocity.roll += (m_LocalBodyAccelerationRate.angularAcceleration.roll * static_cast<float>(deltaTime));
-  m_LocalBodyTransformationRate.angularVelocity.pitch += (m_LocalBodyAccelerationRate.angularAcceleration.pitch * static_cast<float>(deltaTime));
+  m_LocalBodyTransformationRate.linearVelocity += acceleration.linearAcceleration * deltaTime;
+  m_LocalBodyTransformationRate.angularVelocity.yaw += DegreesPerSecond(acceleration.angularAcceleration.yaw.Value() * deltaTime);
+  m_LocalBodyTransformationRate.angularVelocity.roll += DegreesPerSecond(acceleration.angularAcceleration.roll.Value() * deltaTime);
+  m_LocalBodyTransformationRate.angularVelocity.pitch += DegreesPerSecond(acceleration.angularAcceleration.pitch.Value() * deltaTime);
 
   // If the Host sets all rate components to zero, the entity or articulated part will become stationary.
-  if (m_LocalBodyTransformationRate.angularVelocity.pitch.IsZero() && m_LocalBodyTransformationRate.angularVelocity.roll.IsZero() && m_LocalBodyTransformationRate.angularVelocity.yaw.IsZero() && m_LocalBodyTransformationRate.linearVelocity.isZero())
+  if (m_LocalBodyTransformationRate.angularVelocity.pitch.IsZero() && m_LocalBodyTransformationRate.angularVelocity.roll.IsZero() &&
+      m_LocalBodyTransformationRate.angularVelocity.yaw.IsZero() && m_LocalBodyTransformationRate.linearVelocity.isZero())
   {
     return;
   }
 
   TCigiBodyEulerRotation angularRotation;
-  angularRotation.yaw = m_Rotation.yaw += m_LocalBodyTransformationRate.angularVelocity.yaw * (float)deltaTime;
-  angularRotation.pitch = m_Rotation.pitch += m_LocalBodyTransformationRate.angularVelocity.pitch * (float)deltaTime;
-  angularRotation.roll = m_Rotation.roll += m_LocalBodyTransformationRate.angularVelocity.roll * (float)deltaTime;
+  angularRotation.yaw = m_Rotation.yaw += Degrees(m_LocalBodyTransformationRate.angularVelocity.yaw.Value() * deltaTime);
+  angularRotation.pitch = m_Rotation.pitch += Degrees90(m_LocalBodyTransformationRate.angularVelocity.pitch.Value() * deltaTime);
+  angularRotation.roll = m_Rotation.roll += Degrees180(m_LocalBodyTransformationRate.angularVelocity.roll.Value() * deltaTime);
 
   BodyCoordinates offset = m_LocalBodyTransformationRate.linearVelocity;
   offset[0] *= deltaTime;
@@ -402,12 +512,13 @@ void CCigiEntity::Interpolate(double deltaTime)
 
 void CCigiEntity::Update(double deltaTime)
 {
+  CEntity::Update(deltaTime);
   if (m_bInterpolationEnabled)
   {
-    CEntity::Update(deltaTime);
     Interpolate(deltaTime);
-    SendUpdateMessage();
   }
+
+  SendUpdateMessage();
 }
 
 void CCigiEntity::SetChildTransform(TCigiBodyTransform childTransform)

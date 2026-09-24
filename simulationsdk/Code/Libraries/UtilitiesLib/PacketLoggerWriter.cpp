@@ -20,13 +20,17 @@ using namespace sbio::utils;
 // Constructs a writer for the specified packet log file.
 CPacketLoggerWriter::CPacketLoggerWriter(const std::filesystem::path& filePath)
 {
-  std::string sFile = filePath.string();
-  std::remove(sFile.c_str());
-
-  m_hFile = fopen(sFile.c_str(), "wb");
+#ifdef _WIN32
+  _wremove(filePath.c_str());
+  m_hFile = _wfopen(filePath.c_str(), L"wb");
+#else
+  std::remove(filePath.c_str());
+  m_hFile = fopen(filePath.c_str(), "wb");
+#endif
   if (m_hFile != nullptr)
   {
-    cout << "Writing to packet log file " << sFile << endl;
+    const auto sFile = filePath.u8string();
+    cout << "Writing to packet log file " << std::string(sFile.begin(), sFile.end()) << endl;
   }
 }
 

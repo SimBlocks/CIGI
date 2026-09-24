@@ -40,7 +40,7 @@ namespace sbio
     struct EventHelper
     {
       TListeners Listeners;///< Registered listeners in registration order. Duplicate entries are permitted by the dispatcher.
-      std::unique_ptr<EventHandler> pHandler;///< Handler used when the event is notified.
+      std::shared_ptr<EventHandler> pHandler;///< Registered handler, retained by active dispatches until they complete.
     };
 
     /**
@@ -125,6 +125,7 @@ namespace sbio
        *
        * @ownership Ownership of `pHandler` is transferred to the dispatcher.
        * @sideeffects Replaces any previously registered handler for the same event name.
+       * @note Active dispatches retain the previous handler until their visit completes.
        */
       template <typename TEvent>
       void RegisterEvent(std::unique_ptr<EventHandler> pHandler)

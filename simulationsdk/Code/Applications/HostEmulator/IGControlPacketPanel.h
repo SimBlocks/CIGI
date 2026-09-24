@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending IG control packets.
-   * @param event The command event.
+   * @brief Updates the active session's IG control state from the editor only while that session is connected.
+   * @param event Unused command event; an absent or disconnected session is a no-op.
+   * Delegates to SetIGControl(); this callback does not report packet delivery or IG acceptance.
    */
   void OnSend(wxCommandEvent& event);
 

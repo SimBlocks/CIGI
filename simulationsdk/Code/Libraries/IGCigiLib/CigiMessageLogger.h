@@ -345,19 +345,26 @@ namespace sbio
         /// @}
 
       private:
-        // @brief Type trait to check if a type is streamable.
+        /**
+         * @brief Defaults to false when const T cannot be inserted into an output stream.
+         * @tparam T Message type tested for stream insertion.
+         */
         template <typename T, typename = void>
         struct IsStreamable : std::false_type
         {
         };
 
-        // @brief Checks if a type is streamable.
+        /**
+         * @brief Selects true when stream insertion of const T is well-formed.
+         * @tparam T Streamable message type.
+         */
         template <typename T>
         struct IsStreamable<T, std::void_t<decltype(std::declval<std::ostream&>() << std::declval<const T&>())>> : std::true_type
         {
         };
 
         /** @brief Logs an extracted message.
+         * @tparam T Message type
          * @param messageName Name of the message.
          * @param message The message to log.
          */
@@ -375,10 +382,7 @@ namespace sbio
           {
             ss << message;
           }
-          else
-          {
-            ss << "<no stream operator available for extracted message type>";
-          }
+
           logFile << GetTimestampString() << " Host->IG frame = " << m_FrameNumber.Value() << " message = " << messageName << std::endl;
           logFile << NormalizeNameValueSpacing(ss.str()) << std::endl;
         }

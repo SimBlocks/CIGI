@@ -32,9 +32,9 @@ void CCigiAccelerationControlHandler::HandleEntityAccelerationControl(const SCig
     return;
   }
 
-  pCigiEntity->SetTransformationRateCoordinateSystem(acceleration.eCoordinateSystem);
+  pCigiEntity->SetAccelerationRateCoordinateSystem(acceleration.eCoordinateSystem);
 
-  const sbio::math::TBodyEulerRotation angularAcceleration = ConvertToBodyEulerRotation(acceleration.angularAcceleration);
+  const sbio::math::TBodyEulerAcceleration angularAcceleration = ConvertToBodyEulerRate(acceleration.angularAcceleration);
 
   // Apply world and local acceleration updates as appropriate for the coordinate system.
   // Parent-relative updates are applied in both contexts since they are relative to both parent and world.
@@ -46,8 +46,9 @@ void CCigiAccelerationControlHandler::HandleEntityAccelerationControl(const SCig
     pCigiEntity->SetCigiWorldAccelerationRate(cigiWorldAcceleration);
   }
 
-  // Local acceleration updates are applied in the local body coordinate system, which is used for both local and parent-relative updates.
-  if (acceleration.eCoordinateSystem == EObjectCoordinateSystem::LOCAL || acceleration.eCoordinateSystem == EObjectCoordinateSystem::PARENT)
+  // Child entities use the local-body acceleration cache for World/Parent updates as well as local updates.
+  if (acceleration.eCoordinateSystem == EObjectCoordinateSystem::LOCAL || acceleration.eCoordinateSystem == EObjectCoordinateSystem::PARENT ||
+      acceleration.eCoordinateSystem == EObjectCoordinateSystem::WORLD)
   {
     SLocalBodyAccelerationRate localBodyAcceleration;
     localBodyAcceleration.linearAcceleration = ConvertCigiBodyCoordinatesToBodyCoordinates(acceleration.linearAcceleration);
@@ -76,7 +77,7 @@ void CCigiAccelerationControlHandler::HandleArticulatedPartAccelerationControl(c
 
   SAccelerationRate<BodyCoordinates> accelerationRate;
   accelerationRate.linearAcceleration = ConvertCigiBodyCoordinatesToBodyCoordinates(acceleration.linearAcceleration);
-  accelerationRate.angularAcceleration = ConvertToBodyEulerRotation(acceleration.angularAcceleration);
+  accelerationRate.angularAcceleration = ConvertToBodyEulerRate(acceleration.angularAcceleration);
   pArticulatedPart->SetAcceleration(accelerationRate);
 }
 

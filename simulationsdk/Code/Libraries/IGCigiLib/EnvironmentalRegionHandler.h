@@ -3,9 +3,9 @@
  * @file EnvironmentalRegionHandler.h
  * @brief Declares the CCigiEnvironmentalRegionHandler class for SimBlocks CIGI IG environmental region management and querying.
  *
- * Provides the CCigiEnvironmentalRegionHandler class for managing, parsing, and querying environmental regions, weather, maritime, terrestrial, and wave conditions in the SimBlocks CIGI IG library.
- * Integrates with SimBlocks CIGI, math, and engine types for simulation and environmental control.
- * Supports spatial data structures for efficient region queries and entity/global region management.
+ * Provides the CCigiEnvironmentalRegionHandler class for managing, parsing, and querying environmental regions, weather, maritime, terrestrial, and wave conditions in the
+ * SimBlocks IGCigiLib library. Integrates with SimBlocks CIGI, math, and engine types for simulation and environmental control. Supports spatial data structures for efficient
+ * region queries and entity/global region management.
  *
  * @see sbio::cigi::ig::CCigiEnvironmentalRegionHandler
  * @see sbio::cigi::ig::CCigiEnvironmentalRegion
@@ -21,9 +21,11 @@
 #define SIMBLOCKS_CIGI_ENVIRONMENTAL_REGION_HANDLER
 
 #include "CigiLib/CigiTypes.h"
+#include "CigiEvent.h"
 #include "GlobalHeaders/CommonTypes.h"
 #include "IGCigiLib/IGCigiTypeDeclarations.h"
 #include "MathLib/MathTypes.h"
+#include <map>
 #include <unordered_map>
 #include <memory>
 #include <vector>
@@ -37,7 +39,7 @@ namespace sbio
       /**
        * @brief Owns the global, regional, and entity-scoped environmental-state model.
        */
-      class CCigiEnvironmentalRegionHandler
+      class CCigiEnvironmentalRegionHandler : public IIGCIGIEventListener
       {
       public:
         /**
@@ -49,19 +51,47 @@ namespace sbio
          */
         ~CCigiEnvironmentalRegionHandler();
 
+        /** @brief Ignores database-loaded notifications. */
+        virtual void OnDatabaseLoadedEvent() override {};
+        /** @brief Ignores database-load failures. */
+        virtual void OnDatabaseLoadingFailedEvent() override {};
+        /**
+         * @brief Removes entity-scoped conditions and, if any were removed, notifies the available event messenger.
+         * @param entityID Identifier of the removed entity.
+         */
+        virtual void OnEntityRemoved(sbio::EntityID entityID) override;
+        /**
+         * @brief Ignores image-generator error notifications.
+         * @param args Unused error details.
+         */
+        virtual void OnImageGeneratorErrorEvent(const SImageGeneratorErrorEventArgs args) override {};
+
+        /**
+         * @brief Clears all environmental conditions and restores the initial global state.
+         */
+        void Reset();
+
         /**
          * @brief Handles parsing of Cigi Environmental Region packets.
          * @param environmentalRegion Environmental region packet state.
          */
         void Handle(const SCigiEnvironmentalRegion& environmentalRegion);
         /**
-         * @brief Handles parsing of terrestrial surface condition packets for a region/entity.
+         * @brief Applies a global terrestrial surface condition.
          * @param terrestrialSurfaceCondition Terrestrial surface condition data.
-         * @param nEntityRegiondID Entity or region ID.
-         * @param eScope Scope of the condition.
          */
         void HandleGlobalTerrestrialSurfaceCondition(const SCigiTerrestrialSurfaceCondition& terrestrialSurfaceCondition);
+        /**
+         * @brief Applies an entity-scoped terrestrial surface condition.
+         * @param entityID Entity receiving the condition.
+         * @param terrestrialSurfaceCondition Terrestrial surface condition data.
+         */
         void HandleEntityTerrestrialSurfaceCondition(sbio::EntityID entityID, const SCigiTerrestrialSurfaceCondition& terrestrialSurfaceCondition);
+        /**
+         * @brief Applies a regional terrestrial surface condition.
+         * @param regionID Region receiving the condition.
+         * @param terrestrialSurfaceCondition Terrestrial surface condition data.
+         */
         void HandleRegionTerrestrialSurfaceCondition(sbio::RegionID regionID, const SCigiTerrestrialSurfaceCondition& terrestrialSurfaceCondition);
         /**
          * @brief Handles environmental conditions request packets.
@@ -77,6 +107,14 @@ namespace sbio
          * @return Weather condition at the query location.
          */
         SCigiWeatherCondition QueryWeather(const sbio::math::SGeodeticCoordinates& query);
+
+        /**
+         * @brief Queries aerosol concentrations with independent spatial blending per aerosol type.
+         * @param query Geodetic location to sample.
+         * @return Concentrations keyed by aerosol layer identifier.
+         */
+        std::map<uint8_t, float> QueryAerosolConcentrations(const sbio::math::SGeodeticCoordinates& query);
+
         /**
          * @brief Queries local maritime surface condition at a position on the earth.
          * @param query Geodetic coordinates to query.
@@ -104,7 +142,8 @@ namespace sbio
          * @param condition Weather condition.
          * @param spatialWeatherCondition Spatial weather condition.
          */
-        void SetRegionalWeatherCondition(sbio::RegionID regionID, RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition);
+        void SetRegionalWeatherCondition(sbio::RegionID regionID, RegionalLayeredWeatherID layerID, const SCigiWeatherCondition& condition,
+                                         const SCigiSpatialWeatherCondition& spatialWeatherCondition);
         /**
          * @brief Sets weather conditions globally.
          * @param layerID Global weather layer ID.
@@ -187,7 +226,8 @@ namespace sbio
          * @param condition Terrestrial surface condition to add.
          * @param weight Weight applied to the condition values.
          */
-        void AccumulateTerrestrialSurfaceCondition(std::map<uint16_t, STerrestrialSurfaceConditionAccumulator>& accumulators, const SCigiTerrestrialSurfaceCondition& condition, float weight);
+        void AccumulateTerrestrialSurfaceCondition(std::map<uint16_t, STerrestrialSurfaceConditionAccumulator>& accumulators, const SCigiTerrestrialSurfaceCondition& condition,
+                                                   float weight);
         /**
          * @brief Builds merged terrestrial surface conditions from accumulator values.
          * @param accumulators Accumulator map keyed by condition identifier.

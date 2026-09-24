@@ -3,10 +3,11 @@
  * @file PacketSenders.h
  * @brief Declares the CCigiPacketSenders class for SimBlocks CIGI IG multi-host packet sending and notification management.
  *
- * Provides the CCigiPacketSenders class for managing and sending simulation packets to multiple hosts in the SimBlocks CIGI IG library.
+ * Provides the CCigiPacketSenders class for managing and sending simulation packets to multiple hosts in the SimBlocks IGCigiLib library.
  * Inherits from IPacketSender and integrates with SimBlocks CIGI, image generator, and packet sender types for simulation messaging and interoperability.
  *
- * Note: A traditional CIGI networking topology only has an IG communicate with a single host. This class was designed to allow an IG to communicate with multiple hosts for exceptional use cases.
+ * Note: A traditional CIGI networking topology only has an IG communicate with a single host. This class was designed to allow an IG to communicate with multiple hosts for
+ * exceptional use cases.
  *
  * @see sbio::cigi::ig::CCigiPacketSenders
  * @see sbio::cigi::ig::IPacketSender
@@ -41,6 +42,9 @@ namespace sbio
          * @param eCigiVersion CIGI protocol version.
          */
         void AddHost(CCigiImageGenerator& imageGenerator, std::string hostIPAddress, int igToHostPort, ECigiVersion eCigiVersion);
+
+        /** @brief Discards pending response packets for every host. Call on the IG thread. */
+        void ClearPendingResponses();
 
         /// @name `IPacketSender` overrides
         /// These methods forward each packet or notification to every configured host sender.

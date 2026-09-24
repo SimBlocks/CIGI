@@ -30,14 +30,11 @@ namespace sbio
      * @brief Handles lookup between CIGI short entity type identifiers and SISO entity type enumerations.
      *
      * The conversion table is populated from a CSV file and then queried in both directions.
-     * Entries are stored in-memory for the lifetime of the object. Missing mappings are tolerated and
-     * unresolved lookups return default-initialized values rather than throwing.
-     * This class is intended to be shared by higher-level host and IG components that need a consistent
-     * entity-type translation policy.
+     * Entries remain available until the next load or destruction. Missing mappings return the
+     * fallback value documented by each lookup method.
      *
      * @invariant `m_CigiEntityTypes` contains at most one SISO entity type per CIGI short entity type.
-     * @invariant All stored mappings originate from the most recent successful parse performed by
-     * `LoadCigiToSisoConversionFileCsv` after the map was cleared.
+     * @note Different short IDs may be mapped to the same SISO entity type.
      * @ownership The class owns its internal lookup table and does not retain ownership of external file or stream objects.
      */
     class CCigiEntityTypes
@@ -85,7 +82,9 @@ namespace sbio
       /**
        * @brief Gets the CIGI short entity type identifier associated with a SISO entity type.
        * @param entityType SISO entity type to search for.
-       * @return The first matching CIGI short entity type identifier found in the loaded table; otherwise `ShortEntityTypeID(0)`.
+       * @return A matching CIGI short entity type identifier, or `ShortEntityTypeID(0)` if none matches.
+       * @note If multiple IDs map to the same type, the selected ID depends on unordered-map iteration order.
+       * A returned zero does not distinguish a missing mapping from a mapping whose ID is zero.
        *
        * @sideeffects None.
        * @failurecases If no mapping matches `entityType`, the function returns `ShortEntityTypeID(0)`.

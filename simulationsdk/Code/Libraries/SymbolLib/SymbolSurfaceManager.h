@@ -32,6 +32,7 @@ namespace sbio
      * `CSymbolSurfaceManager` is the central container for `SymbolLib` runtime state. It stores symbols keyed by
      * `SymbolID`, records known `SymbolSurfaceID` values, and provides helper operations for detaching symbols and
      * recomputing inherited visibility across parent-child symbol trees.
+     * Surface records are identifiers only; recording a surface does not allocate a rendering resource or attach symbols.
      *
      * @invariant Each key in `m_Symbols` is unique and owns exactly one `CSymbol` instance.
      * @invariant `m_SymbolSurfaces` contains no duplicate surface IDs.
@@ -40,7 +41,9 @@ namespace sbio
     class CSymbolSurfaceManager
     {
     public:
+      /** @brief Set of recorded surface identifiers; no surface objects are owned. */
       typedef std::unordered_set<sbio::symbol::SymbolSurfaceID, StrongTypeHash<sbio::symbol::SymbolSurfaceID>> TSymbolSurfaces;
+      /** @brief Map owning one symbol per registered identifier. */
       typedef std::unordered_map<sbio::symbol::SymbolID, std::unique_ptr<CSymbol>, StrongTypeHash<sbio::symbol::SymbolID>> TSymbols;
 
       /**
@@ -49,6 +52,7 @@ namespace sbio
        * @param pSymbol Owning pointer to the symbol instance.
        *
        * The symbol is inserted only when `symbolID` is not already present.
+       * Insertion does not attach the symbol to a parent, register its surface, or recompute inherited visibility.
        *
        * @ownership Ownership of `pSymbol` is transferred to the manager on successful insertion.
        * @failurecases If `symbolID` already exists, the insertion is ignored and an error is logged when a global
@@ -70,7 +74,7 @@ namespace sbio
        * @brief Clears all managed symbols and known symbol surface IDs.
        *
        * @sideeffects Destroys all symbols owned by the manager and removes all surface IDs from the known set.
-       * @failurecases This function always succeeds and leaves the manager in an empty state.
+       * Symbols are erased directly, without the per-symbol detachment and visibility refresh performed by `RemoveSymbol()`.
        */
       void ClearSymbols();
 
@@ -79,7 +83,6 @@ namespace sbio
        *
        * @sideeffects Removes all surface IDs from the known set.
        * This function does not modify any symbols that may still reference the removed surface IDs.
-       * @failurecases This function always succeeds and leaves the manager with an empty set of known surface IDs.
        */
       void ClearSymbolSurfaces();
 
@@ -87,6 +90,7 @@ namespace sbio
        * @brief Returns a managed symbol by ID.
        * @param symbolID Symbol ID to locate.
        * @return Non-owning pointer to the managed symbol, or `nullptr` when the ID is not present.
+       * The pointer remains valid until the symbol is removed, the symbols are cleared, or the manager is destroyed.
        *
        * @ownership The returned pointer remains owned by the manager.
        */
@@ -94,13 +98,14 @@ namespace sbio
 
       /**
        * @brief Gets all managed symbols keyed by symbol ID.
-       * @return Const reference to the symbol map.
+       * @return Borrowed reference to the live symbol map, valid for the manager's lifetime; not a snapshot.
+       * The map is read-only through this reference, but its symbol objects remain mutable.
        */
       const TSymbols& GetSymbols() const;
 
       /**
        * @brief Gets all recorded symbol surface IDs.
-       * @return Const reference to the symbol surface ID set.
+       * @return Borrowed reference to the live surface ID set, valid for the manager's lifetime; not a snapshot.
        */
       const TSymbolSurfaces& GetSymbolSurfaces() const;
 
@@ -132,11 +137,12 @@ namespace sbio
        * @brief Removes a managed symbol.
        * @param symbolID Symbol ID to remove.
        *
-       * Before erasing the symbol, the manager removes the symbol from its parent's child set, detaches any direct
-       * children whose stored parent matches `symbolID`, clears those children's ancestor-hidden state, and forces a
-       * visibility refresh on the detached children.
+       * Before erasing the symbol, the manager removes it from its resolved parent's child set and detaches listed
+       * direct children whose stored parent matches `symbolID`. After erasure, it recomputes inherited visibility for
+       * each detached child's subtree. Children are retained, with their local visibility and surface assignments unchanged.
        *
-       * @sideeffects Destroys the removed symbol and may change the parent and visibility-related state of its direct children.
+       * @sideeffects Destroys the removed symbol, detaches matching direct children, and refreshes ancestor-hidden state
+       * throughout their subtrees. Symbols not listed as children are not searched for references to the removed ID.
        * @failurecases If `symbolID` is not present, the function returns without modifying the manager.
        */
       void RemoveSymbol(sbio::symbol::SymbolID symbolID);
@@ -148,8 +154,11 @@ namespace sbio
        * The root symbol's hidden-by-ancestor flag is derived from its parent's effective visibility. Descendants are
        * then processed with a depth-first traversal, using a visited set to avoid infinite loops when circular
        * references exist in the stored relationships.
+       * An absent or unresolved root parent does not hide the root. Traversal follows child ID sets, skips unresolved
+       * children, and does not validate reciprocal parent IDs or repair cycles.
        *
-       * @sideeffects May call `CSymbol::SetVisible(..., true)` on the root and descendants when effective visibility changes.
+       * @sideeffects Calls `CSymbol::SetVisible(..., true)` when a visited symbol's ancestor-hidden flag changes,
+       * even if its local visibility is already false. Local visibility values are preserved.
        * @failurecases If `symbolID` is not present, the function returns without performing any work.
        */
       void UpdateSymbolTreeHiddenByAncestor(sbio::symbol::SymbolID symbolID);
@@ -158,6 +167,8 @@ namespace sbio
        * @brief Sets the local visibility of a symbol and refreshes inherited visibility for its subtree.
        * @param symbolID Root symbol ID to update.
        * @param bVisible Local visibility value to apply to the root symbol.
+       *
+       * Descendants retain their local visibility flags; only their inherited visibility is recomputed.
        *
        * @sideeffects Updates the root symbol's local visibility and may update ancestor-hidden state for all reachable descendants.
        * @failurecases If `symbolID` is not present, the function returns without performing any work.

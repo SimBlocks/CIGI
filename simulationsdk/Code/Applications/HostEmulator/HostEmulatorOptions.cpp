@@ -19,6 +19,8 @@ void CHostEmulatorOptions::LoadOptions(const std::filesystem::path& filePath)
 {
   AutoPtr<IniFileConfiguration> pConf(new IniFileConfiguration(filePath.string()));
 
+  hostSetupOptions = SHostSetupOptions{};
+
   if (pConf->has("hostToIGPort"))
   {
     int hostToIGPort = pConf->getInt("hostToIGPort");
@@ -60,13 +62,13 @@ void CHostEmulatorOptions::LoadOptions(const std::filesystem::path& filePath)
     }
     else
     {
-      //default to 4.0 if an unrecognized version is specified
+      // default to 4.0 if an unrecognized version is specified
       hostSetupOptions.eCigiVersion = ECigiVersion::VERSION_4_0;
     }
   }
   else
   {
-    //default to 4.0 if an unrecognized version is specified
+    // default to 4.0 if an unrecognized version is specified
     hostSetupOptions.eCigiVersion = ECigiVersion::VERSION_4_0;
   }
 
@@ -74,7 +76,7 @@ void CHostEmulatorOptions::LoadOptions(const std::filesystem::path& filePath)
   {
     string sSynchronizationMode = pConf->getString("synchronizationMode");
 
-    //make synchronization mode lowercase
+    // make synchronization mode lowercase
     std::transform(sSynchronizationMode.begin(), sSynchronizationMode.end(), sSynchronizationMode.begin(), ::tolower);
 
     if (sSynchronizationMode == "synchronous")

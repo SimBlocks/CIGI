@@ -3,7 +3,7 @@
  * @file PacketHandlerV3.h
  * @brief Declares the CCigiPacketHandlerV3 class for SimBlocks CIGI IG packet parsing and processing (version 3).
  *
- * Provides the CCigiPacketHandlerV3 class for parsing and processing CIGI IG packets (version 3) in the SimBlocks CIGI IG library.
+ * Provides the CCigiPacketHandlerV3 class for parsing and processing CIGI IG packets (version 3) in the SimBlocks IGCigiLib library.
  * Inherits from CCigiPacketHandler and integrates with SimBlocks CIGI, image generator, and handler types for simulation and packet management.
  * Supports parsing of various control, definition, request, and notification packets for simulation interoperability.
  *
@@ -237,25 +237,36 @@ namespace sbio
         // Type definition for a member function pointer to a packet handler function.
         typedef void (CCigiPacketHandlerV3::*TPacketHandlerFunction)(uint8_t*);
 
-        // Packet handler entry for opcode-to-parser dispatch table.
+        /** @brief Associates a CIGI 3.3 parser with the inclusive packet-size limits accepted before dispatch. */
         struct SPacketHandlerEntry
         {
-          TPacketHandlerFunction function;
-          size_t minimumPacketSize;
-          size_t maximumPacketSize;
+          TPacketHandlerFunction function;///< Parser invoked for a validated packet.
+          size_t minimumPacketSize;///< Minimum accepted packet size in bytes.
+          size_t maximumPacketSize;///< Maximum accepted packet size in bytes.
         };
 
         // Opcode-to-parser dispatch table for CIGI 3.3 packets.
         typedef std::unordered_map<ECigiOpCodeV3, SPacketHandlerEntry> TPacketHandlerFunctions;
 
-        // Registers a fixed-length packet with a specific size requirement.
+        /**
+         * @brief Registers or replaces a parser accepting exactly sizeof(TPacket) bytes.
+         * @tparam TPacket Fixed-length wire packet type.
+         * @param opCode Opcode identifying the packet.
+         * @param function Member parser to invoke after size validation.
+         */
         template <typename TPacket>
         void RegisterPacket(ECigiOpCodeV3 opCode, TPacketHandlerFunction function)
         {
           m_PacketHandlerFunctions[opCode] = {function, sizeof(TPacket), sizeof(TPacket)};
         }
 
-        // Registers a variable-length packet with a minimum data length requirement.
+        /**
+         * @brief Registers or replaces a parser accepting sizes from the base plus minimum data length through sizeof(TPacket).
+         * @tparam TPacket Wire packet type providing kBasePacketSize and maximum storage.
+         * @param opCode Opcode identifying the packet.
+         * @param function Member parser to invoke after size validation.
+         * @param minimumDataLength Required payload bytes beyond kBasePacketSize.
+         */
         template <typename TPacket>
         void RegisterVariablePacket(ECigiOpCodeV3 opCode, TPacketHandlerFunction function, size_t minimumDataLength = 0)
         {

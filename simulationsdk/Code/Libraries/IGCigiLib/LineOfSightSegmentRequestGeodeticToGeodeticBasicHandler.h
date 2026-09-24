@@ -1,11 +1,12 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file LineOfSightSegmentRequestGeodeticToGeodeticHandler.h
- * @brief Declares the CLineOfSightSegmentRequestGeodeticToGeodeticHandler class for SimBlocks CIGI IG line of sight segment request handling from geodetic coordinates to geodetic coordinates.
+ * @brief Declares the CLineOfSightSegmentRequestGeodeticToGeodeticHandler class for SimBlocks CIGI IG line of sight segment request handling from geodetic coordinates to geodetic
+ * coordinates.
  *
- * Provides the CLineOfSightSegmentRequestGeodeticToGeodeticHandler class for managing and processing line of sight segment requests from geodetic coordinates to geodetic coordinates in the SimBlocks CIGI IG library.
- * Inherits from CLineOfSightSegmentRequestGeodeticHandler and integrates with SimBlocks CIGI, math, and geodetic types for simulation and line of sight calculations.
- * Supports geodetic-to-geodetic request management and end point resolution for line of sight segment requests.
+ * Provides the CLineOfSightSegmentRequestGeodeticToGeodeticHandler class for managing and processing line of sight segment requests from geodetic coordinates to geodetic
+ * coordinates in the SimBlocks IGCigiLib library. Inherits from CLineOfSightSegmentRequestGeodeticHandler and integrates with SimBlocks CIGI, math, and geodetic types for
+ * simulation and line of sight calculations. Supports geodetic-to-geodetic request management and end point resolution for line of sight segment requests.
  *
  * @see CLineOfSightSegmentRequestGeodeticToGeodeticHandler
  * @see CLineOfSightSegmentRequestGeodeticHandler
@@ -32,8 +33,15 @@ public:
    */
   CLineOfSightSegmentRequestGeodeticToGeodeticBasicHandler(const sbio::cigi::SLineOfSightSegmentRequestGeodeticToGeodeticBasic& request);
 
+  /** @brief Converts geodetic endpoints to world coordinates and submits a basic segment query.
+   * @return `true` after dispatch; `false` if the event messenger is unavailable.
+   */
   virtual bool Handle() override;
 
+  /** @brief Converts the stored geodetic source into the active world coordinate system.
+   * @param point Receives the converted source point.
+   * @return `true` after conversion; conversion exceptions are not caught here.
+   */
   bool ResolveStartPoint(GeocentricCoordinates& point);
 
   /**
@@ -44,7 +52,13 @@ public:
   bool ResolveEndPoint(GeocentricCoordinates& point);
 
 protected:
+  /** @brief Gets common request metadata.
+   * @return Const reference to this handler's stored request.
+   */
   virtual const sbio::cigi::SLineOfSightRequest& GetRequest() const override;
+  /** @brief Gets mutable common request metadata.
+   * @return Reference to this handler's stored request.
+   */
   virtual sbio::cigi::SLineOfSightRequest& GetRequestRef() override;
 
 private:

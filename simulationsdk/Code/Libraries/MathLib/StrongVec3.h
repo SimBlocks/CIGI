@@ -13,7 +13,8 @@
 #ifndef SIMBLOCKS_MATH_STRONG_VEC3_H
 #define SIMBLOCKS_MATH_STRONG_VEC3_H
 
-#include "MathLib/MathTypes.h"
+#include "MathLib/EigenTypes.h"
+#include <cassert>
 
 namespace sbio
 {
@@ -22,12 +23,11 @@ namespace sbio
     /**
      * @brief Strongly-typed 3D vector wrapper for type-safe mathematical operations.
      *
-     * The StrongVec3 template provides a type-safe wrapper around a 3D vector (Vec3),
+     * The StrongVec3 structure provides a type-safe wrapper around a 3D vector (Vec3),
      * enabling mathematical operations that preserve the intended type semantics.
      * This is useful for distinguishing between different vector types at compile time,
      * preventing accidental misuse.
      * See STRONG_VEC3 macro for easy instantiation.
-     * @tparam T The strong type to associate with the vector components.
      */
     struct StrongVec3
     {
@@ -122,7 +122,7 @@ namespace sbio
     /**
      * @brief Strongly-typed 3D vector wrapper for float components.
      *
-     * The StrongVec3f template provides a type-safe wrapper around a 3D vector (Vec3f),
+     * The StrongVec3f structure provides a type-safe wrapper around a 3D vector (Vec3f),
      * enabling mathematical operations that preserve the intended type semantics.
      * This is useful for distinguishing between different vector types at compile time,
      * preventing accidental misuse.

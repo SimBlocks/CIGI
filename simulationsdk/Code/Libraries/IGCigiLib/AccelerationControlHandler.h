@@ -3,7 +3,7 @@
  * @file AccelerationControlHandler.h
  * @brief Declares the CCigiAccelerationControlHandler class for handling CIGI entity and articulated part acceleration control messages.
  *
- * Provides the CCigiAccelerationControlHandler class for processing acceleration control messages for entities and articulated parts in the SimBlocks CIGI IG library.
+ * Provides the CCigiAccelerationControlHandler class for processing acceleration control messages for entities and articulated parts in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI types for simulation and acceleration management.
  *
  * @see sbio::cigi::ig::CCigiAccelerationControlHandler

@@ -32,13 +32,13 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending entity control packets.
-   * @param event The command event.
+   * @brief Reads entity-control values and submits them to the active host session.
+   * @param event Unused command event; requires an active session. Submission does not confirm IG delivery.
    */
   void OnSend(wxCommandEvent& event);
   /**
-   * @brief Handles the entity type selection event for updating the UI.
-   * @param event The command event.
+   * @brief Shows either the short-type or extended-type controls according to the current Entity Type choice.
+   * @param event Unused command event; unrecognized choices leave both sizers unchanged.
    */
   void OnEntityTypeSelection(wxCommandEvent& event);
 

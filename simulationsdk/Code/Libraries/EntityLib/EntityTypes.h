@@ -33,7 +33,7 @@ namespace sbio
   /** @brief Strong short-form SISO entity type identifier; `UINT16_MAX` represents the unknown value. */
   STRONG_TYPE_WITH_CUSTOM_UNKNOWN_VALUE(ShortEntityTypeID, uint16_t, UINT16_MAX);
   /** @brief Strong SISO enumeration set identifier. */
-  STRONG_TYPE(SisoEnumSetID, uint8_t);
+  STRONG_TYPE(SisoEnumSetID, uint32_t);
   /** @brief Strong SISO entity kind identifier. */
   STRONG_TYPE(SisoEntityKindID, uint8_t);
   /** @brief Strong SISO entity domain identifier. */
@@ -110,6 +110,9 @@ namespace sbio
   {
     /**
      * @brief Complete SISO entity type enumeration fields.
+     *
+     * Each field initially holds its unknown sentinel. Parsing checks numeric representation and
+     * range, not membership in loaded SISO metadata; `IsValid()` checks only the kind sentinel.
      */
     struct SEntityType
     {
@@ -143,6 +146,8 @@ namespace sbio
       /**
        * @brief Determines whether the entity type has a known entity kind.
        * @return `true` when `entityKindID` is not `UnknownSisoEntityKindID`; otherwise `false`.
+       *
+       * Does not validate the remaining fields or query enumeration metadata.
        */
       bool IsValid() const;
 
@@ -151,13 +156,18 @@ namespace sbio
        *
        * The accepted format is five to seven unsigned integer tokens separated by periods:
        * `kind.domain.country.category.subcategory[.specific[.extra]]`.
-       * If parsing fails, the existing field values are left unchanged.
+       * Tokens are decimal, with country limited to 0..65535 and all other fields to 0..255.
+       * Leading whitespace and a leading plus sign are accepted; negative values, trailing characters
+       * (including whitespace), empty tokens, and a trailing period are rejected.
+       * On success, omitted specific and extra fields are set to their unknown sentinels.
+       * If parsing fails, all existing field values are left unchanged.
        * @param sEntityEnumeration Enumeration string to parse.
        */
       void SetFromEnumerationString(const std::string& sEntityEnumeration);
       /**
        * @brief Formats the enumeration fields as a period-delimited string.
-       * @return Seven-field enumeration string for this entity type.
+       * @return Seven numeric fields in kind, domain, country, category, subcategory, specific, extra order,
+       *         separated by periods. Unknown sentinel values are included rather than omitted.
        */
       std::string ToEnumerationString() const;
     };
@@ -168,7 +178,7 @@ namespace sbio
     struct SEntityValueDescription
     {
       int nValue = 0;///< Enumeration value.
-      std::string sUUID;///< UUID associated with the value.
+      std::string sUUID;///< UUID associated with the value; not populated by `CEntityEnumerations::Load()`.
       std::string sDescription;///< Human-readable value description.
     };
 
@@ -219,7 +229,7 @@ namespace sbio
     {
       EObjectCoordinateSystem eCoordinateSystem = EObjectCoordinateSystem::UNKNOWN;///< Coordinate system for `linearVelocity`.
       T linearVelocity;///< Linear velocity value.
-      sbio::math::TBodyEulerRotation angularVelocity;///< Angular velocity expressed as body Euler rates.
+      sbio::math::TBodyEulerVelocity angularVelocity;///< Angular velocity expressed as body Euler rates.
     };
 
     /**
@@ -231,7 +241,7 @@ namespace sbio
     {
       EObjectCoordinateSystem eCoordinateSystem = EObjectCoordinateSystem::UNKNOWN;///< Coordinate system for `linearAcceleration`.
       T linearAcceleration;///< Linear acceleration value.
-      sbio::math::TBodyEulerRotation angularAcceleration;///< Angular acceleration expressed as body Euler rates.
+      sbio::math::TBodyEulerAcceleration angularAcceleration;///< Angular acceleration expressed as body Euler rates.
     };
   }
 }

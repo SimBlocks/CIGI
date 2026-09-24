@@ -3,8 +3,8 @@
  * @file CommonTypes.h
  * @brief Declares common strong types and shared value structs for the `sbio` namespace.
  *
- * This header provides strong typedefs, ranged types, and structures used across multiple SDK libraries, 
-* including identifiers, date and time wrappers, color values, texture coordinates, and projection metadata.
+ * This header provides strong typedefs, ranged types, and structures used across multiple SDK libraries,
+ * including identifiers, date and time wrappers, color values, texture coordinates, and projection metadata.
  */
 #pragma once
 #ifndef SIMBLOCKS_COMMON_TYPES_H
@@ -13,192 +13,122 @@
 #include "GlobalHeaders/StrongTypes.h"
 #include "MathLib/MathTypes.h"
 
-#pragma warning(disable : 4100)//disable warning C4100: unreferenced formal parameter
+#pragma warning(disable : 4100)// disable warning C4100: unreferenced formal parameter
 
 namespace sbio
 {
   /**
    * @brief Stores an opacity channel value backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownAlpha` is the default unknown value.
-   * - In the generated API, `UnknownAlpha` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Alpha Alpha value.
-    * @param uint8_t Uint8 t value.
+   * All values in `[0, 255]` are valid. No unknown sentinel is generated.
+   * @see RANGED_STRONG_INT
    */
   RANGED_STRONG_INT(Alpha, uint8_t, 0, 255);
   /**
    * @brief Stores a database identifier backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownDatabaseID` uses `0` as the default unknown value.
-   *
-    * @param DatabaseID Database id value.
-    * @param uint8_t Uint8 t value.
+   * `UnknownDatabaseID` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(DatabaseID, uint8_t);
   /**
    * @brief Stores a font identifier backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownFontID` uses `0` as the default unknown value.
-   *
-    * @param FontID Font id value.
-    * @param uint8_t Uint8 t value.
+   * `UnknownFontID` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(FontID, uint8_t);
   /**
-   * @brief Stores a monotonic frame index backed by `uint32_t`.
+   * @brief Stores a frame number backed by `uint32_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint32_t>` base.
-   * - `UnknownFrameNumber` uses `0` as the default unknown value.
-   *
-    * @param FrameNumber Frame number value.
-    * @param uint32_t Uint32 t value.
+   * `UnknownFrameNumber` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(FrameNumber, uint32_t);
   /**
-   * @brief Stores a system-level identifier backed by `uint32_t`.
+   * @brief Stores a system identifier backed by `uint32_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint32_t>` base.
-   * - `UnknownSystemID` uses `0` as the default unknown value.
-   *
-    * @param SystemID System id value.
-    * @param uint32_t Uint32 t value.
+   * `UnknownSystemID` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(SystemID, uint32_t);
   /**
    * @brief Stores a texture identifier backed by `uint16_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint16_t>` base.
-   * - `UnknownTextureID` uses `0` as the default unknown value.
-   *
-    * @param TextureID Texture id value.
-    * @param uint16_t Uint16 t value.
+   * `UnknownTextureID` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(TextureID, uint16_t);
   /**
    * @brief Stores a material identifier backed by `int32_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<int32_t>` base.
-   * - `UnknownMaterialID` uses the sentinel `-1` as the default unknown value.
-   *
-    * @param MaterialID Material id value.
-    * @param int32_t Int32 t value.
+   * `UnknownMaterialID` stores `-1`.
+   * @see STRONG_TYPE_WITH_CUSTOM_UNKNOWN_VALUE
    */
   STRONG_TYPE_WITH_CUSTOM_UNKNOWN_VALUE(MaterialID, int32_t, -1);
   /**
    * @brief Stores an image generator identifier backed by `uint32_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint32_t>` base.
-   * - `UnknownImageGeneratorID` uses `0` as the default unknown value.
-   *
-    * @param ImageGeneratorID Image generator id value.
-    * @param uint32_t Uint32 t value.
+   * `UnknownImageGeneratorID` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(ImageGeneratorID, uint32_t);
 
   /**
    * @brief Stores a calendar year backed by `uint16_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint16_t>` base.
-   * - `UnknownYear` uses `0` as the default unknown value.
-   *
-    * @param Year Year value.
-    * @param uint16_t Uint16 t value.
+   * `UnknownYear` stores `0`.
+   * @see STRONG_TYPE
    */
   STRONG_TYPE(Year, uint16_t);
   /**
    * @brief Stores a zero-based calendar month backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownMonth` is the default unknown value.
-   * - In the generated API, `UnknownMonth` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Month Month value.
-    * @param uint8_t Uint8 t value.
+   * `CheckValid()` accepts `[0, 11]`; `UnknownMonth` stores `255`.
+   * @see RANGED_STRONG_INT_WITH_UNKNOWN
    */
-  RANGED_STRONG_INT(Month, uint8_t, 0, 11);//month is 0-based
+  RANGED_STRONG_INT_WITH_UNKNOWN(Month, uint8_t, 0, 11);// month is 0-based
   /**
    * @brief Stores a calendar day-of-month backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownDay` is the default unknown value.
-   * - In the generated API, `UnknownDay` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Day Day value.
-    * @param uint8_t Uint8 t value.
+   * `CheckValid()` accepts `[1, 31]`; `UnknownDay` stores `0`.
+   * @see RANGED_STRONG_INT_WITH_UNKNOWN
    */
-  RANGED_STRONG_INT(Day, uint8_t, 1, 31);//day is calendar day index
+  RANGED_STRONG_INT_WITH_UNKNOWN(Day, uint8_t, 1, 31);// day is calendar day index
   /**
    * @brief Stores an hour-of-day backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownHour` is the default unknown value.
-   * - In the generated API, `UnknownHour` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Hour Hour value.
-    * @param uint8_t Uint8 t value.
+   * `CheckValid()` accepts `[0, 23]`; `UnknownHour` stores `255`.
+   * @see RANGED_STRONG_INT_WITH_UNKNOWN
    */
-  RANGED_STRONG_INT(Hour, uint8_t, 0, 23);
+  RANGED_STRONG_INT_WITH_UNKNOWN(Hour, uint8_t, 0, 23);
   /**
    * @brief Stores a minute-of-hour backed by `uint8_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint8_t>` base.
-   * - `UnknownMinute` is the default unknown value.
-   * - In the generated API, `UnknownMinute` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Minute Minute value.
-    * @param uint8_t Uint8 t value.
+   * `CheckValid()` accepts `[0, 59]`; `UnknownMinute` stores `255`.
+   * @see RANGED_STRONG_INT_WITH_UNKNOWN
    */
-  RANGED_STRONG_INT(Minute, uint8_t, 0, 59);
+  RANGED_STRONG_INT_WITH_UNKNOWN(Minute, uint8_t, 0, 59);
   /**
    * @brief Stores a seconds component backed by `float`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<float>` base.
-   * - `UnknownSecond` is the default unknown value.
-   * - In the generated API, `UnknownSecond` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Second Second value.
-    * @param float Float value.
+   * `CheckValid()` accepts `[0, 60]`, including fractional seconds.
+   * @see RANGED_STRONG_FLOAT
    */
   RANGED_STRONG_FLOAT(Second, float, 0, 60);
   /**
-   * @brief Stores a microsecond component backed by `uint32_t`.
+   * @brief Stores a microsecond count backed by `uint64_t`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<uint32_t>` base.
-   * - `UnknownMicrosecond` uses `0` as the default unknown value.
-   *
-    * @param Microsecond Microsecond value.
-    * @param uint32_t Uint32 t value.
+   * `UnknownMicrosecond` stores `0`.
+   * by this type.
+   * @see STRONG_TYPE
    */
-  STRONG_TYPE(Microsecond, uint32_t);
+  STRONG_TYPE(Microsecond, uint64_t);
   /**
    * @brief Stores a normalized percentage backed by `float`.
    *
-   * Invariants:
-   * - The wrapped scalar is stored in the generated `StrongType<float>` base.
-   * - `UnknownPercentage` is the default unknown value.
-   * - In the generated API, `UnknownPercentage` is outside the valid range accepted by `CheckValid()`.
-   *
-    * @param Percentage Percentage value.
-    * @param float Float value.
+   * `CheckValid()` accepts `[0, 1]`, not `[0, 100]`.
+   * @see RANGED_STRONG_FLOAT
    */
   RANGED_STRONG_FLOAT(Percentage, float, 0, 1);
 
@@ -261,13 +191,13 @@ namespace sbio
     bool operator==(const SColor32& c) const;
 
     /**
-     * @brief Provides a representation-based ordering for associative containers.
+     * @brief Compares packed RGBA values for associative-container ordering.
      *
-     * The comparison is performed on the struct's raw 32-bit in-memory representation rather than on
-     * perceptual color properties.
+     * Uses `To_uint32_t()` to compare channels lexicographically by `r`, then `g`, then `b`,
+     * then `a`, independent of byte order.
      *
      * @param c Color to compare against.
-     * @return `true` when this instance sorts before `c`; otherwise `false`.
+     * @return `true` when `To_uint32_t() < c.To_uint32_t()`; otherwise `false`.
      */
     bool operator<(const SColor32& c) const;
   };
@@ -446,25 +376,25 @@ namespace sbio
    */
   struct STextureCoordinateUV
   {
-    float U = 0;///< U coordinate.
-    float V = 0;///< V coordinate.
+    double U = 0;///< U coordinate.
+    double V = 0;///< V coordinate.
 
     /**
-     * @brief Initializes both coordinates to `0.0f`.
+     * @brief Initializes both coordinates to `0.0`.
      */
     STextureCoordinateUV();
 
     /**
      * @brief Initializes the coordinate from integer inputs.
-     * @param u U coordinate.
-     * @param v V coordinate.
+     * @param u U coordinate, converted to `float` with possible precision loss.
+     * @param v V coordinate, converted to `float` with possible precision loss.
      */
     STextureCoordinateUV(int u, int v);
 
     /**
      * @brief Initializes the coordinate from double-precision inputs.
-     * @param u U coordinate.
-     * @param v V coordinate.
+     * @param u U coordinate, converted to `float` with possible precision loss; must be within its representable range.
+     * @param v V coordinate, converted to `float` with possible precision loss; must be within its representable range.
      */
     STextureCoordinateUV(double u, double v);
 
@@ -514,12 +444,6 @@ namespace sbio
 
   /**
    * @brief Represents a time of day.
-   *
-   * Invariants:
-   * - Members default to their corresponding unknown sentinel values.
-   * - The type does not enforce relationships between fields beyond the validation built into the
-   *   individual strong types.
-   *
    */
   struct STime
   {

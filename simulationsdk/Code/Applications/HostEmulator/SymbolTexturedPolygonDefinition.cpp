@@ -109,7 +109,8 @@ void CSymbolTexturedPolygonDefinitionPanel::OnSend(wxCommandEvent& WXUNUSED(even
 
   for (int n = 0; n < m_pGrid->GetNumberRows(); ++n)
   {
-    if (m_pGrid->GetCellValue(wxGridCellCoords(n, 0)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 1)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 2)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 3)).IsEmpty())
+    if (m_pGrid->GetCellValue(wxGridCellCoords(n, 0)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 1)).IsEmpty() ||
+        m_pGrid->GetCellValue(wxGridCellCoords(n, 2)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 3)).IsEmpty())
     {
       continue;
     }

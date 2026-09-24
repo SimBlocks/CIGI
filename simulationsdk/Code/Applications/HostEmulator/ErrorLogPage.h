@@ -27,31 +27,32 @@
 /**
  * @brief Error log page for displaying error messages in the HostEmulator GUI.
  *
- * Receives error events and displays them in a text control. Allows clearing the error log.
+ * Subscribes to HostCigiEvent when a global dispatcher is available. Appends errors immediately and clears the
+ * previous batch before displaying the thirty-first error. Callbacks manipulate controls and must run on the GUI thread.
  */
 class CErrorLogPage : public CNotebookPage, sbio::cigi::host::IHostCigiEventListener
 {
 public:
   /**
    * @brief Constructs the error log page.
-   * @param pParent Parent window pointer.
+   * @param pParent Parent window owning this page through the wxWidgets hierarchy.
    */
   CErrorLogPage(wxWindow* pParent);
   /**
-   * @brief Destroys CErrorLogPage instances.
+   * @brief Unregisters this listener from the current global dispatcher when available; child controls follow wxWidgets ownership.
    */
   virtual ~CErrorLogPage();
 
   /**
-   * @brief Handles error events and updates the error log display.
-   * @param args Error event arguments.
+   * @brief Appends an error, clearing stored/displayed errors first when the count would exceed thirty.
+   * @param args Borrowed event arguments; sError is copied into the log and appended to the control.
    */
   virtual void OnHostCigiErrorEvent(const sbio::cigi::host::HostCigiErrorEventArgs& args) override;
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the clear error log button event.
-   * @param event The command event.
+   * @brief Clears displayed and stored errors and resets the counter to zero.
+   * @param event Unused command event.
    */
   void OnClearErrorLog(wxCommandEvent& event);
 

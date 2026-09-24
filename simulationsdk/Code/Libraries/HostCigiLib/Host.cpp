@@ -9,6 +9,7 @@
 #include "HostSessionV4.h"
 #include "UtilitiesLib/StopWatch.h"
 #include <iostream>
+#include <unordered_set>
 #include <vector>
 
 using namespace std;
@@ -80,6 +81,11 @@ bool CHost::SetActiveSessionID(sbio::SessionID sessionID)
     return false;
   }
 
+  if (sessionID != m_ActiveSessionID && m_pScriptRuntime && m_pScriptRuntime->IsScriptRunning())
+  {
+    return false;
+  }
+
   m_ActiveSessionID = sessionID;
   return true;
 }
@@ -97,7 +103,8 @@ void CHost::Initialize(const SHostSetupOptions& options)
     HostCigiMessageEventArgs args;
     std::stringstream ss;
     ss << "Initializing HostEmulator networking"
-       << "\n  Default Host -> IG target: " << options.igIPAddress << ":" << options.hostToIGPort << "\n  Default IG -> Host listen port: " << options.igToHostPort << "\n  CIGI Version: "
+       << "\n  Default Host -> IG target: " << options.igIPAddress << ":" << options.hostToIGPort << "\n  Default IG -> Host listen port: " << options.igToHostPort
+       << "\n  CIGI Version: "
        << (options.eCigiVersion == ECigiVersion::VERSION_3_3   ? "3.3"
            : options.eCigiVersion == ECigiVersion::VERSION_4_0 ? "4.0"
                                                                : "Unknown")
@@ -110,13 +117,39 @@ void CHost::Initialize(const SHostSetupOptions& options)
     Event::Raise<HostCigiEvent>(args);
   }
 
+  // Check that all configured sessions have distinct receive ports.
+  // If any session is configured to use the default receive port, it will be checked against the other sessions that also use the default.
+  std::unordered_set<int> receivePorts;
+  std::unordered_set<sbio::SessionID, StrongTypeHash<sbio::SessionID>> sessionIDs;
+  for (const auto& sessionOption : options.sessions)
+  {
+    if (!sessionIDs.insert(sessionOption.sessionID).second)
+    {
+      HostCigiErrorEventArgs args;
+      args.sessionID = sessionOption.sessionID;
+      args.sError = "Host session IDs must be unique. Session ID " + std::to_string(sessionOption.sessionID.Value()) + " is configured more than once.";
+      cout << "Error: " << args.sError << endl;
+      Event::Raise<HostCigiEvent>(args);
+      return;
+    }
+
+    const int receivePort = sessionOption.igToHostPort != 0 ? sessionOption.igToHostPort : options.igToHostPort;
+    // Port zero requests a separate ephemeral binding.
+    if (receivePort != 0 && !receivePorts.insert(receivePort).second)
+    {
+      HostCigiErrorEventArgs args;
+      args.sessionID = sessionOption.sessionID;
+      args.sError = "Host sessions must use distinct IG -> Host receive ports. Port " + std::to_string(receivePort) + " is configured for multiple sessions.";
+      cout << "Error: " << args.sError << endl;
+      Event::Raise<HostCigiEvent>(args);
+      return;
+    }
+  }
+
+  m_pScriptRuntime.reset();
   if (options.bEnableScripts)
   {
     m_pScriptRuntime = make_unique<CScriptRuntime>(g_HostCigiLibGlobals.applicationsDataPath / "HostEmulator\\Scripts\\");
-  }
-  else
-  {
-    m_pScriptRuntime.reset();
   }
 
   m_HostSetupOptions = options;
@@ -197,7 +230,9 @@ void CHost::Initialize(const SHostSetupOptions& options)
     pHostSession->hostSetupOptions = sessionHostOptions;
     pHostSession->Reset();
     pHostSession->Initialize();
-    pHostSession->SetByteSwapEnabled(!sessionHostOptions.bigEndianByteOrder);
+
+    pHostSession->SetWireByteOrder(sessionHostOptions.bigEndianByteOrder);
+
     m_Sessions[sessionOption.sessionID] = std::move(pHostSession);
   }
 
@@ -240,17 +275,17 @@ void CHost::LoadCigiToSisoEntityEnumerationConversionFile()
 
 bool CHost::ProcessPackets()
 {
+  const int nMaximumPacketsPerSession = 64;
   bool retval = false;
   for (auto& it : m_Sessions)
   {
     auto& pHostSession = it.second;
-    bool sessionConnected = pHostSession->ProcessPackets();
-
-    if (sessionConnected)
+    // Bound receive work so a busy session cannot starve other sessions or updates.
+    for (int nPackets = 0; nPackets < nMaximumPacketsPerSession; ++nPackets)
     {
-      // make sure to process all packets
-      while (pHostSession->ProcessPackets())
+      if (!pHostSession->ProcessPackets())
       {
+        break;
       }
 
       retval = true;

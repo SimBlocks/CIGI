@@ -66,9 +66,9 @@ void CAccelerationControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     accelerationControl.linearAcceleration[1] = GetFloat("Y Linear Acceleration");
     accelerationControl.linearAcceleration[2] = GetFloat("Z Linear Acceleration");
 
-    accelerationControl.angularAcceleration.roll = Degrees(GetFloat("Roll Angular Acceleration"));
-    accelerationControl.angularAcceleration.pitch = Degrees(GetFloat("Pitch Angular Acceleration"));
-    accelerationControl.angularAcceleration.yaw = Degrees(GetFloat("Yaw Angular Acceleration"));
+    accelerationControl.angularAcceleration.roll = DegreesPerSecondSquared(GetFloat("Roll Angular Acceleration"));
+    accelerationControl.angularAcceleration.pitch = DegreesPerSecondSquared(GetFloat("Pitch Angular Acceleration"));
+    accelerationControl.angularAcceleration.yaw = DegreesPerSecondSquared(GetFloat("Yaw Angular Acceleration"));
 
     pSession->SendArticulatedPartAccelerationControl(accelerationControl);
   }
@@ -82,9 +82,9 @@ void CAccelerationControlPanel::OnSend(wxCommandEvent& WXUNUSED(event))
     accelerationControl.linearAcceleration[1] = GetFloat("Y Linear Acceleration");
     accelerationControl.linearAcceleration[2] = GetFloat("Z Linear Acceleration");
 
-    accelerationControl.angularAcceleration.roll = Degrees(GetFloat("Roll Angular Acceleration"));
-    accelerationControl.angularAcceleration.pitch = Degrees(GetFloat("Pitch Angular Acceleration"));
-    accelerationControl.angularAcceleration.yaw = Degrees(GetFloat("Yaw Angular Acceleration"));
+    accelerationControl.angularAcceleration.roll = DegreesPerSecondSquared(GetFloat("Roll Angular Acceleration"));
+    accelerationControl.angularAcceleration.pitch = DegreesPerSecondSquared(GetFloat("Pitch Angular Acceleration"));
+    accelerationControl.angularAcceleration.yaw = DegreesPerSecondSquared(GetFloat("Yaw Angular Acceleration"));
 
     pSession->SendEntityAccelerationControl(accelerationControl);
   }

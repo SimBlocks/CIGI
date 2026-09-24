@@ -31,7 +31,8 @@ class CMessageLogPage;
 /**
  * @brief Main GUI frame for the HostEmulator application.
  *
- * Manages the main window, event handling, and user interface components.
+ * Creates the packet, script, message-log, and error-log pages, menu bar, and four-field status bar. Child controls
+ * follow wxWidgets ownership. Closing requests application shutdown before scheduling frame destruction.
  */
 class CHostEmulatorGuiFrame : public wxFrame
 {
@@ -42,29 +43,31 @@ public:
   CHostEmulatorGuiFrame();
 
   /**
-   * @brief Handles the close event.
-   * @param event Event object associated with the callback.
+   * @brief Calls application Uninitialize() when available, then schedules frame destruction.
+   * @param event Unused close notification; this callback does not veto closure.
    */
   void OnClose(wxCloseEvent& event);
   /**
-   * @brief Handles the ok event.
-   * @param event Event object associated with the callback.
+   * @brief Copies dialog port, recognized version, and byte-order values into frame fields, then destroys the dialog.
+   * @param event Event whose source must be a button parented by SetupDialog.
+   * This callback displays the receive port but does not reinitialize the host or store the address/database fields.
    */
   void OnOk(wxCommandEvent& event);
   /**
-   * @brief Handles the page changed event.
-   * @param event Event object associated with the callback.
+   * @brief Calls OnSelected() on the newly selected notebook page.
+   * @param event Event supplying a valid page index; the page must derive from CNotebookPage.
    */
   void OnPageChanged(wxNotebookEvent& event);
   /**
-   * @brief Updates gui.
+   * @brief Flushes the message-log buffer and refreshes the script-status label when their pages are available.
    */
   void UpdateGUI();
 
   /**
-   * @brief Creates button bar.
-   * @param parent Parent value.
-   * @return Created button bar.
+   * @brief Allocates a button-bar sizer and fits the supplied frame; no button actions are bound here.
+   * @param parent Non-null frame used to parent the Play/Pause button and receive sizing hints.
+   * @return Newly allocated sizer for the caller to install or release. Contains Play/Pause and Stop controls;
+   * the current implementation default-constructs the Stop control without creating its native window.
    */
   wxFlexGridSizer* MakeButtonBar(wxFrame* parent);
 

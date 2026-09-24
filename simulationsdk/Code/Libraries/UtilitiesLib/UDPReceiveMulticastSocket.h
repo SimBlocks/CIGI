@@ -21,9 +21,8 @@ namespace sbio
      * @brief Non-blocking multicast UDP receive socket.
      *
      * Construction creates and binds a `Poco::Net::MulticastSocket`, joins the requested multicast group,
-     * and sets the socket to non-blocking mode. When a non-empty interface name is supplied, the constructor
-     * searches the available Poco network interfaces and joins on the matching interface; otherwise it joins
-     * using Poco's default behavior.
+     * and sets the socket to non-blocking mode. The socket and bind address match the group's IP family.
+     * A non-empty interface name selects an interface supporting that family; an empty name uses Poco's default behavior.
      *
      * @invariant `m_pMulticastSocket == nullptr` means the object is inactive.
      */
@@ -32,11 +31,13 @@ namespace sbio
     public:
       /**
        * @brief Creates a multicast receive socket and joins a multicast group.
-       * @param sIPAddress Multicast group address.
-       * @param nPort Local port used for binding and group reception.
+       * @param sIPAddress IPv4 or IPv6 multicast group address.
+       * @param nPort Local port in [0, 65535]; zero requests an ephemeral port.
        * @param sNetworkInterface Optional Poco network-interface name to use when joining the group.
        *
        * @sideeffects Binds a UDP socket, joins a multicast group, and sets non-blocking mode on success.
+       * @failurecases Invalid port numbers leave the socket inactive.
+       * @failurecases A named interface that is missing or does not support the group family leaves the socket inactive.
        * @failurecases Construction failures are caught internally, logged through the global logger when available, and leave the object inactive.
        */
       CUDPReceiveMulticastSocket(const std::string& sIPAddress, int nPort, const std::string& sNetworkInterface = "");

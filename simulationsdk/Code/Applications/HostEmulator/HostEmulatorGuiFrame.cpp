@@ -22,10 +22,10 @@ CHostEmulatorGuiFrame::CHostEmulatorGuiFrame() : wxFrame(NULL, wxID_ANY, "SimBlo
 {
   Bind(wxEVT_CLOSE_WINDOW, &CHostEmulatorGuiFrame::OnClose, this);
 
-  //creates and sets the menu bar for the window.
+  // creates and sets the menu bar for the window.
   SetMenuBar(new CMenuBar());
 
-  //make the status bar
+  // make the status bar
   wxStatusBar* statusbar = new wxStatusBar(this, wxID_ANY, wxST_SIZEGRIP);
   statusbar->SetFieldsCount(4);
   statusbar->SetStatusText("Database: ", 0);

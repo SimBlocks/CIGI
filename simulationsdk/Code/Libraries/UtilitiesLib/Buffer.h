@@ -8,7 +8,7 @@
  * for type-safe buffer management of arbitrary element types.
  *
  * - CBuffer: Manages a buffer of bytes, including allocation, deallocation, and ownership semantics.
- * - TBuffer<T>: Template for type-safe buffer management for any element type.
+ * - TBuffer<T>: Template for typed access to raw-byte-compatible elements.
  */
 #pragma once
 #ifndef SIMBLOCKS_UTILITIES_BUFFER_H
@@ -17,6 +17,8 @@
 #include <limits>
 #include <cstdint>
 #include <vector>
+#include <cstddef>
+#include <type_traits>
 
 namespace sbio
 {
@@ -52,6 +54,7 @@ namespace sbio
       /**
        * @brief Takes ownership of an existing byte vector without copying its contents.
        * @param buffer Byte vector whose storage is retained by this instance.
+       * @note Sizes exceeding `int` range produce an empty buffer and leave the input vector unchanged.
        */
       CBuffer(std::vector<std::uint8_t>&& buffer);
 
@@ -73,7 +76,7 @@ namespace sbio
        *
        * @sideeffects May free the memory referenced by `m_buffer`.
        */
-      ~CBuffer();
+      virtual ~CBuffer();
 
       /**
        * @brief Constructs a `CBuffer` instance.
@@ -90,7 +93,7 @@ namespace sbio
        * @post `GetSize()` returns `0`.
        * @sideeffects May free owned memory.
        */
-      void Clear();
+      virtual void Clear();
 
       /**
        * @brief Returns mutable access to the underlying byte buffer.
@@ -131,7 +134,7 @@ namespace sbio
        * @post This instance no longer owns any previously referenced buffer.
        * @ownership The caller becomes responsible for the returned pointer, if non-null.
        */
-      char* StealPointer();
+      virtual char* StealPointer();
 
       /**
        * @brief Replaces the current buffer with an external memory block.
@@ -139,34 +142,45 @@ namespace sbio
        * @param data Pointer to the new memory block, or `nullptr`.
        *
        * Releases the current buffer when owned, then stores `data` without taking ownership.
+       * Pointers into or one past owned storage are rejected without changing the buffer.
        *
-       * @post `GetSize()` returns `nSize`.
-       * @post The stored buffer is treated as non-owned.
+       * @post On acceptance, `GetSize()` returns `nSize` and the stored buffer is treated as non-owned.
        * @ownership The caller retains responsibility for the lifetime of `data`.
        * @sideeffects May free previously owned memory.
        */
-      void Set(int nSize, void* data);
+      virtual void Set(int nSize, void* data);
 
     protected:
+      /** @brief Checks whether a pointer is within or one past the storage owned by this buffer. */
+      bool IsPointerInOwnedStorageRange(const void* data) const;
+
       bool m_own_Buffer = true;///< `true` when this object is responsible for deleting `m_buffer` with `delete[]`.
       int m_nSize = 0;///< Buffer size in bytes.
       char* m_buffer = nullptr;///< Pointer to the first byte of the represented buffer, or `nullptr` when empty.
       std::vector<std::uint8_t> m_ownedBytes;///< Vector storage retained when constructed from a byte vector.
+      bool m_bRequiresCopyOnSteal = false;///< `true` when the buffer was constructed from a byte vector and `StealPointer()` should copy the contents to a new allocation.
     };
 
     /**
-     * @brief Template class for managing a contiguous buffer of elements of type T..
+     * @brief Template class for managing a contiguous buffer of elements of type `T`.
      *
      * `TBuffer<T>` extends `CBuffer` by interpreting the underlying byte buffer as an array of `T`.
      * Buffer size is tracked in bytes by the base class and exposed as an element count through `GetNumElements()`.
      *
-     * @tparam T Element type stored in the buffer.
+     * @tparam T Trivially copyable, implicit-lifetime element type with fundamental alignment.
      * @invariant `GetSize()` is always an integral multiple of `sizeof(T)` for buffers created through this class.
+     * @note Element constructors and destructors are not invoked; allocated contents are uninitialized.
      * @note Resizing with `SetNumElements()` discards any existing contents.
      */
     template <typename T>
     class TBuffer : public CBuffer
     {
+      static_assert(std::is_trivially_copyable<T>::value, "TBuffer requires trivially copyable elements.");
+      static_assert(std::is_aggregate<T>::value || std::is_trivially_default_constructible<T>::value || std::is_trivially_copy_constructible<T>::value ||
+                      std::is_trivially_move_constructible<T>::value,
+                    "TBuffer requires implicit-lifetime elements compatible with raw-byte storage.");
+      static_assert(alignof(T) <= alignof(std::max_align_t), "TBuffer does not support over-aligned elements.");
+
     public:
       /**
        * @brief Constructs an empty typed buffer.
@@ -252,6 +266,12 @@ namespace sbio
       void SetNumElements(int nNumElements)
       {
         const int nNewSize = GetCheckedByteSize(nNumElements);
+        char* pNewBuffer = nullptr;
+
+        if (nNewSize > 0)
+        {
+          pNewBuffer = new char[nNewSize];
+        }
 
         // clears out buffer
         if (m_own_Buffer)
@@ -260,7 +280,7 @@ namespace sbio
         }
 
         m_nSize = nNewSize;
-        m_buffer = (m_nSize > 0) ? new char[m_nSize] : nullptr;
+        m_buffer = pNewBuffer;
         m_own_Buffer = true;
       }
 

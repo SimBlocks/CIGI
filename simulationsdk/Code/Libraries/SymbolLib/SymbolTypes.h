@@ -2,6 +2,9 @@
 /**
  * @file SymbolTypes.h
  * @brief Declares symbol identifiers, enums, and value types used by SymbolLib.
+ *
+ * These structures carry definitions and control data; constructing or modifying them does not register symbols,
+ * attach surfaces, or issue rendering commands. Identifiers refer to objects managed elsewhere and do not convey ownership.
  */
 #pragma once
 #ifndef SIMBLOCKS_SYMBOL_TYPES_H
@@ -26,7 +29,12 @@ namespace sbio
   {
     /** @brief Strong identifier for a symbol. */
     STRONG_TYPE(SymbolID, uint16_t);
-    /** @brief Strong identifier for a symbol surface; the maximum `uint16_t` value represents unknown. */
+    /**
+     * @brief Strong surface identifier with the maximum uint16_t value as its unknown sentinel.
+     *
+     * `CSymbol` also permits that numeric value as an assigned surface ID; use `CSymbol::HasSymbolSurfaceID()`
+     * rather than sentinel comparison to test whether a symbol has a surface assignment.
+     */
     STRONG_TYPE_WITH_CUSTOM_UNKNOWN_VALUE(SymbolSurfaceID, uint16_t, std::numeric_limits<uint16_t>::max());
 
     /**
@@ -77,7 +85,7 @@ namespace sbio
      */
     struct SEntitySymbolSurfaceDefinition : SSymbolSurfaceDefinition
     {
-      sbio::EntityID entityID = UnknownEntityID;///< Entity that owns the surface.
+      sbio::EntityID entityID = UnknownEntityID;///< Identifier of the entity attachment target; does not convey ownership.
       sbio::math::Vec3f offsetToSurface;///< Offset from the entity reference point to the surface.
       sbio::math::Degrees yaw = UnknownDegrees;///< Yaw angle applied to the surface.
       sbio::math::Degrees90 pitch = UnknownDegrees90;///< Pitch angle applied to the surface.
@@ -89,7 +97,7 @@ namespace sbio
      */
     struct SEntityBillboardSymbolSurfaceDefinition : SSymbolSurfaceDefinition
     {
-      sbio::EntityID entityID = UnknownEntityID;///< Entity that owns the billboard surface.
+      sbio::EntityID entityID = UnknownEntityID;///< Identifier of the billboard's entity attachment target; does not convey ownership.
       bool bPerspectiveGrowthEnabled = false;///< `true` when perspective growth is enabled.
       sbio::math::Vec3f offsetToEntity;///< Offset from the center of the surface to the entity reference point.
     };
@@ -99,7 +107,7 @@ namespace sbio
      */
     struct SViewSymbolSurfaceDefinition : SSymbolSurfaceDefinition
     {
-      sbio::ViewID viewID = UnknownViewID;///< View that owns the surface.
+      sbio::ViewID viewID = UnknownViewID;///< Identifier of the view attachment target; does not convey ownership.
       float fLeft = 0;///< Distance from the viewport left edge to the surface left boundary as a fraction of viewport width.
       float fRight = 0;///< Distance from the viewport left edge to the surface right boundary as a fraction of viewport width.
       float fTop = 0;///< Distance from the viewport bottom edge to the surface top boundary as a fraction of viewport height.
@@ -227,7 +235,9 @@ namespace sbio
     };
 
     /**
-     * @brief Defines a symbol cloned from another symbol or symbol template.
+     * @brief Requests a symbol clone using a source symbol or symbol-template identifier.
+     *
+     * The inherited symbolID identifies the destination. This value type does not resolve the source or perform cloning.
      */
     struct SSymbolClone : SSymbol
     {
@@ -304,6 +314,9 @@ namespace sbio
 
     /**
      * @brief Value storage for one compact symbol-control attribute.
+     *
+     * This union has no tag of its own. The corresponding EAttributeSelect value in SShortSymbolControl determines
+     * how the stored bits are interpreted by the consumer.
      */
     union SAttributeValue
     {

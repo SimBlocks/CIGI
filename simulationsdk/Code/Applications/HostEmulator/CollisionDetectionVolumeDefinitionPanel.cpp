@@ -154,7 +154,7 @@ void CCollisionDetectionVolumeDefinitionPanel::OnSend(wxCommandEvent& WXUNUSED(e
       wxLogError("Roll: Enter number between -180.0 and 180.0");
       roll = ResetFloat("Roll");
     }
-    cuboidDefinition.rotation.roll = Degrees(roll);
+    cuboidDefinition.rotation.roll = Degrees180(roll);
 
     float pitch = GetFloat("Pitch");
     if (!Degrees90::CheckValid(pitch))
@@ -165,7 +165,7 @@ void CCollisionDetectionVolumeDefinitionPanel::OnSend(wxCommandEvent& WXUNUSED(e
       wxLogError("Pitch: Enter number between -180.0 and 180.0");
       pitch = ResetFloat("Pitch");
     }
-    cuboidDefinition.rotation.pitch = Degrees(pitch);
+    cuboidDefinition.rotation.pitch = Degrees90(pitch);
 
     float yaw = GetFloat("Yaw");
     if (!Degrees::CheckValid(yaw))

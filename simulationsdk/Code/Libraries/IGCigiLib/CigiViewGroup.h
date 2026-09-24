@@ -3,7 +3,7 @@
  * @file CigiViewGroup.h
  * @brief Declares the CCigiViewGroup class for SimBlocks CIGI IG view group management and entity attachment.
  *
- * Provides the CCigiViewGroup class for representing and managing CIGI view groups attached to entities in the SimBlocks CIGI IG library.
+ * Provides the CCigiViewGroup class for representing and managing CIGI view groups attached to entities in the SimBlocks IGCigiLib library.
  * Inherits from sbio::view::CViewGroup and integrates with SimBlocks view, math, and CIGI types for group-based view management.
  * Supports entity attachment, transformation, rotation, offset, view ID management, and group update for simulation views.
  *
@@ -37,7 +37,7 @@ namespace sbio
       /**
        * @brief Represents one CIGI-controlled view group and its shared attachment transform.
        */
-      class CCigiViewGroup : public sbio::view::CViewGroup
+      class CCigiViewGroup : public sbio::view::CViewGroup, public IIGCIGIEventListener
       {
       public:
         /**
@@ -49,6 +49,24 @@ namespace sbio
          * @brief Destroys the view-group wrapper.
          */
         ~CCigiViewGroup();
+
+        /** @brief Ignores database-loaded notifications. */
+        virtual void OnDatabaseLoadedEvent() override {};
+        /** @brief Ignores database-load failures. */
+        virtual void OnDatabaseLoadingFailedEvent() override {};
+        /**
+         * @brief Clears the attachment if this group is attached to the removed entity.
+         * @param entityID Identifier of the removed entity.
+         */
+        virtual void OnEntityRemoved(sbio::EntityID entityID) override;
+        /**
+         * @brief Ignores image-generator error notifications.
+         * @param args Unused error details.
+         */
+        virtual void OnImageGeneratorErrorEvent(const SImageGeneratorErrorEventArgs args) override {};
+
+        /** @brief Clears the group's attachment at an IG reset boundary. */
+        virtual void Reset() override;
 
         /**
          * @brief Adds a view to the group.
@@ -104,12 +122,12 @@ namespace sbio
          * @brief Sets the cached pitch angle.
          * @param fPitch Pitch angle in degrees.
          */
-        void SetPitch(sbio::math::Degrees fPitch);
+        void SetPitch(sbio::math::Degrees90 fPitch);
         /**
          * @brief Sets the cached roll angle.
          * @param fRoll Roll angle in degrees.
          */
-        void SetRoll(sbio::math::Degrees fRoll);
+        void SetRoll(sbio::math::Degrees180 fRoll);
         /**
          * @brief Updates derived state for the group.
          */
@@ -126,6 +144,8 @@ namespace sbio
         const sbio::cigi::TCigiBodyEulerRotation& GetRotation() const;
 
       private:
+        sbio::EntityID m_AttachedEntityID = sbio::UnknownEntityID;
+        bool m_bAttachmentInitialized = false;
         bool m_bTransformationDirty = false;///< Indicates whether the derived group transform needs recomputation.
         sbio::cigi::CigiBodyCoordinates m_vOffset;///< Cached body-frame offset relative to the attachment target.
         sbio::cigi::TCigiBodyEulerRotation m_Rotation;///< Cached body-frame rotation relative to the attachment target.

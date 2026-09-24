@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending terrestrial surface conditions packets.
-   * @param event The command event.
+   * @brief Submits terrestrial surface conditions using the selected entity, regional, or global scope.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available when submitting. No delivery or IG acceptance result is exposed.
    */
   void OnSend(wxCommandEvent& event);
 

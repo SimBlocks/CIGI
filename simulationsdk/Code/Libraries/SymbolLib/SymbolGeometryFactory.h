@@ -15,7 +15,7 @@
 #define SIMBLOCKS_SYMBOL_GEOMETRY_FACTORY_H
 
 #include "SymbolLib/SymbolTypes.h"
-#include "SymbolLib/SymbolDeclarations.h"
+#include "SymbolLib/SymbolGeometry.h"
 #include <memory>
 
 namespace sbio
@@ -42,8 +42,12 @@ namespace sbio
        * @param eSymbolType Symbol type used to select the concrete geometry class.
        * @return Owning pointer to the created geometry object, or `nullptr` when the type is unsupported.
        *
+       * The default implementation creates `CSymbolCircle`, `CSymbolPolygon`, `CSymbolText`, `CSymbolTexturedCircle`,
+       * or `CSymbolTexturedPolygon` for the corresponding type. It does not create a `CSymbol`, register an ID,
+       * or load font or texture resources. Derived factories may provide different geometry implementations.
+       *
        * @ownership Ownership of the returned geometry is transferred to the caller.
-       * @failurecases Returns `nullptr` for unsupported or unknown symbol types.
+       * @failurecases The default implementation returns `nullptr` for `UNKNOWN`, `TEMPLATE`, and unrecognized values.
        */
       virtual std::unique_ptr<CSymbolGeometry> Create(sbio::symbol::SymbolID symbolID, sbio::symbol::ESymbolType eSymbolType);
     };

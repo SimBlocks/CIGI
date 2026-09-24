@@ -29,9 +29,10 @@ namespace sbio
     public:
       /**
        * @brief Creates a UDP receive socket bound to a local port.
-       * @param nPort Port number to bind.
+       * @param nPort Port number in [0, 65535]; zero requests an ephemeral port.
        *
        * @sideeffects Allocates and binds Poco socket objects on success.
+       * @failurecases Invalid port numbers leave the socket inactive.
        * @failurecases On construction failure, socket state is reset and later receive operations fail gracefully.
        */
       CUDPReceiveSocket(int nPort);

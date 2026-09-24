@@ -3,7 +3,7 @@
  * @file EntityControlHandler.h
  * @brief Declares the CCigiEntityControlHandler class for SimBlocks CIGI IG entity control and position management.
  *
- * Provides the CCigiEntityControlHandler class for handling entity control, position requests, and transformation setup in the SimBlocks CIGI IG library.
+ * Provides the CCigiEntityControlHandler class for handling entity control, position requests, and transformation setup in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, entity, math, view, and common types for simulation and entity management.
  * Supports continuous position requests, hierarchical entity relationships, and terrain handler integration.
  *
@@ -21,6 +21,7 @@
 #define SIMBLOCKS_CIGI_ENTITY_CONTROL_HANDLER_H
 
 #include "CigiLib/CigiTypeDeclarations.h"
+#include "CigiEvent.h"
 #include "EntityLib/EntityTypes.h"
 #include "GlobalHeaders/CommonTypes.h"
 #include "IGCigiLib/IGCigiTypeDeclarations.h"
@@ -40,7 +41,7 @@ namespace sbio
       /**
        * @brief Handles CIGI entity control and position management.
        */
-      class CCigiEntityControlHandler
+      class CCigiEntityControlHandler : public IIGCIGIEventListener
       {
       public:
         /**
@@ -53,6 +54,21 @@ namespace sbio
          * @brief Destroys the entity control handler.
          */
         ~CCigiEntityControlHandler();
+
+        /** @brief Ignores database-loaded notifications. */
+        virtual void OnDatabaseLoadedEvent() override {};
+        /** @brief Ignores database-load failures. */
+        virtual void OnDatabaseLoadingFailedEvent() override {};
+        /**
+         * @brief Removes continuous entity, child-entity, and articulated-part position requests for the entity.
+         * @param entityID Identifier of the removed entity.
+         */
+        virtual void OnEntityRemoved(sbio::EntityID entityID) override;
+        /**
+         * @brief Ignores image-generator error notifications.
+         * @param args Unused error details.
+         */
+        virtual void OnImageGeneratorErrorEvent(const SImageGeneratorErrorEventArgs args) override {};
 
         /**
          * @brief Handles conformal clamped entity position messages.
@@ -73,7 +89,8 @@ namespace sbio
          * @param rotation Euler rotation.
          * @return Child entity transform.
          */
-        sbio::cigi::TCigiBodyTransform SetupChildEntityTransformation(EntityID parentID, const sbio::cigi::CigiBodyCoordinates& offset, const sbio::cigi::TCigiBodyEulerRotation& rotation);
+        sbio::cigi::TCigiBodyTransform SetupChildEntityTransformation(EntityID parentID, const sbio::cigi::CigiBodyCoordinates& offset,
+                                                                      const sbio::cigi::TCigiBodyEulerRotation& rotation);
 
         /**
          * @brief Handles entity position messages.
@@ -84,7 +101,8 @@ namespace sbio
          * @param position Position vector.
          * @param rotation Euler rotation.
          */
-        void HandleCigiEntityPosition(EntityID entityID, EntityID parentID, sbio::EAttachState attachState, EClamp eGrndClamp, const sbio::math::Vec3& position, const sbio::cigi::TCigiBodyEulerRotation& rotation);
+        void HandleCigiEntityPosition(EntityID entityID, EntityID parentID, sbio::EAttachState attachState, EClamp eGrndClamp, const sbio::math::Vec3& position,
+                                      const sbio::cigi::TCigiBodyEulerRotation& rotation);
         /**
          * @brief Handles position request messages.
          * @param positionRequest Position request data.
@@ -130,6 +148,11 @@ namespace sbio
          * @param motionTrackerID Motion tracker ID.
          */
         void RequestMotionTrackerPosition(sbio::MotionTrackerID motionTrackerID);
+
+        /**
+         * @brief Clears all continuous position requests.
+         */
+        void Reset();
 
         /**
          * @brief Updates the entity control handler state.

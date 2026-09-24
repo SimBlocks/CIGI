@@ -45,7 +45,7 @@ void CCigiEntityAnimation::SetAnimationDirection(bool bForward, bool bForce)
       SSetAnimationDirectionMessage data;
       data.EntityID = m_EntityID;
       data.AnimationID = m_AnimationID;
-      data.isForward = true;
+      data.isForward = bForward;
       g_CigiLibGlobals.pEventMessenger->SendSetAnimationDirectionMessage(data);
     }
   }
@@ -185,8 +185,9 @@ void CCigiEntityAnimation::SetAnimationState(sbio::cigi::EAnimationState eAnimat
         g_CigiLibGlobals.pEventMessenger->SendRestartEntityAnimationMessage(data);
         break;
       }
-      break;
       }
+      break;
+    }
     case (EAnimationState::UNKNOWN):
     {
       switch (eAnimationState)
@@ -221,12 +222,87 @@ void CCigiEntityAnimation::SetAnimationState(sbio::cigi::EAnimationState eAnimat
       }
     }
     }
-    }
 
     m_AnimationState = eAnimationState;
   }
 }
 
-//The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.
+void CCigiEntityAnimation::SetAnimationState(sbio::cigi::EAnimationState eAnimationState, sbio::cigi::EAnimationFramePositionReset frameReset, bool bForce)
+{
+  if (frameReset == EAnimationFramePositionReset::UNKNOWN)
+  {
+    SetAnimationState(eAnimationState, bForce);
+    return;
+  }
+
+  if (eAnimationState != EAnimationState::STOP && eAnimationState != EAnimationState::PLAY)
+  {
+    return;
+  }
+
+  const bool restart = eAnimationState == EAnimationState::PLAY && frameReset == EAnimationFramePositionReset::RESET;
+  if (g_CigiLibGlobals.pEventMessenger != nullptr && (restart || bForce || m_AnimationState != eAnimationState))
+  {
+    if (eAnimationState == EAnimationState::STOP)
+    {
+      SStopAtCurrentFrameEntityAnimationMessage data;
+      data.EntityID = m_EntityID;
+      data.AnimationID = m_AnimationID;
+      g_CigiLibGlobals.pEventMessenger->SendStopAtCurrentFrameEntityAnimationMessage(data);
+    }
+    else if (restart)
+    {
+      SRestartEntityAnimationMessage data;
+      data.EntityID = m_EntityID;
+      data.AnimationID = m_AnimationID;
+      g_CigiLibGlobals.pEventMessenger->SendRestartEntityAnimationMessage(data);
+    }
+    else
+    {
+      SPlayEntityAnimationMessage data;
+      data.EntityID = m_EntityID;
+      data.AnimationID = m_AnimationID;
+      g_CigiLibGlobals.pEventMessenger->SendPlayEntityAnimationMessage(data);
+    }
+  }
+
+  m_AnimationState = eAnimationState;
+}
+
+void CCigiEntityAnimation::SetAlpha(float alpha, bool inheritAlpha, float entityAlpha)
+{
+  m_OwnAlpha = alpha;
+  m_bInheritAlpha = inheritAlpha;
+  m_bAlphaConfigured = true;
+  UpdateEffectiveAlpha(entityAlpha);
+}
+
+void CCigiEntityAnimation::UpdateEffectiveAlpha(float entityAlpha)
+{
+  if (!m_bAlphaConfigured)
+  {
+    return;
+  }
+
+  float inheritedAlpha = 1.0f;
+  if (m_bInheritAlpha)
+  {
+    inheritedAlpha = entityAlpha;
+  }
+
+  const float alpha = m_OwnAlpha * inheritedAlpha;
+  if ((!m_bAlphaInitialized || m_EffectiveAlpha != alpha) && g_CigiLibGlobals.pEventMessenger != nullptr)
+  {
+    SSetAnimationAlphaMessage data;
+    data.EntityID = m_EntityID;
+    data.AnimationID = m_AnimationID;
+    data.Alpha = alpha;
+    g_CigiLibGlobals.pEventMessenger->SendSetAnimationAlphaMessage(data);
+    m_EffectiveAlpha = alpha;
+    m_bAlphaInitialized = true;
+  }
+}
+
+//Usage of this software is prohibited except through a Software Licensing Agreement with SimBlocks LLC.
 //Refer all inquiries to sales@simblocks.io
 //Copyright SimBlocks LLC 2016-2026

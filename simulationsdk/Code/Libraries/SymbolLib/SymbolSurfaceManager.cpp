@@ -130,7 +130,13 @@ void CSymbolSurfaceManager::RemoveSymbol(SymbolID symbolID)
   }
 
   // If the symbol being removed has a parent symbol, remove the symbol from its parent's list of children
-  CSymbol* pParentSymbol = GetSymbol(pSymbol->GetParentSymbolID());
+  const auto parentSymbolID = pSymbol->GetParentSymbolID();
+  CSymbol* pParentSymbol = nullptr;
+  if (parentSymbolID)
+  {
+    pParentSymbol = GetSymbol(*parentSymbolID);
+  }
+
   if (pParentSymbol != nullptr)
   {
     pParentSymbol->RemoveChild(symbolID);
@@ -139,13 +145,13 @@ void CSymbolSurfaceManager::RemoveSymbol(SymbolID symbolID)
   // Create a vector to store the IDs of any children that are detached from the removed symbol
   std::vector<SymbolID> detachedChildSymbolIDs;
 
-  // Set the parent symbol ID of any children of the symbol being removed to UnknownSymbolID to detach them from the removed symbol before removing the symbol
+  // Clear the parent symbol ID of any children to detach them from the removed symbol before removing the symbol
   for (auto childSymbolID : pSymbol->GetChildren())
   {
     CSymbol* pChildSymbol = GetSymbol(childSymbolID);
     if (pChildSymbol != nullptr && pChildSymbol->GetParentSymbolID() == symbolID)
     {
-      pChildSymbol->SetParentSymbolID(UnknownSymbolID);
+      pChildSymbol->SetParentSymbolID(std::nullopt);
       detachedChildSymbolIDs.push_back(childSymbolID);
     }
   }
@@ -169,7 +175,13 @@ void CSymbolSurfaceManager::UpdateSymbolTreeHiddenByAncestor(SymbolID symbolID)
   }
 
   // Recompute the hidden by ancestor state for the root symbol based on its parent's effective visibility
-  CSymbol* pParentSymbol = GetSymbol(pRootSymbol->GetParentSymbolID());
+  const auto parentSymbolID = pRootSymbol->GetParentSymbolID();
+  CSymbol* pParentSymbol = nullptr;
+  if (parentSymbolID)
+  {
+    pParentSymbol = GetSymbol(*parentSymbolID);
+  }
+
   const bool bRootHiddenByAncestor = pParentSymbol != nullptr && !pParentSymbol->GetEffectiveVisibility();
 
   // If the root symbol's hidden by ancestor state has changed, update it and force a visibility update

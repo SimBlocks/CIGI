@@ -68,8 +68,8 @@ void CViewControlPacketPanel::OnSend(wxCommandEvent& WXUNUSED(event))
   viewControl.offset[1] = GetFloat("Y Offset");
   viewControl.offset[2] = GetFloat("Z Offset");
 
-  viewControl.rotation.roll = Degrees(GetFloat("Roll"));
-  viewControl.rotation.pitch = Degrees(GetFloat("Pitch"));
+  viewControl.rotation.roll = Degrees180(GetFloat("Roll"));
+  viewControl.rotation.pitch = Degrees90(GetFloat("Pitch"));
   viewControl.rotation.yaw = Degrees(GetFloat("Yaw"));
 
   CHostSession* pSession = GetHostSession();

@@ -3,8 +3,8 @@
  * @file IPacketSender.h
  * @brief Declares the IPacketSender interface for sending CIGI IG packets and notifications.
  *
- * Provides the IPacketSender interface for sending various simulation packets and notifications in the SimBlocks CIGI IG library, including frame, animation, collision, event, sensor, and position responses.
- * Integrates with SimBlocks CIGI, entity, and global types for simulation messaging and interoperability.
+ * Provides the IPacketSender interface for sending various simulation packets and notifications in the SimBlocks IGCigiLib library, including frame, animation, collision, event,
+ * sensor, and position responses. Integrates with SimBlocks CIGI, entity, and global types for simulation messaging and interoperability.
  *
  * @see sbio::cigi::ig::IPacketSender
  * @see SCreateEntityMessage

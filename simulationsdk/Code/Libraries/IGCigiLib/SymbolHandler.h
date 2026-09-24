@@ -3,7 +3,7 @@
  * @file SymbolHandler.h
  * @brief Declares the CCigiSymbolHandler class for SimBlocks CIGI IG symbol management and message handling.
  *
- * Provides the CCigiSymbolHandler class for managing symbols and handling symbol-related messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiSymbolHandler class for managing symbols and handling symbol-related messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, symbol, and utility types for symbol creation, update, destruction, and message processing.
  * Supports symbol tree management, surface definition handling, control, text, circle, polygon, clone, and reset operations for simulation symbols.
  *
@@ -46,6 +46,7 @@ namespace sbio
          * @brief Constructs a symbol handler.
          */
         CCigiSymbolHandler();
+
         /**
          * @brief Destroys the symbol handler.
          */
@@ -56,62 +57,87 @@ namespace sbio
          * @param symbolID Symbol identifier.
          */
         void DestroySymbolTree(sbio::symbol::SymbolID symbolID);
+
         /**
          * @brief Handles entity symbol surface definition message.
          * @param entitySymbolSurfaceDefinition Entity symbol surface definition data.
          */
         void Handle(const sbio::symbol::SEntitySymbolSurfaceDefinition& entitySymbolSurfaceDefinition);
+
         /**
          * @brief Handles entity billboard symbol surface definition message.
          * @param entityBillboardSurfaceDefinition Entity billboard surface definition data.
          */
         void Handle(const sbio::symbol::SEntityBillboardSymbolSurfaceDefinition& entityBillboardSurfaceDefinition);
+
         /**
          * @brief Handles view symbol surface definition message.
          * @param viewSymbolSurfaceDefinition View symbol surface definition data.
          */
         void Handle(const sbio::symbol::SViewSymbolSurfaceDefinition& viewSymbolSurfaceDefinition);
+
         /**
          * @brief Handles symbol control message.
          * @param symbolControl Symbol control data.
          */
         void Handle(const sbio::symbol::SSymbolControl& symbolControl);
+
+        /**
+         * @brief Applies only the selected short-control attributes, preserving other symbol properties.
+         * @param symbolControl Symbol identifier and candidate attribute values.
+         * @param attribute1 First attribute to apply.
+         * @param attribute2 Second attribute to apply.
+         */
+        void HandleShort(const sbio::symbol::SSymbolControl& symbolControl, sbio::symbol::EAttributeSelect attribute1, sbio::symbol::EAttributeSelect attribute2);
+
         /**
          * @brief Handles symbol text definition message.
          * @param symbolTextDefinition Symbol text definition data.
          */
         void Handle(const sbio::symbol::SSymbolTextDefinition& symbolTextDefinition);
+
         /**
          * @brief Handles symbol textured circle message.
          * @param symbolTexturedCricle Symbol textured circle data.
          */
         void Handle(const sbio::symbol::SSymbolTexturedCircle& symbolTexturedCricle);
+
         /**
          * @brief Handles symbol circle message.
          * @param symbolCircle Symbol circle data.
          */
         void Handle(const sbio::symbol::SSymbolCircle& symbolCircle);
+
         /**
          * @brief Handles symbol polygon message.
          * @param symbolPolygon Symbol polygon data.
          */
         void Handle(const sbio::symbol::SSymbolPolygon& symbolPolygon);
+
         /**
          * @brief Handles symbol textured polygon message.
          * @param symbolTexturedPolygon Symbol textured polygon data.
          */
         void Handle(const sbio::symbol::SSymbolTexturedPolygon& symbolTexturedPolygon);
+
         /**
          * @brief Handles symbol clone message.
          * @param symbolClone Symbol clone data.
          */
         void Handle(const sbio::symbol::SSymbolClone& symbolClone);
+
         /**
          * @brief Resets the symbol handler state.
          */
         void Reset();
 
       private:
+        /**
+         * @brief Applies symbol control, optionally preserving the current surface assignment.
+         * @param symbolControl Symbol identifier and control values to apply.
+         * @param bSetSurface Whether to apply the supplied surface assignment.
+         */
+        void HandleControl(const sbio::symbol::SSymbolControl& symbolControl, bool bSetSurface);
       };
     }
   }

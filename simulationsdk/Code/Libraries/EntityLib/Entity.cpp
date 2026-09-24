@@ -19,6 +19,32 @@ void CEntity::Update(double deltaTime)
 {
 }
 
+void CEntity::SetInterpolationEnabled(bool bInterpolationEnabled)
+{
+  m_bInterpolationEnabled = bInterpolationEnabled;
+}
+
+bool CEntity::GetInterpolationEnabled() const
+{
+  return m_bInterpolationEnabled;
+}
+
+void CEntity::Remove()
+{
+}
+
+void CEntity::SetAlpha(float fAlpha)
+{
+}
+
+void CEntity::SetRenderEnabled(bool bRenderEnabled)
+{
+}
+
+void CEntity::SetCollisionDetectionEnabled(bool bCollisionDetectionEnabled)
+{
+}
+
 void CEntity::AttachToEntity(CEntity* pParent)
 {
   // If pParent is nullptr, detach this entity from its current parent.

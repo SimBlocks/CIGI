@@ -20,6 +20,7 @@
 #include "CoordinateConversions.h"
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/LocalCartesian.hpp>
+#include <limits>
 #include <vector>
 #define _USE_MATH_DEFINES
 #include "MathLib/Math.h"
@@ -47,7 +48,7 @@ namespace sbio
       return nedRotation;
     }
 
-    TGeocentricRotation BuildNEDGeocentricRotation(double latitude, double longitude, double altitude)
+    TGeocentricRotation BuildNEDGeocentricRotation(Latitude latitude, Longitude longitude, double altitude)
     {
       std::vector<double> rotationMatrix;
       rotationMatrix.resize(9);
@@ -56,22 +57,40 @@ namespace sbio
       double y = 0;
       double z = 0;
 
-      GeographicLib::Geocentric::WGS84().Forward(latitude, longitude, altitude, x, y, z, rotationMatrix);
+      GeographicLib::Geocentric::WGS84().Forward(latitude.Value(), longitude.Value(), altitude, x, y, z, rotationMatrix);
       return TGeocentricRotation(BuildNEDRotationMatrix(rotationMatrix));
     }
 
-    /**
-     * @brief Builds the reference plane transformation matrices and rotations based on a geodetic origin.
-     * @param geodeticCoords Geodetic coordinates (latitude, longitude, altitude) of the reference origin.
-     * @return Reference plane coordinate system.
-     */
+    TGeocentricRotation GetBodyGeocentricRotation(Latitude latitude, Longitude longitude)
+    {
+      // The body frame is defined as:
+      //   forward = y
+      //   right = x
+      //   down = -z
+      Mat3 bodyToNed;
+
+      // clang-format off
+      bodyToNed << 0, 1, 0,
+                   1, 0, 0,
+                   0, 0, -1;
+      // clang-format on
+
+      return TGeocentricRotation(BuildNEDGeocentricRotation(latitude, longitude, 0) * Quaternion4d(bodyToNed));
+    }
+
     SReferencePlaneCoordinateSystem InitReferencePlaneCoordinates(const SGeodeticCoordinates& geodeticCoords)
     {
       vector<double> m;
       m.resize(9);
 
       SReferencePlaneCoordinateSystem referencePlane;
-      GeographicLib::Geocentric::WGS84().Forward(geodeticCoords.latitude.Value(), geodeticCoords.longitude.Value(), geodeticCoords.altitude.Value(), referencePlane.referencePoint[0], referencePlane.referencePoint[1], referencePlane.referencePoint[2], m);
+      GeographicLib::Geocentric::WGS84().Forward(geodeticCoords.latitude.Value(),
+                                                 geodeticCoords.longitude.Value(),
+                                                 geodeticCoords.altitude.Value(),
+                                                 referencePlane.referencePoint[0],
+                                                 referencePlane.referencePoint[1],
+                                                 referencePlane.referencePoint[2],
+                                                 m);
 
       const Mat3 mat = BuildNEDRotationMatrix(m);
       referencePlane.rotation = Quaternion4d(mat);
@@ -99,11 +118,6 @@ namespace sbio
       return transform;
     }
 
-    /**
-     * @brief Converts geodetic coordinates (latitude, longitude, altitude) to geocentric coordinates (ECEF).
-     * @param geodeticCoords Geodetic coordinates to convert.
-     * @return Converted geocentric coordinates.
-     */
     GeocentricCoordinates ConvertGeodeticToGeocentricCoordinates(const SGeodeticCoordinates& geodeticCoords)
     {
       GeocentricCoordinates pos;
@@ -112,11 +126,6 @@ namespace sbio
       return pos;
     }
 
-    /**
-     * @brief Converts geocentric rotation transformation to body Euler angles rotation.
-     * @param geocentricTransform Geocentric transformation to convert.
-     * @return Converted body Euler angles rotation.
-     */
     sbio::math::TBodyEulerRotation ConvertGeocentricRotationToBodyEulerRotation(const sbio::math::TGeocentricTransform& geocentricTransform)
     {
       return ConvertBodyRotationToBodyEulerRotation(ConvertGeocentricRotationToBodyRotation(geocentricTransform));
@@ -138,22 +147,12 @@ namespace sbio
       return TBodyRotation(q.w(), q.y(), q.x(), -q.z());
     }
 
-    /**
-     * @brief Converts geocentric rotation transformation to body rotation.
-     * @param geocentricTransform Geocentric transformation to convert.
-     * @return Converted body rotation.
-     */
     sbio::math::TBodyRotation ConvertGeocentricRotationToBodyRotation(const sbio::math::TGeocentricTransform& geocentricTransform)
     {
       auto geod = ConvertGeocentricToGeodeticCoordinates(geocentricTransform.pos);
-      return TBodyRotation(GetGeocentricRotation(geod.latitude, geod.longitude).inverse() * geocentricTransform.rotation.Rotation());
+      return TBodyRotation(GetBodyGeocentricRotation(geod.latitude, geod.longitude).inverse() * geocentricTransform.rotation.Rotation());
     }
 
-    /**
-     * @brief Converts body rotation to body Euler angles rotation.
-     * @param bodyRotation Body rotation to convert.
-     * @return Converted body Euler angles rotation.
-     */
     sbio::math::TBodyEulerRotation ConvertBodyRotationToBodyEulerRotation(const sbio::math::TBodyRotation& bodyRotation)
     {
       // NED     enu
@@ -163,31 +162,39 @@ namespace sbio
       Quaternion4d q = Quaternion4d(bodyRotation.w(), bodyRotation.y(), bodyRotation.x(), -bodyRotation.z());
       TBodyEulerRotation rotation;
 
+      // Convert quaternion to Euler angles (yaw, pitch, roll) using the Tait-Bryan angles convention (Z-Y-X)
       double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
       double cosr_cosp = 1 - 2 * (q.x() * q.x() + q.y() * q.y());
-      rotation.roll = RadiansToDegrees(Radians(static_cast<float>(std::atan2(sinr_cosp, cosr_cosp))));
-
       double sinp = 2 * (q.w() * q.y() - q.z() * q.x());
-      if (std::abs(sinp) >= 1)
+      double cosp = std::hypot(sinr_cosp, cosr_cosp);
+      double yaw;
+
+      // At gimbal lock, choose zero roll and recover the coupled yaw from the remaining matrix entries.
+      if (cosp <= 16 * std::numeric_limits<double>::epsilon())
       {
-        rotation.pitch = RadiansToDegrees(Radians(static_cast<float>(std::copysign(M_PI / 2.0, sinp))));
+        rotation.roll = Degrees180(0);
+        rotation.pitch = Degrees90(std::copysign(90.0, sinp));
+        yaw = RadiansToDegrees(std::atan2(2 * (q.w() * q.z() - q.x() * q.y()), 1 - 2 * (q.x() * q.x() + q.z() * q.z())));
       }
       else
       {
-        rotation.pitch = RadiansToDegrees(Radians(static_cast<float>(std::asin(sinp))));
+        rotation.roll = Degrees180(RadiansToDegrees(std::atan2(sinr_cosp, cosr_cosp)));
+        rotation.pitch = Degrees90(RadiansToDegrees(std::atan2(sinp, cosp)));
+        double siny_cosp = 2 * (q.w() * q.z() + q.x() * q.y());
+        double cosy_cosp = 1 - 2 * (q.y() * q.y() + q.z() * q.z());
+        yaw = RadiansToDegrees(std::atan2(siny_cosp, cosy_cosp));
       }
 
-      double siny_cosp = 2 * (q.w() * q.z() + q.x() * q.y());
-      double cosy_cosp = 1 - 2 * (q.y() * q.y() + q.z() * q.z());
-      rotation.yaw = RadiansToDegrees(Radians(static_cast<float>(std::atan2(siny_cosp, cosy_cosp))));
+      // Ensure yaw is in the range [0, 360)
+      if (yaw < 0)
+      {
+        yaw += 360.0;
+      }
+
+      rotation.yaw = Degrees(yaw >= 360.0 ? 0.0 : yaw);
       return rotation;
     }
 
-    /**
-     * @brief Converts geocentric coordinates (ECEF) to geodetic coordinates (latitude, longitude, altitude).
-     * @param geocentricPos Geocentric coordinates to convert.
-     * @return Converted geodetic coordinates.
-     */
     SGeodeticCoordinates ConvertGeocentricToGeodeticCoordinates(const GeocentricCoordinates& geocentricPos)
     {
       SGeodeticCoordinates geodeticCoords;
@@ -203,67 +210,42 @@ namespace sbio
       return geodeticCoords;
     }
 
-    /**
-     * @brief Converts geocentric coordinates (ECEF) to reference plane coordinates.
-     * @param geocentricPos Geocentric coordinates to convert.
-     * @param referencePlane Reference plane coordinate system.
-     * @return Converted reference plane coordinates.
-     */
     ReferencePlaneCoordinates ConvertGeocentricToReferencePlaneCoordinates(const GeocentricCoordinates& geocentricPos, const SReferencePlaneCoordinateSystem& referencePlane)
     {
       const Vec3 relativePosition = geocentricPos.toVec3() - referencePlane.referencePoint.toVec3();
       return ReferencePlaneCoordinates(referencePlane.inverseRotation.toRotationMatrix() * relativePosition);
     }
 
-    /**
-     * @brief Converts geocentric transformation to reference plane transformation.
-     * @param geocentricTransform Geocentric transformation to convert.
-     * @param referencePlane Reference plane coordinate system.
-     * @return Converted reference plane transformation.
-     */
     TReferencePlaneTransform ConvertGeocentricToReferencePlaneCoordinates(const TGeocentricTransform& geocentricTransform, const SReferencePlaneCoordinateSystem& referencePlane)
     {
       TReferencePlaneTransform referencePlaneTransform;
       referencePlaneTransform.pos = ConvertGeocentricToReferencePlaneCoordinates(geocentricTransform.pos, referencePlane);
       referencePlaneTransform.rotation = ConvertGeocentricToReferencePlaneRotation(geocentricTransform.rotation, referencePlane);
+      referencePlaneTransform.scale = geocentricTransform.scale;
 
       return referencePlaneTransform;
     }
 
-    /**
-     * @brief Converts geocentric rotation to reference plane rotation.
-     * @param geocentricRotation Geocentric rotation to convert.
-     * @param referencePlane Reference plane coordinate system.
-     * @return Converted reference plane rotation.
-     */
     TReferencePlaneRotation ConvertGeocentricToReferencePlaneRotation(const TGeocentricRotation& geocentricRotation, const SReferencePlaneCoordinateSystem& referencePlane)
     {
       return referencePlane.inverseRotation * geocentricRotation;
     }
 
-    /**
-     * @brief Converts geocentric transformation to geodetic transformation.
-     * @param geocentricTransform Geocentric transformation to convert.
-     * @return Converted geodetic transformation.
-     */
     sbio::math::TGeodeticTransform ConvertGeocentricToGeodeticTransform(const sbio::math::TGeocentricTransform& geocentricTransform)
     {
       TGeodeticTransform geodeticTransform;
       geodeticTransform.pos = ConvertGeocentricToGeodeticCoordinates(geocentricTransform.pos);
       geodeticTransform.rotation = geocentricTransform.rotation;
+      geodeticTransform.scale = geocentricTransform.scale;
       return geodeticTransform;
     }
 
-    /**
-     * @brief Converts geodetic transformation to geocentric transformation.
-     * @param geodeticTransform Geodetic transformation to convert.
-     * @return Converted geocentric transformation.
-     */
     sbio::math::TGeocentricTransform ConvertGeodeticToGeocentricTransform(const sbio::math::TGeodeticTransform& geodeticTransform)
     {
       TGeocentricTransform geocentricTransform;
       geocentricTransform.pos = ConvertGeodeticToGeocentricCoordinates(geodeticTransform.pos);
       geocentricTransform.rotation = geodeticTransform.rotation;
+      geocentricTransform.scale = geodeticTransform.scale;
       return geocentricTransform;
     }
 
@@ -271,73 +253,63 @@ namespace sbio
     {
       TGeocentricTransform worldTransform;
       worldTransform.pos = ConvertGeodeticToGeocentricCoordinates(geodeticPosition);
-      worldTransform.rotation = GetGeocentricRotation(geodeticPosition.latitude, geodeticPosition.longitude) * ConvertEulerRotationToBodyRotation(rotation);
+      worldTransform.rotation = GetBodyGeocentricRotation(geodeticPosition.latitude, geodeticPosition.longitude) * ConvertEulerRotationToBodyRotation(rotation);
       return worldTransform;
     }
 
-    /**
-     * @brief Creates a geocentric reference plane from a geocentric rotation.
-     * @param geocentricRotation Geocentric rotation to base the reference plane on.
-     * @return Created geocentric reference plane.
-     */
     TGeocentricReferencePlane ConvertGeocentricToReferencePlane(const TGeocentricRotation& geocentricRotation)
     {
       TGeocentricReferencePlane referencePlane;
       TGeocentricMatrix m = geocentricRotation.toRotationMatrix();
+      referencePlane.north = m.getCol(0);
+      referencePlane.east = m.getCol(1);
+      referencePlane.down = m.getCol(2);
+      return referencePlane;
+    }
+
+    TGeocentricReferencePlane ConvertGeocentricToReferencePlane(const TRotation<BodyCoordinates, GeocentricCoordinates>& bodyToGeocentricRotation)
+    {
+      TGeocentricReferencePlane referencePlane;
+      const TGeocentricMatrix m = bodyToGeocentricRotation.toRotationMatrix();
+
+      // The body frame is defined as:
+      //   forward = y
+      //   right = x
+      //   down = -z
       referencePlane.north = m.getCol(1);
       referencePlane.east = m.getCol(0);
       referencePlane.down = m.getCol(2).negated();
       return referencePlane;
     }
 
-    sbio::math::SGeodeticCoordinates ConvertReferencePlaneToGeodeticCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane)
+    sbio::math::SGeodeticCoordinates ConvertReferencePlaneToGeodeticCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords,
+                                                                                const sbio::math::SReferencePlaneCoordinateSystem& referencePlane)
     {
       GeocentricCoordinates geocentricPos = ConvertReferencePlaneToGeocentricCoordinates(referencePlaneCoords, referencePlane);
       return ConvertGeocentricToGeodeticCoordinates(geocentricPos);
     }
 
-    sbio::math::GeocentricCoordinates ConvertReferencePlaneToGeocentricCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords, const sbio::math::SReferencePlaneCoordinateSystem& referencePlane)
+    sbio::math::GeocentricCoordinates ConvertReferencePlaneToGeocentricCoordinates(const sbio::math::ReferencePlaneCoordinates& referencePlaneCoords,
+                                                                                   const sbio::math::SReferencePlaneCoordinateSystem& referencePlane)
     {
       return GeocentricCoordinates((referencePlane.rotation.toRotationMatrix() * referencePlaneCoords.toVec3()).toVec3() + referencePlane.referencePoint.toVec3());
     }
 
-    /**
-     * @brief Converts geocentric coordinates (ECEF) to reference plane coordinates, using a specified origin.
-     * @param geocentricPos Geocentric coordinates to convert.
-     * @param origin Origin of the reference system in geodetic coordinates.
-     * @return Converted reference plane coordinates.
-     */
     ReferencePlaneCoordinates ConvertGeocentricToReferencePlaneCoordinates(const GeocentricCoordinates& geocentricPos, const SGeodeticCoordinates& origin)
     {
       return ConvertGeocentricToReferencePlaneCoordinates(geocentricPos, InitReferencePlaneCoordinates(origin));
     }
 
-    /**
-     * @brief Calculates the tangential plane to the ellipsoid at a given latitude and longitude.
-     * @param latitude Latitude at which to calculate the tangent plane.
-     * @param longitude Longitude at which to calculate the tangent plane.
-     * @return Calculated geocentric reference plane.
-     */
     TGeocentricReferencePlane GetEllipsoidTangentialPlane(Latitude latitude, Longitude longitude)
     {
       return CreateNEDSpatialReferenceFrame(SGeodeticCoordinates(latitude, longitude, HeightRelativeToWGS84Ellipsoid(0)));
     }
 
-    /**
-     * @brief Gets the current reference plane transformation matrix.
-     * @param referencePlane Reference plane coordinate system.
-     * @return Current reference plane transformation matrix.
-     */
     Mat4 GetReferencePlaneTransformation(const SReferencePlaneCoordinateSystem& referencePlane)
     {
       return BuildReferencePlaneTransform(referencePlane);
     }
 
-    /**
-     * @brief Creates a NED (North, East, Down) spatial reference frame based on geodetic coordinates.
-     * @param geodeticCoordinates Geodetic coordinates for the reference frame origin.
-     * @return Created NED spatial reference frame.
-     */
     TGeocentricReferencePlane CreateNEDSpatialReferenceFrame(SGeodeticCoordinates geodeticCoordinates)
     {
       vector<double> m;
@@ -356,18 +328,12 @@ namespace sbio
       return referencePlane;
     }
 
-    /**
-     * @brief Gets the geocentric rotation matrix for a given latitude and longitude.
-     * @param lat Latitude for which to get the rotation matrix.
-     * @param lon Longitude for which to get the rotation matrix.
-     * @return Geocentric rotation matrix.
-     */
-    std::vector<double> GetGeocentricRotationMatrix(double lat, double lon)
+    std::vector<double> GetGeocentricRotationMatrix(Latitude lat, Longitude lon)
     {
       std::vector<double> rotationMatrix;
       rotationMatrix.resize(9);
 
-      const Mat3& nedRotation = BuildNEDGeocentricRotation(lat, lon, 0).toRotationMatrix().toMat3();
+      const Mat3 nedRotation = BuildNEDGeocentricRotation(lat, lon, 0).toRotationMatrix().toMat3();
 
       int z = 0;
       for (int i = 0; i < 3; i++)
@@ -381,21 +347,11 @@ namespace sbio
       return rotationMatrix;
     }
 
-    /**
-     * @brief Gets the geocentric rotation for a given latitude and longitude.
-     * @param latitude Latitude for which to get the geocentric rotation.
-     * @param longitude Longitude for which to get the geocentric rotation.
-     * @return Geocentric rotation.
-     */
     TGeocentricRotation GetGeocentricRotation(Latitude latitude, Longitude longitude)
     {
-      return BuildNEDGeocentricRotation(latitude.Value(), longitude.Value(), 0);
+      return BuildNEDGeocentricRotation(latitude, longitude, 0);
     }
 
-    /**
-     * @brief Toggles between ENU (East, North, Up) and NED (North, East, Down) coordinate systems.
-     * @param mat Matrix to toggle between ENU and NED.
-     */
     void ToggleENU_NED(sbio::math::Mat3& mat)
     {
       int remap[3];

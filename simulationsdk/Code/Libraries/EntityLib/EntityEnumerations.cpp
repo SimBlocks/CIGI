@@ -4,17 +4,64 @@
 #include "EntityType.h"
 #include "EntityTypes.h"
 #include "tinyxml2.h"
-#include <cstdlib>
+#include <charconv>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
+#include <string_view>
 
 using namespace std;
 using namespace sbio;
 using namespace sbio::entity;
 using namespace tinyxml2;
 
-//values defined in SISO-REF-010.xml
+namespace
+{
+  // Helper function to read an integer attribute from an XML element and convert it to the specified type.
+  template <typename TValue>
+  bool ReadIntegerAttribute(const XMLElement* element, const char* name, TValue& value)
+  {
+    const char* text = element->Attribute(name);
+    if (text == nullptr)
+    {
+      return false;
+    }
+
+    const std::string_view token(text);
+    const auto result = std::from_chars(token.data(), token.data() + token.size(), value);
+    return result.ec == std::errc() && result.ptr == token.data() + token.size();
+  }
+
+  // Helper function to read an identifier attribute from an XML element and convert it to the specified identifier type.
+  template <typename TIdentifier>
+  bool ReadIdentifierAttribute(const XMLElement* element, const char* name, TIdentifier& identifier)
+  {
+    decltype(identifier.Value()) value = 0;
+    if (!ReadIntegerAttribute(element, name, value))
+    {
+      return false;
+    }
+
+    identifier = TIdentifier(value);
+    return true;
+  }
+
+  // Helper function to read a string attribute from an XML element.
+  bool ReadStringAttribute(const XMLElement* element, const char* name, std::string& value)
+  {
+    const char* text = element->Attribute(name);
+    if (text == nullptr)
+    {
+      return false;
+    }
+
+    value = text;
+    return true;
+  }
+}
+
+// values defined in SISO-REF-010.xml
 SisoEnumSetID SISO_PDU_TYPE = SisoEnumSetID(4);
 SisoEnumSetID SISO_ENTITY_KIND = SisoEnumSetID(7);
 SisoEnumSetID SISO_ENTITY_PLATFORM = SisoEnumSetID(8);
@@ -73,10 +120,11 @@ std::string CEntityEnumerations::GetEntityKind(SisoEntityKindID entityKindID)
   return it != m_EntityEnums.end() ? GetEnumerationDescription(it->second.get(), entityKindID.Value()) : "";
 }
 
-std::string CEntityEnumerations::GetDescription(SEntityKindDomainCountry ekdc, SisoEntityCategoryID entityCategoryID, SisoEntitySubCategoryID entitySubCategoryID, SisoEntitySpecificID entitySpecificID)
+std::string CEntityEnumerations::GetDescription(SEntityKindDomainCountry entityKindComainCountry, SisoEntityCategoryID entityCategoryID,
+                                                SisoEntitySubCategoryID entitySubCategoryID, SisoEntitySpecificID entitySpecificID)
 {
   string sDescription = "";
-  const auto& it = m_EntityTypes.find(ekdc);
+  const auto& it = m_EntityTypes.find(entityKindComainCountry);
 
   // If the entity type exists, attempt to find the category, subcategory, and specific descriptions.
   if (it != m_EntityTypes.end())
@@ -110,7 +158,6 @@ std::string CEntityEnumerations::GetEntityDomain(SisoEntityDomainID entityDomain
   return it != m_EntityEnums.end() ? GetEnumerationDescription(it->second.get(), entityDomainID.Value()) : "";
 }
 
-
 std::string CEntityEnumerations::GetEnumerationDescription(const SEntityEnumeration* pEnumeration, int value) const
 {
   if (pEnumeration == nullptr)
@@ -122,7 +169,7 @@ std::string CEntityEnumerations::GetEnumerationDescription(const SEntityEnumerat
   return it != pEnumeration->entityDescriptions.end() ? it->second.sDescription : "";
 }
 
-void ParseEntityTypes(XMLElement* pEntityTypesXml, std::map<SEntityKindDomainCountry, std::unique_ptr<CEntityType>>& entityTypes)
+bool ParseEntityTypes(XMLElement* pEntityTypesXml, std::map<SEntityKindDomainCountry, std::unique_ptr<CEntityType>>& entityTypes)
 {
   XMLElement* pEntityXml = pEntityTypesXml->FirstChildElement("entity");
 
@@ -130,9 +177,11 @@ void ParseEntityTypes(XMLElement* pEntityTypesXml, std::map<SEntityKindDomainCou
   {
     SEntityKindDomainCountry entityType;
 
-    entityType.entityKindID = SisoEntityKindID(static_cast<uint8_t>(atoi(pEntityXml->Attribute("kind"))));
-    entityType.entityDomainID = SisoEntityDomainID(static_cast<uint8_t>(atoi(pEntityXml->Attribute("domain"))));
-    entityType.entityCountryID = SisoEntityCountryID(static_cast<uint16_t>(atoi(pEntityXml->Attribute("country"))));
+    if (!ReadIdentifierAttribute(pEntityXml, "kind", entityType.entityKindID) || !ReadIdentifierAttribute(pEntityXml, "domain", entityType.entityDomainID) ||
+        !ReadIdentifierAttribute(pEntityXml, "country", entityType.entityCountryID))
+    {
+      return false;
+    }
 
     unique_ptr<CEntityType> pEntityType = make_unique<CEntityType>(entityType.entityKindID, entityType.entityDomainID, entityType.entityCountryID);
 
@@ -140,22 +189,30 @@ void ParseEntityTypes(XMLElement* pEntityTypesXml, std::map<SEntityKindDomainCou
     while (pCategoryXml != nullptr)
     {
       unique_ptr<SEntityCategory> pEntityCategory = make_unique<SEntityCategory>();
-      pEntityCategory->entityCategoryID = SisoEntityCategoryID(static_cast<uint8_t>(atoi(pCategoryXml->Attribute("value"))));
-      pEntityCategory->sDescription = pCategoryXml->Attribute("description");
+      if (!ReadIdentifierAttribute(pCategoryXml, "value", pEntityCategory->entityCategoryID) || !ReadStringAttribute(pCategoryXml, "description", pEntityCategory->sDescription))
+      {
+        return false;
+      }
 
       XMLElement* pSubCategoryXml = pCategoryXml->FirstChildElement("subcategory");
       while (pSubCategoryXml != nullptr)
       {
         unique_ptr<SEntitySubCategory> pEntitySubCategory = make_unique<SEntitySubCategory>();
-        pEntitySubCategory->entitySubCategoryID = SisoEntitySubCategoryID(static_cast<uint8_t>(atoi(pSubCategoryXml->Attribute("value"))));
-        pEntitySubCategory->sDescription = pSubCategoryXml->Attribute("description");
+        if (!ReadIdentifierAttribute(pSubCategoryXml, "value", pEntitySubCategory->entitySubCategoryID) ||
+            !ReadStringAttribute(pSubCategoryXml, "description", pEntitySubCategory->sDescription))
+        {
+          return false;
+        }
 
         XMLElement* pEntitySecificXml = pSubCategoryXml->FirstChildElement("specific");
         while (pEntitySecificXml != nullptr)
         {
           unique_ptr<SEntitySpecific> pEntitySpecific = make_unique<SEntitySpecific>();
-          pEntitySpecific->entitySpecificID = SisoEntitySpecificID(static_cast<uint8_t>(atoi(pEntitySecificXml->Attribute("value"))));
-          pEntitySpecific->sDescription = pEntitySecificXml->Attribute("description");
+          if (!ReadIdentifierAttribute(pEntitySecificXml, "value", pEntitySpecific->entitySpecificID) ||
+              !ReadStringAttribute(pEntitySecificXml, "description", pEntitySpecific->sDescription))
+          {
+            return false;
+          }
 
           pEntitySubCategory->specifics[pEntitySpecific->entitySpecificID] = std::move(pEntitySpecific);
 
@@ -176,43 +233,78 @@ void ParseEntityTypes(XMLElement* pEntityTypesXml, std::map<SEntityKindDomainCou
 
     pEntityXml = pEntityXml->NextSiblingElement("entity");
   }
+
+  return true;
 }
 
 // Parse entity enumerations XML file.
 bool CEntityEnumerations::Load(std::filesystem::path filePath)
 {
-  XMLDocument doc;
-  if (doc.LoadFile(filePath.string().c_str()) != XML_SUCCESS)
+  // Open the XML file for reading in binary mode.
+  std::ifstream file(filePath, std::ios::binary);
+
+  // Check if the file was successfully opened.
+  if (!file.is_open())
   {
     return false;
   }
 
-  XMLElement* pRoot = doc.RootElement();
+  // Read the entire contents of the file into a string.
+  const std::string contents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  if (file.bad())
+  {
+    return false;
+  }
 
-  //ready dictionary of acronyms
+  // Parse the XML contents using TinyXML2.
+  XMLDocument doc;
+  if (doc.Parse(contents.data(), contents.size()) != XML_SUCCESS)
+  {
+    return false;
+  }
+
+  // Check if the root element is valid and has the expected name "ebv".
+  XMLElement* pRoot = doc.RootElement();
+  if (pRoot == nullptr || std::string_view(pRoot->Name()) != "ebv")
+  {
+    return false;
+  }
+
+  // ready dictionary of acronyms
   XMLElement* pDict = pRoot->FirstChildElement("dict");
+  if (pDict == nullptr)
+  {
+    return false;
+  }
+
+  decltype(m_EntityEnums) entityEnums;
+  decltype(m_EntityTypes) entityTypes;
 
   XMLElement* pEnum = pDict->NextSiblingElement("enum");
   while (pEnum != nullptr)
   {
     unique_ptr<SEntityEnumeration> pEntityCategory = make_unique<SEntityEnumeration>();
-    pEntityCategory->enumSetID = SisoEnumSetID(static_cast<uint8_t>(atoi(pEnum->Attribute("uid"))));
-    pEntityCategory->sName = pEnum->Attribute("name");
+    if (!ReadIdentifierAttribute(pEnum, "uid", pEntityCategory->enumSetID) || !ReadStringAttribute(pEnum, "name", pEntityCategory->sName))
+    {
+      return false;
+    }
 
     // parse enumeration values
     XMLElement* pEnumrow = pEnum->FirstChildElement("enumrow");
     while (pEnumrow != nullptr)
     {
       SEntityValueDescription entityDescription;
-      entityDescription.nValue = atoi(pEnumrow->Attribute("value"));
-      entityDescription.sDescription = pEnumrow->Attribute("description");
+      if (!ReadIntegerAttribute(pEnumrow, "value", entityDescription.nValue) || !ReadStringAttribute(pEnumrow, "description", entityDescription.sDescription))
+      {
+        return false;
+      }
 
       pEnumrow = pEnumrow->NextSiblingElement("enumrow");
 
       pEntityCategory->entityDescriptions[entityDescription.nValue] = entityDescription;
     }
 
-    m_EntityEnums[pEntityCategory->enumSetID] = std::move(pEntityCategory);
+    entityEnums[pEntityCategory->enumSetID] = std::move(pEntityCategory);
 
     pEnum = pEnum->NextSiblingElement("enum");
   }
@@ -222,17 +314,21 @@ bool CEntityEnumerations::Load(std::filesystem::path filePath)
   while (pcetrow != nullptr)
   {
     unique_ptr<SEntityEnumeration> pEntityCategory = make_unique<SEntityEnumeration>();
-    pEntityCategory->enumSetID = SisoEnumSetID(static_cast<uint8_t>(atoi(pcetrow->Attribute("uid"))));
-    pEntityCategory->sName = pcetrow->Attribute("name");
-
-    if (pEntityCategory->enumSetID == SISO_ENTITY_TYPES_ID)
+    if (!ReadIdentifierAttribute(pcetrow, "uid", pEntityCategory->enumSetID) || !ReadStringAttribute(pcetrow, "name", pEntityCategory->sName))
     {
-      ParseEntityTypes(pcetrow, m_EntityTypes);
+      return false;
+    }
+
+    if (pEntityCategory->enumSetID == SISO_ENTITY_TYPES_ID && !ParseEntityTypes(pcetrow, entityTypes))
+    {
+      return false;
     }
 
     pcetrow = pcetrow->NextSiblingElement("cet");
   }
 
+  m_EntityEnums.swap(entityEnums);
+  m_EntityTypes.swap(entityTypes);
   return true;
 }
 

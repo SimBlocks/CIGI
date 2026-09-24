@@ -143,16 +143,15 @@ void CCigiPacketHandler::Handle(const SCigiIgControl& igControl)
     {
       if (!m_ImageGenerator.GetSetupOptions().bDatabaseControlledByIG)
       {
-        if (m_ImageGenerator.GetDatabaseState() == EIGDatabaseState::LOADED)
-        {
-          m_ImageGenerator.UnloadDatabase();
-        }
+        m_ImageGenerator.UnloadDatabase();
       }
 
       g_CigiLibGlobals.pLogger->LogInformation("Resetting IG");
       g_CigiLibGlobals.pEntityManager->Reset();
       g_CigiLibGlobals.pViewManager->Reset();
+      m_pEntityControlHandler->Reset();
       m_pComponentControlHandler->Reset();
+      m_pEnvironmentalRegionHandler->Reset();
       m_pSymbolHandler->Reset();
       m_pTerrainHandler->Reset();
       m_pCollisionControlHandler->Reset();

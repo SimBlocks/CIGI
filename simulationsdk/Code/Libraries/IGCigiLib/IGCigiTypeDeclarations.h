@@ -1,7 +1,7 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file IGCigiTypeDeclarations.h
- * @brief Forward declarations for SimBlocks CIGI IG library types and handlers.
+ * @brief Forward declarations for SimBlocks IGCigiLib library types and handlers.
  *
  * Provides forward declarations for core classes and structs used in SimBlocks CIGI IG integration, including handlers for control, entity, view, symbol, terrain, and more.
  * Integrates with SimBlocks CIGI library for simulation, messaging, and resource management.

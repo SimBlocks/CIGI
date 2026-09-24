@@ -27,23 +27,50 @@ namespace sbio
     class CEndian
     {
     public:
-      /** @brief Swaps the byte order of an 8-bit signed integer in place. The current implementation leaves the value unchanged. */
+      /**
+       * @brief Swaps the byte order of an 8-bit signed integer in place.
+       * @param n Value to inspect and modify; the current implementation leaves it unchanged.
+       */
       static void Swap(int8_t& n);
-      /** @brief Swaps the byte order of an 8-bit unsigned integer in place. The current implementation leaves the value unchanged. */
+      /**
+       * @brief Swaps the byte order of an 8-bit unsigned integer in place.
+       * @param n Value to inspect and modify; the current implementation leaves it unchanged.
+       */
       static void Swap(uint8_t& n);
-      /** @brief Swaps the byte order of a 16-bit signed integer in place. */
+      /**
+       * @brief Swaps the byte order of a 16-bit signed integer in place.
+       * @param n Value to modify.
+       */
       static void Swap(int16_t& n);
-      /** @brief Swaps the byte order of a 16-bit unsigned integer in place. */
+      /**
+       * @brief Swaps the byte order of a 16-bit unsigned integer in place.
+       * @param n Value to modify.
+       */
       static void Swap(uint16_t& n);
-      /** @brief Swaps the byte order of a 32-bit signed integer in place. */
+      /**
+       * @brief Swaps the byte order of a 32-bit signed integer in place.
+       * @param n Value to modify.
+       */
       static void Swap(int32_t& n);
-      /** @brief Swaps the byte order of a 32-bit unsigned integer in place. */
+      /**
+       * @brief Swaps the byte order of a 32-bit unsigned integer in place.
+       * @param n Value to modify.
+       */
       static void Swap(uint32_t& n);
-      /** @brief Swaps the byte order of a boolean value in place. The current implementation leaves the value unchanged. */
+      /**
+       * @brief Swaps the byte order of a boolean value in place.
+       * @param b Value to inspect and modify; the current implementation leaves it unchanged.
+       */
       static void Swap(bool& b);
-      /** @brief Swaps the byte order of a 32-bit floating-point value in place. */
+      /**
+       * @brief Swaps the byte order of a 32-bit floating-point value in place.
+       * @param f Value to modify.
+       */
       static void Swap(float& f);
-      /** @brief Swaps the byte order of a 64-bit floating-point value in place. */
+      /**
+       * @brief Swaps the byte order of a 64-bit floating-point value in place.
+       * @param d Value to modify.
+       */
       static void Swap(double& d);
     };
   }

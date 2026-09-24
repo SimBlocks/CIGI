@@ -76,13 +76,20 @@ namespace sbio
     bool HasExtension(const std::filesystem::path& filePath);
     /** @brief Deletes a file. */
     bool DeleteFile(const std::filesystem::path& filePath);
-    /** @brief Copies a directory and its contents. */
+    /**
+     * @brief Copies a directory and its contents, skipping source symlinks.
+     * On Windows, source reparse points (including directory junctions) are also skipped.
+     * Destinations equal to or within the source are ignored.
+     * Copying stops if an output path resolves outside the destination directory.
+     */
     void CopyDirectory(const std::filesystem::path& sourceDirectoryPath, const std::filesystem::path& destinationDirectoryPath);
     /** @brief Creates a directory. */
     bool CreateDirectory(const std::filesystem::path& directoryPath);
-    /** @brief Creates a file. */
+    /** @brief Creates or truncates a file. Returns false if opening or closing the file fails. */
     bool CreateFile(const std::filesystem::path& filePath);
-    /** @brief Finds files by extension in a directory. */
+    /** @brief Constructs a native filesystem path from a UTF-8 string. */
+    std::filesystem::path PathFromUtf8(const std::string& value);
+    /** @brief Finds files using a UTF-8 extension and returns UTF-8 paths. Decode results with PathFromUtf8(). */
     std::vector<std::string> FindFilesByExtension(const std::filesystem::path& directoryPath, const std::string& sExtension);
     /** @brief Gets the current date and time as a string. */
     std::string GetDateTime();
@@ -96,9 +103,9 @@ namespace sbio
     std::filesystem::path GetLastDirectoryPath(const std::filesystem::path& directoryPath);
     /** @brief Gets the SDK path by discovering the SDK root from runtime paths or from SBIO_SIMULATION_SDK. */
     std::filesystem::path GetSdkPath();
-    /** @brief Gets a list of file names in a directory. */
+    /** @brief Gets UTF-8 file names in a directory. Decode results with PathFromUtf8(). */
     std::list<std::string> GetFilenamesInDirectory(const std::filesystem::path& directoryPath);
-    /** @brief Gets a list of subdirectory names in a directory. */
+    /** @brief Gets UTF-8 subdirectory names. Decode results with PathFromUtf8(). */
     std::list<std::string> GetSubdirectoryNames(const std::filesystem::path& directoryPath);
     /** @brief Gets a list of subdirectory paths in a directory. */
     std::list<std::filesystem::path> GetSubdirectoryPaths(const std::filesystem::path& directoryPath);

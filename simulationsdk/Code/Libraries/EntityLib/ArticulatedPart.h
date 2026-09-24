@@ -32,8 +32,9 @@ namespace sbio
      * @brief Represents one articulated part belonging to an entity.
      *
      * Instances are identified by the `(EntityID, ArticulatedPartID)` pair supplied at construction time.
-     * The object maintains a local body-space transform and optional linear and angular rates. `Update()`
-     * applies simple forward integration using the stored rates and accelerations.
+     * The object maintains a local body-space transform and linear and angular motion state. `Update()`
+     * advances motion only while enabled: first velocities using acceleration, then position and Euler
+     * angles using those updated velocities. The entity ID identifies the associated entity.
      *
      * Invariants:
      * - `GetEntityID()` and `GetArticulatedPartID()` always report the identifiers supplied to the constructor.
@@ -52,20 +53,23 @@ namespace sbio
       CArticulatedPart(sbio::EntityID entityID, sbio::ArticulatedPartID articulatedPartID);
 
       /**
-       * @brief Virtual destructor.
+       * @brief Destroys the articulated part; does not remove or modify its owning entity.
        */
       virtual ~CArticulatedPart();
 
       /**
-       * @brief Marks the articulated part as disabled.
+       * @brief Disables motion integration for the articulated part.
        *
-       * Notes:
-       * - The base implementation does not suppress `Update()` and does not otherwise alter motion state.
+       * Subsequent base `Update()` calls leave position, rotation, and velocities unchanged. Stored motion
+       * state is preserved for re-enabling; explicit setters can still change it while disabled.
        */
       virtual void Disable();
 
       /**
-       * @brief Marks the articulated part as enabled.
+       * @brief Enables motion integration from the stored state.
+       *
+       * Subsequent base `Update()` calls resume integration without catching up on time skipped while
+       * disabled. The base implementation does not change motion state or rendering in this call.
        */
       virtual void Enable();
 
@@ -127,8 +131,11 @@ namespace sbio
        * @param fDeltaTime Elapsed simulation time, in seconds.
        *
        * Notes:
-       * - Returns immediately when `fDeltaTime` converts to `0.0f`.
-       * - The base implementation does not consult the enabled flag.
+       * - Returns without changing motion state when disabled or when `fDeltaTime` converts to `0.0f`.
+       * - Time passed while disabled is not accumulated for later integration.
+       * - Advances velocities before position and rotation, using the supplied double-precision time step.
+       * - Applies position and rotation changes through `SetPosition()` and `SetBodyEulerRotation()`.
+       * - The base implementation does not consult coordinate-system selectors.
        */
       virtual void Update(double fDeltaTime);
 
@@ -139,7 +146,7 @@ namespace sbio
       sbio::math::TBodyEulerRotation m_Rotation;///< Current body Euler rotation
       sbio::entity::STransformationRate<sbio::math::BodyCoordinates> m_TransformationRate;///< Transformation rate
       SAccelerationRate<sbio::math::BodyCoordinates> m_AccelerationRate;///< Acceleration rate
-      bool m_bEnabled = true;///< True if the part is enabled (visible/active)
+      bool m_bEnabled = true;///< Enables motion integration in the base `Update()`; false freezes integration.
     };
   }
 }

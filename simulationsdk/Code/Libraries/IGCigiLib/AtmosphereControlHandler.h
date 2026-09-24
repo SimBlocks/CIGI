@@ -3,7 +3,7 @@
  * @file AtmosphereControlHandler.h
  * @brief Declares the CCigiAtmosphereControlHandler class for handling CIGI atmosphere control messages.
  *
- * Provides the CCigiAtmosphereControlHandler class for processing atmosphere control messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiAtmosphereControlHandler class for processing atmosphere control messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI types for simulation and atmosphere management.
  *
  * @see sbio::cigi::ig::CCigiAtmosphereControlHandler

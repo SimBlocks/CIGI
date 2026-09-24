@@ -57,14 +57,44 @@ CCigiTerrainHandler::~CCigiTerrainHandler()
 {
   if (g_CigiLibGlobals.pEventDispatcher != nullptr)
   {
-    g_CigiLibGlobals.pEventDispatcher->UnregisterListener<TerrainCigiEvent>(this);
+    g_CigiLibGlobals.pEventDispatcher->UnregisterListener<TerrainCigiEvent>(static_cast<ITerrainCigiEventListener*>(this));
+    g_CigiLibGlobals.pEventDispatcher->UnregisterListener<IGCIGIEvent>(static_cast<IIGCIGIEventListener*>(this));
+  }
+}
+
+void CCigiTerrainHandler::OnEntityRemoved(sbio::EntityID entityID)
+{
+  for (auto it = HATHOTRequests.begin(); it != HATHOTRequests.end();)
+  {
+    if (it->second->GetCoordinateSystem() == ETopLevelCoordinateSystem::ENTITY && it->second->GetEntityID() == entityID)
+    {
+      HATHOTUpdateRequests.erase(it->first);
+      it = HATHOTRequests.erase(it);
+    }
+    else
+    {
+      ++it;
+    }
+  }
+
+  for (auto it = m_LineOfSightRequests.begin(); it != m_LineOfSightRequests.end();)
+  {
+    if (it->second->ReferencesEntity(entityID))
+    {
+      LineOfSightUpdateRequests.erase(it->first);
+      it = m_LineOfSightRequests.erase(it);
+    }
+    else
+    {
+      ++it;
+    }
   }
 }
 
 void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHatResponseEvent(const CigiHatResponseEventArgs& data)
 {
   auto req = HATHOTRequests.find(HATHOTID(data.hatResponse.HATHOTID));
-  if (req == HATHOTRequests.end())
+  if (req == HATHOTRequests.end() || req->second->GetRequestGeneration() != data.hatResponse.requestGeneration)
   {
     return;
   }
@@ -75,7 +105,7 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHatResponseEvent(const CigiHatRe
 
   if (pRequest->GetUpdatePeriod().Value() != 0)
   {
-    response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
+    response.hostFrameLSN = data.hatResponse.hostFrameLSN;
   }
 
   response.bValid = data.hatResponse.bValid;
@@ -93,7 +123,7 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHatResponseEvent(const CigiHatRe
 void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHotResponseEvent(const CigiHotResponseEventArgs& data)
 {
   auto req = HATHOTRequests.find(HATHOTID(data.hotResponse.HATHOTID));
-  if (req == HATHOTRequests.end())
+  if (req == HATHOTRequests.end() || req->second->GetRequestGeneration() != data.hotResponse.requestGeneration)
   {
     return;
   }
@@ -104,7 +134,7 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHotResponseEvent(const CigiHotRe
 
   if (pRequest->GetUpdatePeriod().Value() != 0)
   {
-    response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
+    response.hostFrameLSN = data.hotResponse.hostFrameLSN;
   }
 
   response.bValid = data.hotResponse.bValid;
@@ -125,7 +155,7 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHotResponseEvent(const CigiHotRe
 void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHatHotExtendedResponseEvent(const CigiHatHotExtendedResponseEventArgs& data)
 {
   auto req = HATHOTRequests.find(HATHOTID(data.hatHotExtendedResponse.HATHOTID));
-  if (req == HATHOTRequests.end())
+  if (req == HATHOTRequests.end() || req->second->GetRequestGeneration() != data.hatHotExtendedResponse.requestGeneration)
   {
     return;
   }
@@ -138,13 +168,15 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiHatHotExtendedResponseEvent(cons
 
   if (pRequest->GetUpdatePeriod().Value() != 0)
   {
-    response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
+    response.hostFrameLSN = data.hatHotExtendedResponse.hostFrameLSN;
   }
 
   response.bValid = data.hatHotExtendedResponse.bValid;
   response.heightOfTerrain = data.hatHotExtendedResponse.heightOfTerrain;
   response.heightAboveTerrain = data.hatHotExtendedResponse.heightAboveTerrain;
   response.materialCode = data.hatHotExtendedResponse.materialCode;
+  response.normalVectorAzimuth = data.hatHotExtendedResponse.normalVectorAzimuth;
+  response.normalVectorElevation = data.hatHotExtendedResponse.normalVectorElevation;
 
   m_ImageGenerator.GetPacketSenders()->SendHatHotExtendedResponse(response);
 
@@ -159,21 +191,27 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightResponseEvent(const C
 {
   auto losID = LineOfSightRequestID(args.lineOfSightResponse.lineOfSightRequestID);
   auto iter = m_LineOfSightRequests.find(losID);
-  if (iter == m_LineOfSightRequests.end())
+  if (iter == m_LineOfSightRequests.end() || iter->second->GetRequestGeneration() != args.lineOfSightResponse.requestGeneration)
   {
     return;
   }
 
   CLineOfSightRequestHandler* pRequest = iter->second.get();
+  auto response = args.lineOfSightResponse;
+  if (response.bValid)
+  {
+    response.dRange += pRequest->GetRangeOffset();
+  }
   if (pRequest->GetUpdatePeriod().Value() == 0)
   {
-    m_ImageGenerator.GetPacketSenders()->SendLineOfSightResponse(args.lineOfSightResponse);
-    m_LineOfSightRequests.erase(iter);
+    m_ImageGenerator.GetPacketSenders()->SendLineOfSightResponse(response);
+    if (pRequest->RecordResponse(args.lineOfSightResponse.responseCount))
+    {
+      m_LineOfSightRequests.erase(iter);
+    }
     return;
   }
 
-  auto response = args.lineOfSightResponse;
-  response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
   m_ImageGenerator.GetPacketSenders()->SendLineOfSightResponse(response);
 }
 
@@ -181,21 +219,27 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightEntityResponseEvent(c
 {
   auto losID = LineOfSightRequestID(args.lineOfSightEntityResponse.lineOfSightRequestID);
   auto iter = m_LineOfSightRequests.find(losID);
-  if (iter == m_LineOfSightRequests.end())
+  if (iter == m_LineOfSightRequests.end() || iter->second->GetRequestGeneration() != args.lineOfSightEntityResponse.requestGeneration)
   {
     return;
   }
 
   CLineOfSightRequestHandler* pRequest = iter->second.get();
+  auto response = args.lineOfSightEntityResponse;
+  if (response.bValid)
+  {
+    response.dRange += pRequest->GetRangeOffset();
+  }
   if (pRequest->GetUpdatePeriod().Value() == 0)
   {
-    m_ImageGenerator.GetPacketSenders()->SendLineOfSightEntityResponse(args.lineOfSightEntityResponse);
-    m_LineOfSightRequests.erase(iter);
+    m_ImageGenerator.GetPacketSenders()->SendLineOfSightEntityResponse(response);
+    if (pRequest->RecordResponse(args.lineOfSightEntityResponse.responseCount))
+    {
+      m_LineOfSightRequests.erase(iter);
+    }
     return;
   }
 
-  auto response = args.lineOfSightEntityResponse;
-  response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
   m_ImageGenerator.GetPacketSenders()->SendLineOfSightEntityResponse(response);
 }
 
@@ -203,7 +247,7 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedGeodeticCoord
 {
   auto losID = LineOfSightRequestID(args.lineOfSightExtendedGeodeticCoordinatesResponse.lineOfSightRequestID);
   auto iter = m_LineOfSightRequests.find(losID);
-  if (iter == m_LineOfSightRequests.end())
+  if (iter == m_LineOfSightRequests.end() || iter->second->GetRequestGeneration() != args.lineOfSightExtendedGeodeticCoordinatesResponse.requestGeneration)
   {
     return;
   }
@@ -211,15 +255,14 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedGeodeticCoord
   CLineOfSightRequestHandler* pRequest = iter->second.get();
 
   auto response = args.lineOfSightExtendedGeodeticCoordinatesResponse;
-
-  if (pRequest->GetUpdatePeriod().Value() != 0)
+  if (response.bRangeValid)
   {
-    response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
+    response.dRange += pRequest->GetRangeOffset();
   }
 
   m_ImageGenerator.GetPacketSenders()->SendLineOfSightExtendedGeodeticCoordinatesResponse(response);
 
-  if (pRequest->GetUpdatePeriod().Value() == 0)
+  if (pRequest->GetUpdatePeriod().Value() == 0 && pRequest->RecordResponse(response.responseCount))
   {
     m_LineOfSightRequests.erase(iter);
   }
@@ -240,20 +283,26 @@ namespace
     destination.materialCode = source.materialCode;
     destination.fNormalVectorAzimuth = source.fNormalVectorAzimuth;
     destination.fNormalVectorElevation = source.fNormalVectorElevation;
+    destination.requestGeneration = source.requestGeneration;
   }
 }
 
-void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEvent(const CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& args)
+void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEvent(
+  const CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& args)
 {
   auto losID = LineOfSightRequestID(args.lineOfSightExtendedEntityGeodeticCoordinatesResponse.lineOfSightRequestID);
   auto iter = m_LineOfSightRequests.find(losID);
-  if (iter == m_LineOfSightRequests.end())
+  if (iter == m_LineOfSightRequests.end() || iter->second->GetRequestGeneration() != args.lineOfSightExtendedEntityGeodeticCoordinatesResponse.requestGeneration)
   {
     return;
   }
 
   CLineOfSightRequestHandler* pRequest = iter->second.get();
-  const auto& response = args.lineOfSightExtendedEntityGeodeticCoordinatesResponse;
+  auto response = args.lineOfSightExtendedEntityGeodeticCoordinatesResponse;
+  if (response.bRangeValid)
+  {
+    response.dRange += pRequest->GetRangeOffset();
+  }
 
   {
     if (response.entityID == UnknownEntityID)
@@ -262,11 +311,6 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedEntityGeodeti
       SLineOfSightExtendedGeodeticCoordinatesResponse geodeticResponse;
       CopyLineOfSightExtendedResponseBase(response, geodeticResponse);
       geodeticResponse.geodeticCoordinates = response.geodeticCoordinates;
-
-      if (pRequest->GetUpdatePeriod().Value() != 0)
-      {
-        geodeticResponse.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
-      }
 
       m_ImageGenerator.GetPacketSenders()->SendLineOfSightExtendedGeodeticCoordinatesResponse(geodeticResponse);
     }
@@ -278,16 +322,11 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedEntityGeodeti
       geodeticResponse.entityID = response.entityID;
       geodeticResponse.geodeticCoordinates = response.geodeticCoordinates;
 
-      if (pRequest->GetUpdatePeriod().Value() != 0)
-      {
-        geodeticResponse.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
-      }
-
       m_ImageGenerator.GetPacketSenders()->SendLineOfSightExtendedEntityGeodeticCoordinatesResponse(geodeticResponse);
     }
   }
 
-  if (pRequest->GetUpdatePeriod().Value() == 0)
+  if (pRequest->GetUpdatePeriod().Value() == 0 && pRequest->RecordResponse(response.responseCount))
   {
     m_LineOfSightRequests.erase(iter);
   }
@@ -297,24 +336,21 @@ void sbio::cigi::ig::CCigiTerrainHandler::OnCigiLineOfSightExtendedEntityCoordin
 {
   auto losID = LineOfSightRequestID(args.lineOfSightExtendedEntityCoordinatesResponse.lineOfSightRequestID);
   auto iter = m_LineOfSightRequests.find(losID);
-  if (iter == m_LineOfSightRequests.end())
+  if (iter == m_LineOfSightRequests.end() || iter->second->GetRequestGeneration() != args.lineOfSightExtendedEntityCoordinatesResponse.requestGeneration)
   {
     return;
   }
 
   CLineOfSightRequestHandler* pRequest = iter->second.get();
   auto response = args.lineOfSightExtendedEntityCoordinatesResponse;
-
+  if (response.bRangeValid)
   {
-    if (pRequest->GetUpdatePeriod().Value() != 0)
-    {
-      response.hostFrameLSN = GetHostFrameNumberLSN(pRequest->GetLastHostFrameNumber());
-    }
-
-    m_ImageGenerator.GetPacketSenders()->SendLineOfSightExtendedEntityCoordinatesResponse(response);
+    response.dRange += pRequest->GetRangeOffset();
   }
 
-  if (pRequest->GetUpdatePeriod().Value() == 0)
+  m_ImageGenerator.GetPacketSenders()->SendLineOfSightExtendedEntityCoordinatesResponse(response);
+
+  if (pRequest->GetUpdatePeriod().Value() == 0 && pRequest->RecordResponse(response.responseCount))
   {
     m_LineOfSightRequests.erase(iter);
   }
@@ -325,7 +361,8 @@ CCigiTerrainHandler::CCigiTerrainHandler(CCigiImageGenerator& ImageGenerator) : 
   if (g_CigiLibGlobals.pEventDispatcher != nullptr)
   {
     g_CigiLibGlobals.pEventDispatcher->RegisterEvent<TerrainCigiEvent>(std::make_unique<TerrainCigiEventHandler>());
-    g_CigiLibGlobals.pEventDispatcher->RegisterListener<TerrainCigiEvent>(this);
+    g_CigiLibGlobals.pEventDispatcher->RegisterListener<TerrainCigiEvent>(static_cast<ITerrainCigiEventListener*>(this));
+    g_CigiLibGlobals.pEventDispatcher->RegisterListener<IGCIGIEvent>(static_cast<IIGCIGIEventListener*>(this));
   }
   else if (g_CigiLibGlobals.pLogger != nullptr)
   {
@@ -334,15 +371,21 @@ CCigiTerrainHandler::CCigiTerrainHandler(CCigiImageGenerator& ImageGenerator) : 
 }
 
 template <class RequestType, class Hash>
-bool CCigiTerrainHandler::CheckHost(const SHATHOTGlobalRequest& req, std::unordered_set<RequestType, Hash>& updateRequests, std::unordered_map<RequestType, std::unique_ptr<CHATHOTRequestHandler>, Hash>& requests, bool isFromHost)
+bool CCigiTerrainHandler::CheckHost(const SHATHOTGlobalRequest& req, std::unordered_set<RequestType, Hash>& updateRequests,
+                                    std::unordered_map<RequestType, std::unique_ptr<CHATHOTRequestHandler>, Hash>& requests, bool isFromHost)
 {
   if (isFromHost)
   {
     if (req.updatePeriod.Value() != 0)
     {
       updateRequests.insert(req.requestID);
+    }
+    else
+    {
+      updateRequests.erase(req.requestID);
     }
     requests[req.requestID] = std::make_unique<CHATHOTGlobalRequestHandler>(req);
+    requests[req.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
   else if (req.updatePeriod.Value() == 0)
   {
@@ -352,7 +395,8 @@ bool CCigiTerrainHandler::CheckHost(const SHATHOTGlobalRequest& req, std::unorde
 }
 
 template <class RequestType, class Hash>
-bool CCigiTerrainHandler::CheckHost(const SHATHOTEntityRequest& req, std::unordered_set<RequestType, Hash>& updateRequests, std::unordered_map<RequestType, std::unique_ptr<CHATHOTRequestHandler>, Hash>& requests, bool isFromHost)
+bool CCigiTerrainHandler::CheckHost(const SHATHOTEntityRequest& req, std::unordered_set<RequestType, Hash>& updateRequests,
+                                    std::unordered_map<RequestType, std::unique_ptr<CHATHOTRequestHandler>, Hash>& requests, bool isFromHost)
 {
   if (isFromHost)
   {
@@ -360,7 +404,12 @@ bool CCigiTerrainHandler::CheckHost(const SHATHOTEntityRequest& req, std::unorde
     {
       updateRequests.insert(req.requestID);
     }
+    else
+    {
+      updateRequests.erase(req.requestID);
+    }
     requests[req.requestID] = std::make_unique<CHATHOTEntityRequestHandler>(req);
+    requests[req.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
   else if (req.updatePeriod.Value() == 0)
   {
@@ -370,26 +419,29 @@ bool CCigiTerrainHandler::CheckHost(const SHATHOTEntityRequest& req, std::unorde
 }
 
 template <class RequestType, class Hash>
-void CCigiTerrainHandler::UpdateHATHOTRequests(std::unordered_set<RequestType, Hash>& updateRequests, std::unordered_map<RequestType, std::unique_ptr<CHATHOTRequestHandler>, Hash>& requests, int lastHostFrameNumber)
+void CCigiTerrainHandler::UpdateHATHOTRequests(std::unordered_set<RequestType, Hash>& updateRequests,
+                                               std::unordered_map<RequestType, std::unique_ptr<CHATHOTRequestHandler>, Hash>& requests, int lastHostFrameNumber)
 {
+  const FrameNumber igFrameNumber = m_ImageGenerator.GetFrameNumber();
   for (auto it = updateRequests.begin(); it != updateRequests.end();)
   {
-    CHATHOTRequestHandler* p_request = requests[*it].get();
+    auto request = requests.find(*it);
     // Skip any null requests (prevents crashes when requests are erased)
-    if (p_request == nullptr)
+    if (request == requests.end() || request->second == nullptr)
     {
-      it++;
+      it = updateRequests.erase(it);
       continue;
     }
+    CHATHOTRequestHandler* p_request = request->second.get();
     if (p_request->GetUpdatePeriod().Value() == 0)
     {
-      requests.erase(*it);
       it = updateRequests.erase(it);
       continue;
     }
 
-    if (lastHostFrameNumber % p_request->GetUpdatePeriod().Value() == 0)
+    if (p_request->IsUpdateDue(igFrameNumber))
     {
+      p_request->SetLastUpdateFrame(igFrameNumber);
       p_request->SetLastHostFrameNumber(FrameNumber(lastHostFrameNumber));
       if (!p_request->Handle())
       {
@@ -405,6 +457,7 @@ void CCigiTerrainHandler::UpdateHATHOTRequests(std::unordered_set<RequestType, H
 
 void CCigiTerrainHandler::UpdateLineOfSightRequests(int lastHostFrameNumber)
 {
+  const FrameNumber igFrameNumber = m_ImageGenerator.GetFrameNumber();
   auto it = m_LineOfSightRequests.begin();
 
   std::list<LineOfSightRequestID> removeList;
@@ -413,8 +466,9 @@ void CCigiTerrainHandler::UpdateLineOfSightRequests(int lastHostFrameNumber)
   {
     CLineOfSightRequestHandler* pRequest = it->second.get();
 
-    if (pRequest->GetUpdatePeriod().Value() != 0 && lastHostFrameNumber % pRequest->GetUpdatePeriod().Value() == 0)
+    if (pRequest->GetUpdatePeriod().Value() != 0 && pRequest->IsUpdateDue(igFrameNumber))
     {
+      pRequest->SetLastUpdateFrame(igFrameNumber);
       pRequest->SetLastHostFrameNumber(FrameNumber(lastHostFrameNumber));
       if (!pRequest->Handle())
       {
@@ -432,7 +486,6 @@ void CCigiTerrainHandler::UpdateLineOfSightRequests(int lastHostFrameNumber)
     {
       m_LineOfSightRequests.erase(it1);
     }
-
     auto it2 = LineOfSightUpdateRequests.find(id);
     if (it2 != LineOfSightUpdateRequests.end())
     {
@@ -452,10 +505,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToGeode
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestGeodeticToGeodeticBasicHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestGeodeticToGeodeticBasicHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -479,10 +540,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToGeode
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestGeodeticToGeodeticExtendedHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestGeodeticToGeodeticExtendedHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -506,10 +575,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToEntit
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestGeodeticToEntityBasicHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestGeodeticToEntityBasicHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -533,10 +610,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestGeodeticToEntit
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestGeodeticToEntityExtendedHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestGeodeticToEntityExtendedHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -560,10 +645,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToGeodeti
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestEntityToGeodeticBasicHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestEntityToGeodeticBasicHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -587,10 +680,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToGeodeti
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestEntityToGeodeticExtendedHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -614,10 +715,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToEntityB
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestEntityToEntityBasicHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestEntityToEntityBasicHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -641,10 +750,18 @@ bool CCigiTerrainHandler::Handle(const SLineOfSightSegmentRequestEntityToEntityE
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightSegmentRequestEntityToEntityExtendedHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightSegmentRequestEntityToEntityExtendedHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -668,10 +785,18 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestGeod
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightVectorRequestGeodeticBasicHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightVectorRequestGeodeticBasicHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -695,10 +820,18 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestGeod
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightVectorRequestGeodeticExtendedHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightVectorRequestGeodeticExtendedHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -722,10 +855,18 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestEnti
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightVectorRequestEntityBasicHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightVectorRequestEntityBasicHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -749,10 +890,17 @@ bool CCigiTerrainHandler::Handle(const sbio::cigi::SLineOfSightVectorRequestEnti
       LineOfSightUpdateRequests.insert(request.requestID);
     }
     m_LineOfSightRequests[request.requestID] = std::make_unique<CLineOfSightVectorRequestEntityExtendedHandler>(request);
+    m_LineOfSightRequests[request.requestID]->SetLastUpdateFrame(m_ImageGenerator.GetFrameNumber());
   }
 
   CLineOfSightVectorRequestEntityExtendedHandler requestHandler(request);
-  if (!requestHandler.Handle())
+  CLineOfSightRequestHandler* activeRequest = &requestHandler;
+  if (isFromHost)
+  {
+    activeRequest = m_LineOfSightRequests.at(request.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -772,7 +920,13 @@ bool sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::SHATHOTGlobal
   bool result = CheckHost(req, HATHOTUpdateRequests, HATHOTRequests, isFromHost);
 
   CHATHOTGlobalRequestHandler requestHandler(req);
-  if (!requestHandler.Handle())
+  CHATHOTRequestHandler* activeRequest = &requestHandler;
+  if (isFromHost)
+  {
+    activeRequest = HATHOTRequests.at(req.requestID).get();
+  }
+
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -792,7 +946,12 @@ bool sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::SHATHOTEntity
   bool result = CheckHost(req, HATHOTUpdateRequests, HATHOTRequests, isFromHost);
 
   CHATHOTEntityRequestHandler requestHandler(req);
-  if (!requestHandler.Handle())
+  CHATHOTRequestHandler* activeRequest = &requestHandler;
+  if (isFromHost)
+  {
+    activeRequest = HATHOTRequests.at(req.requestID).get();
+  }
+  if (!activeRequest->Handle())
   {
     if (isFromHost)
     {
@@ -807,13 +966,20 @@ bool sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::SHATHOTEntity
 
 void sbio::cigi::ig::CCigiTerrainHandler::Handle(const sbio::cigi::STopLevelEntityPosition& topLevelEntityPosition)
 {
-  SHATHOTGlobalRequest req;
-  req.geodeticCoordinates = topLevelEntityPosition.geodeticCoordinates;
-  req.updatePeriod = UpdatePeriod(0);
-  req.requestID = HATHOTID(topLevelEntityPosition.entityID.Value());
-  req.eRequestType = ERequestType::EXTENDED;
-  TopLevelClampingRequests[topLevelEntityPosition.entityID] = topLevelEntityPosition;
-  Handle(req, false);
+  auto* pEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(topLevelEntityPosition.entityID));
+  if (pEntity == nullptr || pEntity->IsChild())
+  {
+    return;
+  }
+
+  // Clamping is performed by the engine through the entity transform message, not a host HAT/HOT query.
+  TCigiBodyEulerRotation rotation;
+  rotation.yaw = topLevelEntityPosition.rotation.yaw;
+  rotation.pitch = topLevelEntityPosition.rotation.pitch;
+  rotation.roll = topLevelEntityPosition.rotation.roll;
+  pEntity->SetTopLevelTransform(topLevelEntityPosition.geodeticCoordinates, rotation);
+  pEntity->SetClamp(topLevelEntityPosition.eClamp);
+  pEntity->SendUpdateMessage();
 }
 
 void sbio::cigi::ig::CCigiTerrainHandler::Update(FrameNumber lastHostFrameNumber)
@@ -824,13 +990,15 @@ void sbio::cigi::ig::CCigiTerrainHandler::Update(FrameNumber lastHostFrameNumber
 
 void sbio::cigi::ig::CCigiTerrainHandler::Reset()
 {
+  m_ImageGenerator.ResetTerrainResponseDispatcher();
   HATHOTUpdateRequests.clear();
   HATHOTRequests.clear();
   LineOfSightUpdateRequests.clear();
   m_LineOfSightRequests.clear();
 }
 
-bool CCigiTerrainHandler::ResolvePoint(const sbio::math::SGeodeticCoordinates& coordinates, const sbio::math::Vec3& offset, sbio::ETopLevelCoordinateSystem coordinateSystem, sbio::EntityID entityID, GeocentricCoordinates& point)
+bool CCigiTerrainHandler::ResolvePoint(const sbio::math::SGeodeticCoordinates& coordinates, const sbio::math::Vec3& offset, sbio::ETopLevelCoordinateSystem coordinateSystem,
+                                       sbio::EntityID entityID, GeocentricCoordinates& point)
 {
   if (coordinateSystem == sbio::ETopLevelCoordinateSystem::GEODETIC)
   {
@@ -862,7 +1030,8 @@ inline uint8_t sbio::cigi::ig::CCigiTerrainHandler::GetHostFrameNumberLSN(FrameN
   return ((uint8_t*)&frameNumber)[0];
 }
 
-void sbio::cigi::ig::CCigiTerrainHandler::GetAzimuthAndElevation(const GeocentricCoordinates& normal, const sbio::math::SGeodeticCoordinates& coord, Degrees180& azimuth, Degrees90& elevation)
+void sbio::cigi::ig::CCigiTerrainHandler::GetAzimuthAndElevation(const GeocentricCoordinates& normal, const sbio::math::SGeodeticCoordinates& coord, Degrees180& azimuth,
+                                                                 Degrees90& elevation)
 {
   math::Vec3 normalReferencePlane = ConvertGeocentricToReferencePlaneCoordinates(normal, coord).toVec3().normalized();
   math::Vec3 up(0, 0, -1);

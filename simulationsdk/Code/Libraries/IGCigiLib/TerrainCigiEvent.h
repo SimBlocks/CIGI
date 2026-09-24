@@ -3,7 +3,7 @@
  * @file TerrainCigiEvent.h
  * @brief Declares event types and handlers for SimBlocks CIGI IG terrain-related CIGI events.
  *
- * Provides enums, event argument structures, event listener interfaces, and event handler classes for terrain-related CIGI events in the SimBlocks CIGI IG library.
+ * Provides enums, event argument structures, event listener interfaces, and event handler classes for terrain-related CIGI events in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, math, and utility types for event-driven terrain simulation and CIGI IG communication.
  * Supports HAT/HOT response, line of sight response, extended response events, and event dispatching for terrain simulation.
  *
@@ -95,6 +95,7 @@ namespace sbio
        */
       struct CigiHatResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the HAT response event kind. */
         CigiHatResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::HAT_RESPONSE)
         {
         }
@@ -107,6 +108,7 @@ namespace sbio
        */
       struct CigiHotResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the HOT response event kind. */
         CigiHotResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::HOT_RESPONSE)
         {
         }
@@ -119,6 +121,7 @@ namespace sbio
        */
       struct CigiHatHotExtendedResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the extended HAT/HOT response event kind. */
         CigiHatHotExtendedResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::HAT_HOT_EXTENDED_RESPONSE)
         {
         }
@@ -133,6 +136,7 @@ namespace sbio
        */
       struct CigiLineOfSightResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the non-entity line-of-sight response event kind. */
         CigiLineOfSightResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::LINE_OF_SIGHT_NON_ENTITY_RESPONSE)
         {
         }
@@ -160,6 +164,7 @@ namespace sbio
        */
       struct CigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the extended geodetic line-of-sight response event kind. */
         CigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::LINE_OF_SIGHT_EXTENDED_GEODETIC_COORDINATES_RESPONSE)
         {
         }
@@ -172,6 +177,7 @@ namespace sbio
        */
       struct CigiLineOfSightExtendedEntityCoordinatesResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the extended entity-coordinate line-of-sight response event kind. */
         CigiLineOfSightExtendedEntityCoordinatesResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::LINE_OF_SIGHT_EXTENDED_ENTITY_COORDINATES_RESPONSE)
         {
         }
@@ -184,6 +190,7 @@ namespace sbio
        */
       struct CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs : public TerrainCigiEventArgs
       {
+        /** @brief Selects the extended entity-geodetic line-of-sight response event kind. */
         CigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs() : TerrainCigiEventArgs(ETerrainCigiEvent::LINE_OF_SIGHT_EXTENDED_ENTITY_GEODETIC_COORDINATES_RESPONSE)
         {
         }
@@ -193,10 +200,13 @@ namespace sbio
 
       /**
        * @brief Listener interface for terrain-related CIGI responses.
+       *
+       * Callback arguments are borrowed for the duration of the call; copy payloads that must be retained.
        */
       struct ITerrainCigiEventListener : public sbio::utils::IEventListener
       {
       public:
+        /** @brief Supports destruction through the listener interface. */
         virtual ~ITerrainCigiEventListener() {};
 
         /// @name Terrain and line-of-sight response callbacks
@@ -221,6 +231,10 @@ namespace sbio
          * @param args Event argument data.
          */
         virtual void OnCigiLineOfSightResponseEvent(const CigiLineOfSightResponseEventArgs& args) = 0;
+        /**
+         * @brief Called when a line-of-sight entity response is dispatched.
+         * @param args Borrowed response event arguments.
+         */
         virtual void OnCigiLineOfSightEntityResponseEvent(const CigiLineOfSightEntityResponseEventArgs& args) = 0;
         /**
          * @brief Called when an extended geodetic LOS response is dispatched.

@@ -13,8 +13,21 @@
 #include "AABB.h"
 
 #include <cmath>
+#include <limits>
 
 using namespace std;
+
+double AABB::Midpoint(double a, double b)
+{
+  // Avoid overflow when computing the midpoint of two large values.
+  constexpr double halfMax = (std::numeric_limits<double>::max)() / 2.0;
+  if (std::abs(a) <= halfMax && std::abs(b) <= halfMax)
+  {
+    return (a + b) / 2.0;
+  }
+
+  return a / 2.0 + b / 2.0;
+}
 
 bool AABB::IsEmpty() const
 {
@@ -54,12 +67,12 @@ void AABB::ComputeAABB()
     return;
   }
 
-  centerX = (minX + maxX) / 2.0;
-  centerY = (minY + maxY) / 2.0;
-  centerZ = (minZ + maxZ) / 2.0;
-  extentX = std::abs(maxX - minX) / 2.0;
-  extentY = std::abs(maxY - minY) / 2.0;
-  extentZ = std::abs(maxZ - minZ) / 2.0;
+  centerX = Midpoint(minX, maxX);
+  centerY = Midpoint(minY, maxY);
+  centerZ = Midpoint(minZ, maxZ);
+  extentX = Midpoint(maxX, -minX);
+  extentY = Midpoint(maxY, -minY);
+  extentZ = Midpoint(maxZ, -minZ);
 }
 
 /**

@@ -45,10 +45,21 @@ void CCigiRegionTree::AddRegion(RegionID regionID, std::unique_ptr<CCigiEnvironm
   ss << "Adding region " << regionID << endl;
   g_CigiLibGlobals.pLogger->LogDebug(ss.str());
 
-  // create a new bound for the region, get the bounding box, and store both in the map
-  std::unique_ptr<SRegionSphereBound> bound = std::make_unique<SRegionSphereBound>(region.get());
-  Eigen::AlignedBox3d boundingBox = bound->GetBoundingBox();
   m_Regions[regionID] = std::move(region);
+  UpdateRegionBounds(regionID);
+}
+
+void CCigiRegionTree::UpdateRegionBounds(RegionID regionID)
+{
+  auto it = m_Regions.find(regionID);
+  if (it == m_Regions.end())
+  {
+    return;
+  }
+
+  // create a new bound for the region, get the bounding box, and store both in the map
+  std::unique_ptr<SRegionSphereBound> bound = std::make_unique<SRegionSphereBound>(it->second.get());
+  Eigen::AlignedBox3d boundingBox = bound->GetBoundingBox();
   m_Bounds[regionID] = std::make_pair(boundingBox, std::move(bound));
 
   Rebuild();
@@ -91,8 +102,20 @@ void CCigiRegionTree::Rebuild()
   std::vector<Eigen::AlignedBox3d> bounds;
   std::vector<SRegionSphereBound*> regions;
 
-  std::transform(m_Bounds.begin(), m_Bounds.end(), std::back_inserter(bounds), [](const auto& keyValuePair) { return keyValuePair.second.first; });
-  std::transform(m_Bounds.begin(), m_Bounds.end(), std::back_inserter(regions), [](const auto& keyValuePair) { return keyValuePair.second.second.get(); });
+  std::transform(m_Bounds.begin(),
+                 m_Bounds.end(),
+                 std::back_inserter(bounds),
+                 [](const auto& keyValuePair)
+                 {
+                   return keyValuePair.second.first;
+                 });
+  std::transform(m_Bounds.begin(),
+                 m_Bounds.end(),
+                 std::back_inserter(regions),
+                 [](const auto& keyValuePair)
+                 {
+                   return keyValuePair.second.second.get();
+                 });
 
   m_Tree.init(regions.begin(), regions.end(), bounds.begin(), bounds.end());
 }

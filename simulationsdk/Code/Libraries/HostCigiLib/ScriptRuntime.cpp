@@ -36,8 +36,35 @@ CScriptRuntime* g_pScriptRuntime = nullptr;
 
 extern sbio::cigi::host::SHostCigiLibGlobals g_HostCigiLibGlobals;
 
+bool CScriptRuntime::IsActiveSessionEvent(const HostCigiEventArgs& args) const
+{
+  if (!g_HostCigiLibGlobals.pHost)
+  {
+    return false;
+  }
+
+  const CHostSession* pSession = g_HostCigiLibGlobals.pHost->GetHostSession();
+  return pSession && args.sessionID == pSession->GetSessionID();
+}
+
 chaiscript::ChaiScript::State base_state;
 std::map<std::string, chaiscript::Boxed_Value> base_locals;
+
+void CScriptRuntime::CancelWaitCallbacks()
+{
+  ++m_WaitCallbackGeneration;
+  m_WaitCallbacks.clear();
+}
+
+void CScriptRuntime::HandleScriptError(const std::string& context, const std::string& error)
+{
+  m_bIsExecutingScript = false;
+  CancelWaitCallbacks();
+
+  HostCigiErrorEventArgs args;
+  args.sError = "Script " + context + " Error\n" + error;
+  Event::Raise<HostCigiEvent>(args);
+}
 
 void registerCloudType(int nCloudType, const std::string& sCloudType)
 {
@@ -45,8 +72,9 @@ void registerCloudType(int nCloudType, const std::string& sCloudType)
 }
 
 void CScriptRuntime::OnDatabaseLoaded(const HostCigiDatabaseLoadedEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -73,6 +101,12 @@ void CScriptRuntime::OnDatabaseLoaded(const HostCigiDatabaseLoadedEventArgs& arg
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload for a basic HAT or HOT response, including validity and request correlation. */
 struct SScriptHatHotResponse
 {
   bool Valid = false;
@@ -82,8 +116,9 @@ struct SScriptHatHotResponse
 };
 
 void CScriptRuntime::OnHostCigiHatResponseEvent(const HostCigiHatResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -115,9 +150,15 @@ void CScriptRuntime::OnHostCigiHatResponseEvent(const HostCigiHatResponseEventAr
   }
 }
 
-void CScriptRuntime::OnHostCigiHotResponseEvent(const HostCigiHotResponseEventArgs& args)
+catch (const std::exception& ex)
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  HandleScriptError(__func__, ex.what());
+}
+
+void CScriptRuntime::OnHostCigiHotResponseEvent(const HostCigiHotResponseEventArgs& args)
+try
+{
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -149,6 +190,12 @@ void CScriptRuntime::OnHostCigiHotResponseEvent(const HostCigiHotResponseEventAr
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload combining terrain heights, surface normal, material, and request correlation. */
 struct SScriptHatHotExtendedResponse
 {
   bool Valid = false;
@@ -162,8 +209,9 @@ struct SScriptHatHotExtendedResponse
 };
 
 void CScriptRuntime::OnHostCigiHatHotExtendedResponseEvent(const HostCigiHatHotExtendedResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -201,6 +249,12 @@ void CScriptRuntime::OnHostCigiHatHotExtendedResponseEvent(const HostCigiHatHotE
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload for a line-of-sight range response without an identified entity. */
 struct SScriptLineOfSightResponse
 {
   int RequestID = 0;
@@ -211,8 +265,9 @@ struct SScriptLineOfSightResponse
 };
 
 void CScriptRuntime::OnHostCigiLineOfSightResponseEvent(const HostCigiLineOfSightResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -247,6 +302,12 @@ void CScriptRuntime::OnHostCigiLineOfSightResponseEvent(const HostCigiLineOfSigh
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload for a line-of-sight range response with entity identity and visibility. */
 struct SScriptLineOfSightEntityResponse
 {
   int RequestID = 0;
@@ -259,8 +320,9 @@ struct SScriptLineOfSightEntityResponse
 };
 
 void CScriptRuntime::OnHostCigiLineOfSightEntityResponseEvent(const HostCigiLineOfSightEntityResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -296,6 +358,12 @@ void CScriptRuntime::OnHostCigiLineOfSightEntityResponseEvent(const HostCigiLine
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload for an extended non-entity intersection in geodetic coordinates. */
 struct SScriptLineOfSightExtendedGeodeticCoordinatesResponse
 {
   // Standard Data
@@ -321,6 +389,7 @@ struct SScriptLineOfSightExtendedGeodeticCoordinatesResponse
   double Altitude = 0;
 };
 
+/** @brief Script callback payload for an extended entity intersection in geodetic coordinates. */
 struct SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse
 {
   // Standard Data
@@ -348,6 +417,7 @@ struct SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse
   double Altitude = 0;
 };
 
+/** @brief Script callback payload for an extended intersection expressed as offsets relative to an entity. */
 struct SScriptLineOfSightExtendedEntityCoordinatesResponse
 {
   // Standard Data
@@ -394,8 +464,9 @@ void CopyLineOfSightExtendedResponseBase(TScriptResponse& destination, const TRe
 }
 
 void CScriptRuntime::OnHostCigiLineOfSightExtendedGeodeticCoordinatesResponseEvent(const HostCigiLineOfSightExtendedGeodeticCoordinatesResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -403,7 +474,8 @@ void CScriptRuntime::OnHostCigiLineOfSightExtendedGeodeticCoordinatesResponseEve
   auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
   if (pFunctionExists("OnLineOfSightExtendedGeodeticCoordinatesResponse"))
   {
-    auto pFuncOnLineOfSightExtendedGeodeticCoordinatesResponse = m_pChaiScript->eval<std::function<void(SScriptLineOfSightExtendedGeodeticCoordinatesResponse&)>>("OnLineOfSightExtendedGeodeticCoordinatesResponse");
+    auto pFuncOnLineOfSightExtendedGeodeticCoordinatesResponse =
+      m_pChaiScript->eval<std::function<void(SScriptLineOfSightExtendedGeodeticCoordinatesResponse&)>>("OnLineOfSightExtendedGeodeticCoordinatesResponse");
     try
     {
       SScriptLineOfSightExtendedGeodeticCoordinatesResponse lineOfSightExtendedGeodeticCoordinatesResponse;
@@ -427,9 +499,15 @@ void CScriptRuntime::OnHostCigiLineOfSightExtendedGeodeticCoordinatesResponseEve
   }
 }
 
-void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEvent(const HostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& args)
+catch (const std::exception& ex)
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  HandleScriptError(__func__, ex.what());
+}
+
+void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEvent(const HostCigiLineOfSightExtendedEntityGeodeticCoordinatesResponseEventArgs& args)
+try
+{
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -437,7 +515,8 @@ void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityGeodeticCoordinatesRespo
   auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
   if (pFunctionExists("OnLineOfSightExtendedEntityGeodeticCoordinatesResponse"))
   {
-    auto pFuncOnLineOfSightExtendedEntityGeodeticCoordinatesResponse = m_pChaiScript->eval<std::function<void(SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse&)>>("OnLineOfSightExtendedEntityGeodeticCoordinatesResponse");
+    auto pFuncOnLineOfSightExtendedEntityGeodeticCoordinatesResponse =
+      m_pChaiScript->eval<std::function<void(SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse&)>>("OnLineOfSightExtendedEntityGeodeticCoordinatesResponse");
     try
     {
       SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse lineOfSightExtendedEntityGeodeticCoordinatesResponse;
@@ -463,9 +542,15 @@ void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityGeodeticCoordinatesRespo
   }
 }
 
-void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityCoordinatesResponseEvent(const HostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs& args)
+catch (const std::exception& ex)
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  HandleScriptError(__func__, ex.what());
+}
+
+void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityCoordinatesResponseEvent(const HostCigiLineOfSightExtendedEntityCoordinatesResponseEventArgs& args)
+try
+{
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -473,7 +558,8 @@ void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityCoordinatesResponseEvent
   auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
   if (pFunctionExists("OnLineOfSightExtendedEntityCoordinatesResponse"))
   {
-    auto pFuncOnLineOfSightExtendedEntityCoordinatesResponse = m_pChaiScript->eval<std::function<void(SScriptLineOfSightExtendedEntityCoordinatesResponse&)>>("OnLineOfSightExtendedEntityCoordinatesResponse");
+    auto pFuncOnLineOfSightExtendedEntityCoordinatesResponse =
+      m_pChaiScript->eval<std::function<void(SScriptLineOfSightExtendedEntityCoordinatesResponse&)>>("OnLineOfSightExtendedEntityCoordinatesResponse");
     try
     {
       SScriptLineOfSightExtendedEntityCoordinatesResponse lineOfSightExtendedEntityCoordinatesResponse;
@@ -498,6 +584,12 @@ void CScriptRuntime::OnHostCigiLineOfSightExtendedEntityCoordinatesResponseEvent
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload identifying a collision segment, intersection distance, and contacted material. */
 struct SScriptCollisionSegmentResponse
 {
   int EntityID = 0;
@@ -506,6 +598,7 @@ struct SScriptCollisionSegmentResponse
   int MaterialCode = 0;
 };
 
+/** @brief Script callback payload for a collision segment that also identifies the contacted entity. */
 struct SScriptCollisionSegmentEntityResponse
 {
   int EntityID = 0;
@@ -516,8 +609,9 @@ struct SScriptCollisionSegmentEntityResponse
 };
 
 void CScriptRuntime::OnHostCigiCollisionDetectionSegmentNotificationEvent(const HostCigiCollisionDetectionSegmentNotificationEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -551,9 +645,15 @@ void CScriptRuntime::OnHostCigiCollisionDetectionSegmentNotificationEvent(const 
   }
 }
 
-void CScriptRuntime::OnHostCigiCollisionDetectionSegmentEntityNotificationEvent(const HostCigiCollisionDetectionSegmentEntityNotificationEventArgs& args)
+catch (const std::exception& ex)
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  HandleScriptError(__func__, ex.what());
+}
+
+void CScriptRuntime::OnHostCigiCollisionDetectionSegmentEntityNotificationEvent(const HostCigiCollisionDetectionSegmentEntityNotificationEventArgs& args)
+try
+{
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -586,6 +686,12 @@ void CScriptRuntime::OnHostCigiCollisionDetectionSegmentEntityNotificationEvent(
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload identifying the reporting entity and colliding volume identifiers. */
 struct SScriptCollisionVolumeResponse
 {
   int EntityID = 0;
@@ -593,6 +699,7 @@ struct SScriptCollisionVolumeResponse
   int ContactedVolumeID = 0;
 };
 
+/** @brief Script callback payload identifying both entities and volumes involved in a volume collision. */
 struct SScriptCollisionVolumeEntityResponse
 {
   int EntityID = 0;
@@ -602,8 +709,9 @@ struct SScriptCollisionVolumeEntityResponse
 };
 
 void CScriptRuntime::OnHostCigiCollisionDetectionVolumeNotificationEvent(const HostCigiCollisionDetectionVolumeNotificationEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -636,9 +744,15 @@ void CScriptRuntime::OnHostCigiCollisionDetectionVolumeNotificationEvent(const H
   }
 }
 
-void CScriptRuntime::OnHostCigiCollisionDetectionVolumeEntityNotificationEvent(const HostCigiCollisionDetectionVolumeEntityNotificationEventArgs& args)
+catch (const std::exception& ex)
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  HandleScriptError(__func__, ex.what());
+}
+
+void CScriptRuntime::OnHostCigiCollisionDetectionVolumeEntityNotificationEvent(const HostCigiCollisionDetectionVolumeEntityNotificationEventArgs& args)
+try
+{
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -670,6 +784,12 @@ void CScriptRuntime::OnHostCigiCollisionDetectionVolumeEntityNotificationEvent(c
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
+/** @brief Script callback payload for an object's geodetic position and Euler orientation. */
 struct SScriptPositionResponseGeodeticCoordinates
 {
   double Latitude = 0;
@@ -677,15 +797,18 @@ struct SScriptPositionResponseGeodeticCoordinates
   double Altitude = 0;
   string ObjectClass;
   int objectID = 0;
+  int ArticulatedPartID = 0;
   float Roll = 0;
   float Pitch = 0;
   float Yaw = 0;
 };
 
+/** @brief Script callback payload for an object's position and orientation relative to its parent entity. */
 struct SScriptPositionResponseParentEntityCoordinates
 {
   string ObjectClass;
   int objectID = 0;
+  int ArticulatedPartID = 0;
   float Roll = 0;
   float Pitch = 0;
   float Yaw = 0;
@@ -694,6 +817,7 @@ struct SScriptPositionResponseParentEntityCoordinates
   float zOffset = 0;
 };
 
+/** @brief Script callback payload for a position response expressed in articulated-part coordinates. */
 struct SScriptPositionResponseArticulatedPartCoordinates
 {
   string ObjectClass;
@@ -708,8 +832,9 @@ struct SScriptPositionResponseArticulatedPartCoordinates
 };
 
 void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -729,6 +854,7 @@ void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionRespo
       scriptPositionResponse.Altitude = positionResponse.geodeticCoordinates.altitude.Value();
       scriptPositionResponse.ObjectClass = ConvertCigiObjectClassToString(positionResponse.eObjectClass);
       scriptPositionResponse.objectID = positionResponse.objectID;
+      scriptPositionResponse.ArticulatedPartID = positionResponse.articulatedPartID.Value();
       scriptPositionResponse.Yaw = static_cast<float>(positionResponse.rotation.yaw.Value());
       scriptPositionResponse.Pitch = static_cast<float>(positionResponse.rotation.pitch.Value());
       scriptPositionResponse.Roll = static_cast<float>(positionResponse.rotation.roll.Value());
@@ -759,6 +885,7 @@ void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionRespo
       scriptPositionResponse.zOffset = (float)positionResponse.offset[2];
       scriptPositionResponse.ObjectClass = ConvertCigiObjectClassToString(positionResponse.eObjectClass);
       scriptPositionResponse.objectID = positionResponse.objectID;
+      scriptPositionResponse.ArticulatedPartID = positionResponse.articulatedPartID.Value();
       scriptPositionResponse.Yaw = static_cast<float>(positionResponse.rotation.yaw.Value());
       scriptPositionResponse.Pitch = static_cast<float>(positionResponse.rotation.pitch.Value());
       scriptPositionResponse.Roll = static_cast<float>(positionResponse.rotation.roll.Value());
@@ -807,6 +934,11 @@ void CScriptRuntime::OnHostCigiPositionResponseEvent(const HostCigiPositionRespo
       m_bIsExecutingScript = false;
     }
   }
+}
+
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
 }
 
 void CScriptRuntime::RegisterCloudType(sbio::CloudType eCloudType, const std::string& sCloudType)
@@ -896,7 +1028,7 @@ void CScriptRuntime::RegisterImageGeneratorMessage(int nMessageID, const std::st
 
 void CScriptRuntime::SendReset()
 {
-  m_WaitCallbacks.clear();
+  CancelWaitCallbacks();
 
   SCigiIgControl cigiIGControl;
   cigiIGControl.databaseNumber = CigiDatabaseNumber(0);
@@ -921,7 +1053,7 @@ void CScriptRuntime::SendReset()
 void CScriptRuntime::Stop()
 {
   m_bIsExecutingScript = false;
-  m_WaitCallbacks.clear();
+  CancelWaitCallbacks();
 
   if (m_pChaiScript != nullptr)
   {
@@ -934,6 +1066,7 @@ void CScriptRuntime::Stop()
 }
 
 void CScriptRuntime::Update()
+try
 {
   if (m_pChaiScript == nullptr)
   {
@@ -960,51 +1093,75 @@ void CScriptRuntime::Update()
 
   double fCurrentSessionTime = pHostSession->GetSessionTime();
 
-  // check for any wait callbacks
+  const std::size_t generation = m_WaitCallbackGeneration;
+  std::list<SWaitCallback> readyCallbacks;
+  // Detach due callbacks before invoking script code, which can cancel or replace execution.
   auto it = m_WaitCallbacks.begin();
   while (it != m_WaitCallbacks.end())
   {
     if (it->fTime < fCurrentSessionTime)
     {
-      auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
-
-      if (!pFunctionExists(it->sCallback))
-      {
-        HostCigiErrorEventArgs args;
-        stringstream ss;
-        ss << "Script function " << it->sCallback << " does not exist!\n";
-        args.sError = ss.str();
-        Event::Raise<HostCigiEvent>(args);
-
-        m_bIsExecutingScript = false;
-        return;
-      }
-
-      auto pCallbackFunction = m_pChaiScript->eval<std::function<void()>>(it->sCallback);
-      try
-      {
-        pCallbackFunction();
-      }
-      catch (const chaiscript::exception::eval_error& e)
-      {
-        HostCigiErrorEventArgs args;
-        stringstream ss;
-        ss << "Script " << it->sCallback << " Error\n" << e.pretty_print() << '\n';
-        args.sError = ss.str();
-        Event::Raise<HostCigiEvent>(args);
-
-        m_bIsExecutingScript = false;
-        return;
-      }
+      auto due = it++;
+      readyCallbacks.splice(readyCallbacks.end(), m_WaitCallbacks, due);
     }
-
-    ++it;
+    else
+    {
+      ++it;
+    }
   }
 
-  m_WaitCallbacks.remove_if([fCurrentSessionTime](const SWaitCallback& waitCallback) { return waitCallback.fTime < fCurrentSessionTime; });
+  // Invoke all ready callbacks.
+  // Note that the callback list can be modified by the script code, so check if the generation has changed after each callback.
+  for (const auto& callback : readyCallbacks)
+  {
+    // Check if script execution is still active and the generation has not changed due to a script reset or stop.
+    if (!m_bIsExecutingScript || generation != m_WaitCallbackGeneration)
+    {
+      return;
+    }
+
+    try
+    {
+      // Check if the callback function exists in the script before invoking it.
+      auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
+      if (!pFunctionExists(callback.sCallback))
+      {
+        HandleScriptError(callback.sCallback, "Function does not exist.");
+        return;
+      }
+
+      auto pCallbackFunction = m_pChaiScript->eval<std::function<void()>>(callback.sCallback);
+      pCallbackFunction();
+    }
+    catch (const chaiscript::exception::eval_error& e)
+    {
+      // Handle script evaluation errors.
+      if (generation == m_WaitCallbackGeneration)
+      {
+        HandleScriptError(callback.sCallback, e.pretty_print());
+      }
+      return;
+    }
+    catch (const std::exception& ex)
+    {
+      // Handle other exceptions that may occur during callback execution.
+      if (generation == m_WaitCallbackGeneration)
+      {
+        HandleScriptError(callback.sCallback, ex.what());
+      }
+      return;
+    }
+  }
+
+  // Check if script execution is still active and the generation has not changed due to a script reset or stop.
+  if (!m_bIsExecutingScript || generation != m_WaitCallbackGeneration)
+  {
+    return;
+  }
 
   // make sure database is loaded before calling OnUpdate
-  if ((pHostSession->GetDatabaseState() == EHostSessionDatabaseState::NO_DATABASE) || (pHostSession->GetDatabaseState() == EHostSessionDatabaseState::LOAD_DATABASE_REQUESTED) || (pHostSession->GetDatabaseState() == EHostSessionDatabaseState::LOADING_ACKNOWLEDGED))
+  if ((pHostSession->GetDatabaseState() == EHostSessionDatabaseState::NO_DATABASE) || (pHostSession->GetDatabaseState() == EHostSessionDatabaseState::LOAD_DATABASE_REQUESTED) ||
+      (pHostSession->GetDatabaseState() == EHostSessionDatabaseState::LOADING_ACKNOWLEDGED))
   {
     return;
   }
@@ -1032,6 +1189,11 @@ void CScriptRuntime::Update()
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
 void addEntity(uint16_t nEntityID, uint16_t nEntityType)
 {
   ShortEntityTypeID entityTypeID(nEntityType);
@@ -1048,6 +1210,7 @@ void addEntity(uint16_t nEntityID, uint16_t nEntityType)
   }
 }
 
+/** @brief Script-side IG mode, database selection, substitution, and smoothing settings. */
 struct SScriptIGControl
 {
 public:
@@ -1074,7 +1237,9 @@ void RegisterIGControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendIGControl), "sendIGControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptIGControl>(*m, "IGControl", {constructor<SScriptIGControl()>(), constructor<SScriptIGControl(const SScriptIGControl&)>()},
+  chaiscript::utility::add_class<SScriptIGControl>(*m,
+                                                   "IGControl",
+                                                   {constructor<SScriptIGControl()>(), constructor<SScriptIGControl(const SScriptIGControl&)>()},
                                                    {
                                                      {fun(&SScriptIGControl::DatabaseNumber), "DatabaseNumber"},
                                                      {fun(&SScriptIGControl::EntityTypeSubstitutionEnabled), "EntityTypeSubstitutionEnabled"},
@@ -1085,6 +1250,7 @@ void RegisterIGControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side view definition carrying projection and frustum settings. */
 struct SScriptViewDefinition
 {
   uint16_t ViewID = 0;
@@ -1140,7 +1306,9 @@ void RegisterViewDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendViewDefinition), "sendViewDefinition");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptViewDefinition>(*m, "ViewDefinition", {constructor<SScriptViewDefinition()>(), constructor<SScriptViewDefinition(const SScriptViewDefinition&)>()},
+  chaiscript::utility::add_class<SScriptViewDefinition>(*m,
+                                                        "ViewDefinition",
+                                                        {constructor<SScriptViewDefinition()>(), constructor<SScriptViewDefinition(const SScriptViewDefinition&)>()},
                                                         {
                                                           {fun(&SScriptViewDefinition::ViewID), "ViewID"},
                                                           {fun(&SScriptViewDefinition::ViewGroupID), "GroupID"},
@@ -1166,6 +1334,7 @@ void RegisterViewDefinition(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side top-level entity pose and attachment/clamping settings. */
 struct SScriptTopLevelEntityPosition
 {
   uint16_t EntityID = 0;
@@ -1185,8 +1354,8 @@ void sendTopLevelEntityPosition(SScriptTopLevelEntityPosition topLevelEntityPosi
   cigiTopLevelEntityPosition.entityID = EntityID(topLevelEntityPosition.EntityID);
   cigiTopLevelEntityPosition.bAttached = (topLevelEntityPosition.AttachState == "Attach");
   cigiTopLevelEntityPosition.rotation.yaw = Degrees(topLevelEntityPosition.Yaw);
-  cigiTopLevelEntityPosition.rotation.pitch = Degrees(topLevelEntityPosition.Pitch);
-  cigiTopLevelEntityPosition.rotation.roll = Degrees(topLevelEntityPosition.Roll);
+  cigiTopLevelEntityPosition.rotation.pitch = Degrees90(topLevelEntityPosition.Pitch);
+  cigiTopLevelEntityPosition.rotation.roll = Degrees180(topLevelEntityPosition.Roll);
   cigiTopLevelEntityPosition.eClamp = ToClamp(topLevelEntityPosition.Clamp);
   cigiTopLevelEntityPosition.geodeticCoordinates.latitude = Latitude(topLevelEntityPosition.Latitude);
   cigiTopLevelEntityPosition.geodeticCoordinates.longitude = Longitude(topLevelEntityPosition.Longitude);
@@ -1201,22 +1370,26 @@ void RegisterTopLevelEntityPosition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendTopLevelEntityPosition), "sendTopLevelEntityPosition");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptTopLevelEntityPosition>(*m, "TopLevelEntityPosition", {constructor<SScriptTopLevelEntityPosition()>(), constructor<SScriptTopLevelEntityPosition(const SScriptTopLevelEntityPosition&)>()},
-                                                                {
-                                                                  {fun(&SScriptTopLevelEntityPosition::EntityID), "EntityID"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::AttachState), "AttachState"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Yaw), "Yaw"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Pitch), "Pitch"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Roll), "Roll"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Clamp), "Clamp"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Latitude), "Latitude"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Longitude), "Longitude"},
-                                                                  {fun(&SScriptTopLevelEntityPosition::Altitude), "Altitude"},
-                                                                });
+  chaiscript::utility::add_class<SScriptTopLevelEntityPosition>(
+    *m,
+    "TopLevelEntityPosition",
+    {constructor<SScriptTopLevelEntityPosition()>(), constructor<SScriptTopLevelEntityPosition(const SScriptTopLevelEntityPosition&)>()},
+    {
+      {fun(&SScriptTopLevelEntityPosition::EntityID), "EntityID"},
+      {fun(&SScriptTopLevelEntityPosition::AttachState), "AttachState"},
+      {fun(&SScriptTopLevelEntityPosition::Yaw), "Yaw"},
+      {fun(&SScriptTopLevelEntityPosition::Pitch), "Pitch"},
+      {fun(&SScriptTopLevelEntityPosition::Roll), "Roll"},
+      {fun(&SScriptTopLevelEntityPosition::Clamp), "Clamp"},
+      {fun(&SScriptTopLevelEntityPosition::Latitude), "Latitude"},
+      {fun(&SScriptTopLevelEntityPosition::Longitude), "Longitude"},
+      {fun(&SScriptTopLevelEntityPosition::Altitude), "Altitude"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side child entity pose and parent attachment settings. */
 struct SScriptChildEntityPosition
 {
   uint16_t EntityID = 0;
@@ -1238,8 +1411,8 @@ void sendChildEntityPosition(SScriptChildEntityPosition childEntityPosition)
   cigiChildEntityPosition.entityID = EntityID(childEntityPosition.EntityID);
   cigiChildEntityPosition.bAttached = (childEntityPosition.AttachState == "Attach");
   cigiChildEntityPosition.rotation.yaw = Degrees(childEntityPosition.Yaw);
-  cigiChildEntityPosition.rotation.pitch = Degrees(childEntityPosition.Pitch);
-  cigiChildEntityPosition.rotation.roll = Degrees(childEntityPosition.Roll);
+  cigiChildEntityPosition.rotation.pitch = Degrees90(childEntityPosition.Pitch);
+  cigiChildEntityPosition.rotation.roll = Degrees180(childEntityPosition.Roll);
   cigiChildEntityPosition.parentID = EntityID(childEntityPosition.ParentID);
   cigiChildEntityPosition.offset[0] = childEntityPosition.XOffset;
   cigiChildEntityPosition.offset[1] = childEntityPosition.YOffset;
@@ -1254,22 +1427,26 @@ void RegisterChildEntityPosition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendChildEntityPosition), "sendChildEntityPosition");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptChildEntityPosition>(*m, "ChildEntityPosition", {constructor<SScriptChildEntityPosition()>(), constructor<SScriptChildEntityPosition(const SScriptChildEntityPosition&)>()},
-                                                             {
-                                                               {fun(&SScriptChildEntityPosition::EntityID), "EntityID"},
-                                                               {fun(&SScriptChildEntityPosition::AttachState), "AttachState"},
-                                                               {fun(&SScriptChildEntityPosition::Yaw), "Yaw"},
-                                                               {fun(&SScriptChildEntityPosition::Pitch), "Pitch"},
-                                                               {fun(&SScriptChildEntityPosition::Roll), "Roll"},
-                                                               {fun(&SScriptChildEntityPosition::ParentID), "ParentID"},
-                                                               {fun(&SScriptChildEntityPosition::XOffset), "XOffset"},
-                                                               {fun(&SScriptChildEntityPosition::YOffset), "YOffset"},
-                                                               {fun(&SScriptChildEntityPosition::ZOffset), "ZOffset"},
-                                                             });
+  chaiscript::utility::add_class<SScriptChildEntityPosition>(
+    *m,
+    "ChildEntityPosition",
+    {constructor<SScriptChildEntityPosition()>(), constructor<SScriptChildEntityPosition(const SScriptChildEntityPosition&)>()},
+    {
+      {fun(&SScriptChildEntityPosition::EntityID), "EntityID"},
+      {fun(&SScriptChildEntityPosition::AttachState), "AttachState"},
+      {fun(&SScriptChildEntityPosition::Yaw), "Yaw"},
+      {fun(&SScriptChildEntityPosition::Pitch), "Pitch"},
+      {fun(&SScriptChildEntityPosition::Roll), "Roll"},
+      {fun(&SScriptChildEntityPosition::ParentID), "ParentID"},
+      {fun(&SScriptChildEntityPosition::XOffset), "XOffset"},
+      {fun(&SScriptChildEntityPosition::YOffset), "YOffset"},
+      {fun(&SScriptChildEntityPosition::ZOffset), "ZOffset"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side entity position used for conformal terrain clamping. */
 struct SScriptConformalClampedEntityPosition
 {
   uint16_t EntityID = 0;
@@ -1295,17 +1472,21 @@ void RegisterConformalClampedEntityPosition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendConformalClampedEntityPosition), "sendConformalClampedEntityPosition");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptConformalClampedEntityPosition>(*m, "ConformalClampedEntityPosition", {constructor<SScriptConformalClampedEntityPosition()>(), constructor<SScriptConformalClampedEntityPosition(const SScriptConformalClampedEntityPosition&)>()},
-                                                                        {
-                                                                          {fun(&SScriptConformalClampedEntityPosition::EntityID), "EntityID"},
-                                                                          {fun(&SScriptConformalClampedEntityPosition::Yaw), "Yaw"},
-                                                                          {fun(&SScriptConformalClampedEntityPosition::Latitude), "Latitude"},
-                                                                          {fun(&SScriptConformalClampedEntityPosition::Longitude), "Longitude"},
-                                                                        });
+  chaiscript::utility::add_class<SScriptConformalClampedEntityPosition>(
+    *m,
+    "ConformalClampedEntityPosition",
+    {constructor<SScriptConformalClampedEntityPosition()>(), constructor<SScriptConformalClampedEntityPosition(const SScriptConformalClampedEntityPosition&)>()},
+    {
+      {fun(&SScriptConformalClampedEntityPosition::EntityID), "EntityID"},
+      {fun(&SScriptConformalClampedEntityPosition::Yaw), "Yaw"},
+      {fun(&SScriptConformalClampedEntityPosition::Latitude), "Latitude"},
+      {fun(&SScriptConformalClampedEntityPosition::Longitude), "Longitude"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side entity linear and angular velocity control fields. */
 struct SScriptEntityVelocityControl
 {
   uint16_t EntityID = 0;
@@ -1325,9 +1506,9 @@ void sendEntityVelocityControl(SScriptEntityVelocityControl entityVelocityContro
   cigiEntityVelocityControl.linearVelocity[0] = entityVelocityControl.XLinearVelocity;
   cigiEntityVelocityControl.linearVelocity[1] = entityVelocityControl.YLinearVelocity;
   cigiEntityVelocityControl.linearVelocity[2] = entityVelocityControl.ZLinearVelocity;
-  cigiEntityVelocityControl.angularVelocity.yaw = Degrees(entityVelocityControl.YawAngularVelocity);
-  cigiEntityVelocityControl.angularVelocity.pitch = Degrees(entityVelocityControl.PitchAngularVelocity);
-  cigiEntityVelocityControl.angularVelocity.roll = Degrees(entityVelocityControl.RollAngularVelocity);
+  cigiEntityVelocityControl.angularVelocity.yaw = DegreesPerSecond(entityVelocityControl.YawAngularVelocity);
+  cigiEntityVelocityControl.angularVelocity.pitch = DegreesPerSecond(entityVelocityControl.PitchAngularVelocity);
+  cigiEntityVelocityControl.angularVelocity.roll = DegreesPerSecond(entityVelocityControl.RollAngularVelocity);
   cigiEntityVelocityControl.coordinateSystem = ConvertCigiStringToObjectCoordinateSystem(entityVelocityControl.CoordinateSystem);
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
@@ -1339,21 +1520,25 @@ void RegisterEntityVelocityControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendEntityVelocityControl), "sendEntityVelocityControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptEntityVelocityControl>(*m, "EntityVelocityControl", {constructor<SScriptEntityVelocityControl()>(), constructor<SScriptEntityVelocityControl(const SScriptEntityVelocityControl&)>()},
-                                                               {
-                                                                 {fun(&SScriptEntityVelocityControl::EntityID), "EntityID"},
-                                                                 {fun(&SScriptEntityVelocityControl::XLinearVelocity), "XLinearVelocity"},
-                                                                 {fun(&SScriptEntityVelocityControl::YLinearVelocity), "YLinearVelocity"},
-                                                                 {fun(&SScriptEntityVelocityControl::ZLinearVelocity), "ZLinearVelocity"},
-                                                                 {fun(&SScriptEntityVelocityControl::RollAngularVelocity), "RollAngularVelocity"},
-                                                                 {fun(&SScriptEntityVelocityControl::PitchAngularVelocity), "PitchAngularVelocity"},
-                                                                 {fun(&SScriptEntityVelocityControl::YawAngularVelocity), "YawAngularVelocity"},
-                                                                 {fun(&SScriptEntityVelocityControl::CoordinateSystem), "CoordinateSystem"},
-                                                               });
+  chaiscript::utility::add_class<SScriptEntityVelocityControl>(
+    *m,
+    "EntityVelocityControl",
+    {constructor<SScriptEntityVelocityControl()>(), constructor<SScriptEntityVelocityControl(const SScriptEntityVelocityControl&)>()},
+    {
+      {fun(&SScriptEntityVelocityControl::EntityID), "EntityID"},
+      {fun(&SScriptEntityVelocityControl::XLinearVelocity), "XLinearVelocity"},
+      {fun(&SScriptEntityVelocityControl::YLinearVelocity), "YLinearVelocity"},
+      {fun(&SScriptEntityVelocityControl::ZLinearVelocity), "ZLinearVelocity"},
+      {fun(&SScriptEntityVelocityControl::RollAngularVelocity), "RollAngularVelocity"},
+      {fun(&SScriptEntityVelocityControl::PitchAngularVelocity), "PitchAngularVelocity"},
+      {fun(&SScriptEntityVelocityControl::YawAngularVelocity), "YawAngularVelocity"},
+      {fun(&SScriptEntityVelocityControl::CoordinateSystem), "CoordinateSystem"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side articulated-part linear and angular velocity control fields. */
 struct SScriptArticulatedPartVelocityControl
 {
   uint16_t EntityID = 0;
@@ -1374,9 +1559,9 @@ void sendArticulatedPartVelocityControl(SScriptArticulatedPartVelocityControl ar
   cigiArticulatedPartVelocityControl.linearVelocity[0] = articulatedPartVelocityControl.XLinearVelocity;
   cigiArticulatedPartVelocityControl.linearVelocity[1] = articulatedPartVelocityControl.YLinearVelocity;
   cigiArticulatedPartVelocityControl.linearVelocity[2] = articulatedPartVelocityControl.ZLinearVelocity;
-  cigiArticulatedPartVelocityControl.angularVelocity.yaw = Degrees(articulatedPartVelocityControl.YawAngularVelocity);
-  cigiArticulatedPartVelocityControl.angularVelocity.pitch = Degrees(articulatedPartVelocityControl.PitchAngularVelocity);
-  cigiArticulatedPartVelocityControl.angularVelocity.roll = Degrees(articulatedPartVelocityControl.RollAngularVelocity);
+  cigiArticulatedPartVelocityControl.angularVelocity.yaw = DegreesPerSecond(articulatedPartVelocityControl.YawAngularVelocity);
+  cigiArticulatedPartVelocityControl.angularVelocity.pitch = DegreesPerSecond(articulatedPartVelocityControl.PitchAngularVelocity);
+  cigiArticulatedPartVelocityControl.angularVelocity.roll = DegreesPerSecond(articulatedPartVelocityControl.RollAngularVelocity);
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
   pHostSession->SendVelocityControl(cigiArticulatedPartVelocityControl);
@@ -1387,21 +1572,25 @@ void RegisterArticulatedPartVelocityControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendArticulatedPartVelocityControl), "sendArticulatedPartVelocityControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptArticulatedPartVelocityControl>(*m, "ArticulatedPartVelocityControl", {constructor<SScriptArticulatedPartVelocityControl()>(), constructor<SScriptArticulatedPartVelocityControl(const SScriptArticulatedPartVelocityControl&)>()},
-                                                                        {
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::EntityID), "EntityID"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::ArticulatedPartID), "ArticulatedPartID"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::XLinearVelocity), "XLinearVelocity"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::YLinearVelocity), "YLinearVelocity"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::ZLinearVelocity), "ZLinearVelocity"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::RollAngularVelocity), "RollAngularVelocity"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::PitchAngularVelocity), "PitchAngularVelocity"},
-                                                                          {fun(&SScriptArticulatedPartVelocityControl::YawAngularVelocity), "YawAngularVelocity"},
-                                                                        });
+  chaiscript::utility::add_class<SScriptArticulatedPartVelocityControl>(
+    *m,
+    "ArticulatedPartVelocityControl",
+    {constructor<SScriptArticulatedPartVelocityControl()>(), constructor<SScriptArticulatedPartVelocityControl(const SScriptArticulatedPartVelocityControl&)>()},
+    {
+      {fun(&SScriptArticulatedPartVelocityControl::EntityID), "EntityID"},
+      {fun(&SScriptArticulatedPartVelocityControl::ArticulatedPartID), "ArticulatedPartID"},
+      {fun(&SScriptArticulatedPartVelocityControl::XLinearVelocity), "XLinearVelocity"},
+      {fun(&SScriptArticulatedPartVelocityControl::YLinearVelocity), "YLinearVelocity"},
+      {fun(&SScriptArticulatedPartVelocityControl::ZLinearVelocity), "ZLinearVelocity"},
+      {fun(&SScriptArticulatedPartVelocityControl::RollAngularVelocity), "RollAngularVelocity"},
+      {fun(&SScriptArticulatedPartVelocityControl::PitchAngularVelocity), "PitchAngularVelocity"},
+      {fun(&SScriptArticulatedPartVelocityControl::YawAngularVelocity), "YawAngularVelocity"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side articulated-part pose and degree-of-freedom enable settings. */
 struct SScriptArticulatedPartControl
 {
   uint16_t EntityID = 0;
@@ -1439,8 +1628,8 @@ void sendArticulatedPartControl(SScriptArticulatedPartControl articulatedPartCon
   cigiArticulatedPart.bRollEnabled = articulatedPartControl.RollEnabled;
 
   cigiArticulatedPart.rotation.yaw = Degrees(articulatedPartControl.Yaw);
-  cigiArticulatedPart.rotation.pitch = Degrees(articulatedPartControl.Pitch);
-  cigiArticulatedPart.rotation.roll = Degrees(articulatedPartControl.Roll);
+  cigiArticulatedPart.rotation.pitch = Degrees90(articulatedPartControl.Pitch);
+  cigiArticulatedPart.rotation.roll = Degrees180(articulatedPartControl.Roll);
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
   pHostSession->SendArticulatedPartControl(cigiArticulatedPart);
@@ -1451,28 +1640,32 @@ void RegisterArticulatedPartControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendArticulatedPartControl), "sendArticulatedPartControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptArticulatedPartControl>(*m, "ArticulatedPartControl", {constructor<SScriptArticulatedPartControl()>(), constructor<SScriptArticulatedPartControl(const SScriptArticulatedPartControl&)>()},
-                                                                {
-                                                                  {fun(&SScriptArticulatedPartControl::EntityID), "EntityID"},
-                                                                  {fun(&SScriptArticulatedPartControl::ArticulatedPartID), "ArticulatedPartID"},
-                                                                  {fun(&SScriptArticulatedPartControl::Enabled), "Enabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::XOffsetEnabled), "XOffsetEnabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::YOffsetEnabled), "YOffsetEnabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::ZOffsetEnabled), "ZOffsetEnabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::XOffset), "XOffset"},
-                                                                  {fun(&SScriptArticulatedPartControl::YOffset), "YOffset"},
-                                                                  {fun(&SScriptArticulatedPartControl::ZOffset), "ZOffset"},
-                                                                  {fun(&SScriptArticulatedPartControl::YawEnabled), "YawEnabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::PitchEnabled), "PitchEnabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::RollEnabled), "RollEnabled"},
-                                                                  {fun(&SScriptArticulatedPartControl::Roll), "Roll"},
-                                                                  {fun(&SScriptArticulatedPartControl::Pitch), "Pitch"},
-                                                                  {fun(&SScriptArticulatedPartControl::Yaw), "Yaw"},
-                                                                });
+  chaiscript::utility::add_class<SScriptArticulatedPartControl>(
+    *m,
+    "ArticulatedPartControl",
+    {constructor<SScriptArticulatedPartControl()>(), constructor<SScriptArticulatedPartControl(const SScriptArticulatedPartControl&)>()},
+    {
+      {fun(&SScriptArticulatedPartControl::EntityID), "EntityID"},
+      {fun(&SScriptArticulatedPartControl::ArticulatedPartID), "ArticulatedPartID"},
+      {fun(&SScriptArticulatedPartControl::Enabled), "Enabled"},
+      {fun(&SScriptArticulatedPartControl::XOffsetEnabled), "XOffsetEnabled"},
+      {fun(&SScriptArticulatedPartControl::YOffsetEnabled), "YOffsetEnabled"},
+      {fun(&SScriptArticulatedPartControl::ZOffsetEnabled), "ZOffsetEnabled"},
+      {fun(&SScriptArticulatedPartControl::XOffset), "XOffset"},
+      {fun(&SScriptArticulatedPartControl::YOffset), "YOffset"},
+      {fun(&SScriptArticulatedPartControl::ZOffset), "ZOffset"},
+      {fun(&SScriptArticulatedPartControl::YawEnabled), "YawEnabled"},
+      {fun(&SScriptArticulatedPartControl::PitchEnabled), "PitchEnabled"},
+      {fun(&SScriptArticulatedPartControl::RollEnabled), "RollEnabled"},
+      {fun(&SScriptArticulatedPartControl::Roll), "Roll"},
+      {fun(&SScriptArticulatedPartControl::Pitch), "Pitch"},
+      {fun(&SScriptArticulatedPartControl::Yaw), "Yaw"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side short articulated-part update selecting individual degrees of freedom. */
 struct SScriptShortArticulatedPart
 {
   uint16_t EntityID = 0;
@@ -1511,22 +1704,26 @@ void RegisterShortArticulatedPartControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendShortArticulatedPartControl), "sendShortArticulatedPartControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptShortArticulatedPart>(*m, "ShortArticulatedPartControl", {constructor<SScriptShortArticulatedPart()>(), constructor<SScriptShortArticulatedPart(const SScriptShortArticulatedPart&)>()},
-                                                              {
-                                                                {fun(&SScriptShortArticulatedPart::EntityID), "EntityID"},
-                                                                {fun(&SScriptShortArticulatedPart::ArticulatedPartID1), "ArticulatedPartID1"},
-                                                                {fun(&SScriptShortArticulatedPart::ArticulatedPartID2), "ArticulatedPartID2"},
-                                                                {fun(&SScriptShortArticulatedPart::ArticulatedPart1Enabled), "ArticulatedPart1Enabled"},
-                                                                {fun(&SScriptShortArticulatedPart::ArticulatedPart2Enabled), "ArticulatedPart2Enabled"},
-                                                                {fun(&SScriptShortArticulatedPart::DOFSelect1), "DOFSelect1"},
-                                                                {fun(&SScriptShortArticulatedPart::DOFSelect2), "DOFSelect2"},
-                                                                {fun(&SScriptShortArticulatedPart::DOF1), "DOF1"},
-                                                                {fun(&SScriptShortArticulatedPart::DOF2), "DOF2"},
-                                                              });
+  chaiscript::utility::add_class<SScriptShortArticulatedPart>(
+    *m,
+    "ShortArticulatedPartControl",
+    {constructor<SScriptShortArticulatedPart()>(), constructor<SScriptShortArticulatedPart(const SScriptShortArticulatedPart&)>()},
+    {
+      {fun(&SScriptShortArticulatedPart::EntityID), "EntityID"},
+      {fun(&SScriptShortArticulatedPart::ArticulatedPartID1), "ArticulatedPartID1"},
+      {fun(&SScriptShortArticulatedPart::ArticulatedPartID2), "ArticulatedPartID2"},
+      {fun(&SScriptShortArticulatedPart::ArticulatedPart1Enabled), "ArticulatedPart1Enabled"},
+      {fun(&SScriptShortArticulatedPart::ArticulatedPart2Enabled), "ArticulatedPart2Enabled"},
+      {fun(&SScriptShortArticulatedPart::DOFSelect1), "DOFSelect1"},
+      {fun(&SScriptShortArticulatedPart::DOFSelect2), "DOFSelect2"},
+      {fun(&SScriptShortArticulatedPart::DOF1), "DOF1"},
+      {fun(&SScriptShortArticulatedPart::DOF2), "DOF2"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side view attachment, position, and orientation control fields. */
 struct SScriptViewControl
 {
   uint16_t ViewID = 0;
@@ -1562,8 +1759,8 @@ void sendViewControl(SScriptViewControl viewControl)
   cigiViewControl.bPitchEnabled = viewControl.PitchEnabled;
   cigiViewControl.bRollEnabled = viewControl.RollEnabled;
   cigiViewControl.rotation.yaw = Degrees(viewControl.Yaw);
-  cigiViewControl.rotation.pitch = Degrees(viewControl.Pitch);
-  cigiViewControl.rotation.roll = Degrees(viewControl.Roll);
+  cigiViewControl.rotation.pitch = Degrees90(viewControl.Pitch);
+  cigiViewControl.rotation.roll = Degrees180(viewControl.Roll);
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
   pHostSession->SendViewControl(cigiViewControl);
@@ -1574,7 +1771,9 @@ void RegisterViewControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendViewControl), "sendViewControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptViewControl>(*m, "ViewControl", {constructor<SScriptViewControl()>(), constructor<SScriptViewControl(const SScriptViewControl&)>()},
+  chaiscript::utility::add_class<SScriptViewControl>(*m,
+                                                     "ViewControl",
+                                                     {constructor<SScriptViewControl()>(), constructor<SScriptViewControl(const SScriptViewControl&)>()},
                                                      {
                                                        {fun(&SScriptViewControl::ViewID), "ViewID"},
                                                        {fun(&SScriptViewControl::ViewGroupID), "ViewGroupID"},
@@ -1596,6 +1795,7 @@ void RegisterViewControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side storage for the data fields of a full component-control update. */
 struct SScriptComponentData
 {
   uint16_t Values[6] = {0, 0, 0, 0, 0, 0};
@@ -1611,6 +1811,7 @@ uint16_t componentDataValueAtConst(const SScriptComponentData& data, size_t inde
   return data.Values[index];
 }
 
+/** @brief Script-side component identification, state, and full data payload. */
 struct SScriptComponentControl
 {
   uint16_t InstanceID = 0;
@@ -1643,7 +1844,9 @@ void RegisterComponentControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendComponentControl), "sendComponentControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptComponentControl>(*m, "ComponentControl", {constructor<SScriptComponentControl()>(), constructor<SScriptComponentControl(const SScriptComponentControl&)>()},
+  chaiscript::utility::add_class<SScriptComponentControl>(*m,
+                                                          "ComponentControl",
+                                                          {constructor<SScriptComponentControl()>(), constructor<SScriptComponentControl(const SScriptComponentControl&)>()},
                                                           {
                                                             {fun(&SScriptComponentControl::InstanceID), "InstanceID"},
                                                             {fun(&SScriptComponentControl::ComponentID), "ComponentID"},
@@ -1651,7 +1854,9 @@ void RegisterComponentControl(ChaiScript& chai)
                                                             {fun(&SScriptComponentControl::ComponentState), "ComponentState"},
                                                             {fun(&SScriptComponentControl::ComponentData), "ComponentData"},
                                                           });
-  chaiscript::utility::add_class<SScriptComponentData>(*m, "ComponentData", {constructor<SScriptComponentData()>(), constructor<SScriptComponentData(const SScriptComponentData&)>()},
+  chaiscript::utility::add_class<SScriptComponentData>(*m,
+                                                       "ComponentData",
+                                                       {constructor<SScriptComponentData()>(), constructor<SScriptComponentData(const SScriptComponentData&)>()},
                                                        {
                                                          {fun(&SScriptComponentData::Values), "Values"},
                                                        });
@@ -1661,6 +1866,7 @@ void RegisterComponentControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side storage for the data fields of a short component-control update. */
 struct SScriptShortComponentData
 {
   uint16_t Values[2] = {0, 0};
@@ -1676,6 +1882,7 @@ uint16_t shortComponentDataValueAtConst(const SScriptShortComponentData& data, s
   return data.Values[index];
 }
 
+/** @brief Script-side component identification, state, and short data payload. */
 struct SScriptShortComponentControl
 {
   uint16_t InstanceID = 0;
@@ -1704,24 +1911,31 @@ void RegisterShortComponentControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendShortComponentControl), "sendShortComponentControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptShortComponentControl>(*m, "ShortComponentControl", {constructor<SScriptShortComponentControl()>(), constructor<SScriptShortComponentControl(const SScriptShortComponentControl&)>()},
-                                                               {
-                                                                 {fun(&SScriptShortComponentControl::InstanceID), "InstanceID"},
-                                                                 {fun(&SScriptShortComponentControl::ComponentID), "ComponentID"},
-                                                                 {fun(&SScriptShortComponentControl::ComponentClass), "ComponentClass"},
-                                                                 {fun(&SScriptShortComponentControl::ComponentState), "ComponentState"},
-                                                                 {fun(&SScriptShortComponentControl::ComponentData), "ComponentData"},
-                                                               });
-  chaiscript::utility::add_class<SScriptShortComponentData>(*m, "ShortComponentData", {constructor<SScriptShortComponentData()>(), constructor<SScriptShortComponentData(const SScriptShortComponentData&)>()},
-                                                            {
-                                                              {fun(&SScriptShortComponentData::Values), "Values"},
-                                                            });
+  chaiscript::utility::add_class<SScriptShortComponentControl>(
+    *m,
+    "ShortComponentControl",
+    {constructor<SScriptShortComponentControl()>(), constructor<SScriptShortComponentControl(const SScriptShortComponentControl&)>()},
+    {
+      {fun(&SScriptShortComponentControl::InstanceID), "InstanceID"},
+      {fun(&SScriptShortComponentControl::ComponentID), "ComponentID"},
+      {fun(&SScriptShortComponentControl::ComponentClass), "ComponentClass"},
+      {fun(&SScriptShortComponentControl::ComponentState), "ComponentState"},
+      {fun(&SScriptShortComponentControl::ComponentData), "ComponentData"},
+    });
+  chaiscript::utility::add_class<SScriptShortComponentData>(
+    *m,
+    "ShortComponentData",
+    {constructor<SScriptShortComponentData()>(), constructor<SScriptShortComponentData(const SScriptShortComponentData&)>()},
+    {
+      {fun(&SScriptShortComponentData::Values), "Values"},
+    });
   m->add(chaiscript::fun(&shortComponentDataValueAt), "[]");
   m->add(chaiscript::fun(&shortComponentDataValueAtConst), "[]");
 
   chai.add(m);
 }
 
+/** @brief Script-side entity identity, type selection, state, and rendering-control fields. */
 struct SScriptEntityControl
 {
   bool ExtendedEntityType = false;
@@ -1732,7 +1946,7 @@ struct SScriptEntityControl
   uint8_t EntitySubCategory = 0;
   uint8_t EntitySpecific = 0;
   uint8_t EntityExtra = 0;
-  uint8_t ShortEntityType = 0;
+  uint16_t ShortEntityType = 0;
   uint16_t EntityID = 0;
   string State;
   bool CollisionReportingEnable = false;
@@ -1777,7 +1991,9 @@ void RegisterEntityControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendEntityControl), "sendEntityControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptEntityControl>(*m, "EntityControl", {constructor<SScriptEntityControl()>(), constructor<SScriptEntityControl(const SScriptEntityControl&)>()},
+  chaiscript::utility::add_class<SScriptEntityControl>(*m,
+                                                       "EntityControl",
+                                                       {constructor<SScriptEntityControl()>(), constructor<SScriptEntityControl(const SScriptEntityControl&)>()},
                                                        {
                                                          {fun(&SScriptEntityControl::ExtendedEntityType), "ExtendedEntityType"},
                                                          {fun(&SScriptEntityControl::EntityKind), "EntityKind"},
@@ -1799,6 +2015,7 @@ void RegisterEntityControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side entity animation playback, alpha, and frame-position settings. */
 struct SScriptAnimationControl
 {
   uint16_t AnimationID = 0;
@@ -1832,7 +2049,9 @@ void RegisterAnimationControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendAnimationControl), "sendAnimationControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptAnimationControl>(*m, "AnimationControl", {constructor<SScriptAnimationControl()>(), constructor<SScriptAnimationControl(const SScriptAnimationControl&)>()},
+  chaiscript::utility::add_class<SScriptAnimationControl>(*m,
+                                                          "AnimationControl",
+                                                          {constructor<SScriptAnimationControl()>(), constructor<SScriptAnimationControl(const SScriptAnimationControl&)>()},
                                                           {
                                                             {fun(&SScriptAnimationControl::AnimationID), "AnimationID"},
                                                             {fun(&SScriptAnimationControl::AnimationState), "AnimationState"},
@@ -1847,6 +2066,7 @@ void RegisterAnimationControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side date/time and celestial sphere visibility settings. */
 struct SScriptCelestialSphereControl
 {
   bool ContinuousTimeOfDayEnable = false;
@@ -1891,25 +2111,29 @@ void RegisterCelestialSphereControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendCelestialSphereControl), "sendCelestialSphereControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptCelestialSphereControl>(*m, "CelestialSphereControl", {constructor<SScriptCelestialSphereControl()>(), constructor<SScriptCelestialSphereControl(const SScriptCelestialSphereControl&)>()},
-                                                                {
-                                                                  {fun(&SScriptCelestialSphereControl::ContinuousTimeOfDayEnable), "ContinuousTimeOfDayEnable"},
-                                                                  {fun(&SScriptCelestialSphereControl::SunEnable), "SunEnable"},
-                                                                  {fun(&SScriptCelestialSphereControl::MoonEnable), "MoonEnable"},
-                                                                  {fun(&SScriptCelestialSphereControl::StarFieldEnable), "StarFieldEnable"},
-                                                                  {fun(&SScriptCelestialSphereControl::DateTimeValid), "DateTimeValid"},
-                                                                  {fun(&SScriptCelestialSphereControl::Hour), "Hour"},
-                                                                  {fun(&SScriptCelestialSphereControl::Minute), "Minute"},
-                                                                  {fun(&SScriptCelestialSphereControl::Seconds), "Seconds"},
-                                                                  {fun(&SScriptCelestialSphereControl::Year), "Year"},
-                                                                  {fun(&SScriptCelestialSphereControl::Month), "Month"},
-                                                                  {fun(&SScriptCelestialSphereControl::Day), "Day"},
-                                                                  {fun(&SScriptCelestialSphereControl::StarFieldIntensity), "StarFieldIntensity"},
-                                                                });
+  chaiscript::utility::add_class<SScriptCelestialSphereControl>(
+    *m,
+    "CelestialSphereControl",
+    {constructor<SScriptCelestialSphereControl()>(), constructor<SScriptCelestialSphereControl(const SScriptCelestialSphereControl&)>()},
+    {
+      {fun(&SScriptCelestialSphereControl::ContinuousTimeOfDayEnable), "ContinuousTimeOfDayEnable"},
+      {fun(&SScriptCelestialSphereControl::SunEnable), "SunEnable"},
+      {fun(&SScriptCelestialSphereControl::MoonEnable), "MoonEnable"},
+      {fun(&SScriptCelestialSphereControl::StarFieldEnable), "StarFieldEnable"},
+      {fun(&SScriptCelestialSphereControl::DateTimeValid), "DateTimeValid"},
+      {fun(&SScriptCelestialSphereControl::Hour), "Hour"},
+      {fun(&SScriptCelestialSphereControl::Minute), "Minute"},
+      {fun(&SScriptCelestialSphereControl::Seconds), "Seconds"},
+      {fun(&SScriptCelestialSphereControl::Year), "Year"},
+      {fun(&SScriptCelestialSphereControl::Month), "Month"},
+      {fun(&SScriptCelestialSphereControl::Day), "Day"},
+      {fun(&SScriptCelestialSphereControl::StarFieldIntensity), "StarFieldIntensity"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side global atmospheric model, visibility, temperature, pressure, and wind settings. */
 struct SScriptAtmosphereControl
 {
   bool AtmosphericModelEnable = false;
@@ -1946,7 +2170,9 @@ void RegisterAtmosphereControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendAtmosphereControl), "sendAtmosphereControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptAtmosphereControl>(*m, "AtmosphereControl", {constructor<SScriptAtmosphereControl()>(), constructor<SScriptAtmosphereControl(const SScriptAtmosphereControl&)>()},
+  chaiscript::utility::add_class<SScriptAtmosphereControl>(*m,
+                                                           "AtmosphereControl",
+                                                           {constructor<SScriptAtmosphereControl()>(), constructor<SScriptAtmosphereControl(const SScriptAtmosphereControl&)>()},
                                                            {
                                                              {fun(&SScriptAtmosphereControl::AtmosphericModelEnable), "AtmosphericModelEnable"},
                                                              {fun(&SScriptAtmosphereControl::GlobalHumidity), "GlobalHumidity"},
@@ -1961,6 +2187,7 @@ void RegisterAtmosphereControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side weather properties and scope selection for weather-control packets. */
 struct SScriptWeatherControl
 {
   string LayerID;
@@ -2050,7 +2277,9 @@ void RegisterWeatherControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendWeatherControl), "sendWeatherControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptWeatherControl>(*m, "WeatherControl", {constructor<SScriptWeatherControl()>(), constructor<SScriptWeatherControl(const SScriptWeatherControl&)>()},
+  chaiscript::utility::add_class<SScriptWeatherControl>(*m,
+                                                        "WeatherControl",
+                                                        {constructor<SScriptWeatherControl()>(), constructor<SScriptWeatherControl(const SScriptWeatherControl&)>()},
                                                         {
                                                           {fun(&SScriptWeatherControl::LayerID), "LayerID"},
                                                           {fun(&SScriptWeatherControl::Humidity), "Humidity"},
@@ -2083,6 +2312,7 @@ void RegisterWeatherControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side environmental region geometry, state, and property-merging settings. */
 struct SScriptEnvironmentalRegion
 {
   uint16_t RegionID = 0;
@@ -2126,26 +2356,30 @@ void RegisterEnvironmentalRegionControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendEnvironmentalRegionControl), "sendEnvironmentalRegionControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptEnvironmentalRegion>(*m, "EnvironmentalRegionControl", {constructor<SScriptEnvironmentalRegion()>(), constructor<SScriptEnvironmentalRegion(const SScriptEnvironmentalRegion&)>()},
-                                                             {
-                                                               {fun(&SScriptEnvironmentalRegion::RegionID), "RegionID"},
-                                                               {fun(&SScriptEnvironmentalRegion::RegionState), "RegionState"},
-                                                               {fun(&SScriptEnvironmentalRegion::MergeWeatherProperties), "MergeWeatherProperties"},
-                                                               {fun(&SScriptEnvironmentalRegion::MergeAerosolConcentrations), "MergeAerosolConcentrations"},
-                                                               {fun(&SScriptEnvironmentalRegion::MergeMaritimeSurfaceConditions), "MergeMaritimeSurfaceConditions"},
-                                                               {fun(&SScriptEnvironmentalRegion::MergeTerrestrialSurfaceConditions), "MergeTerrestrialSurfaceConditions"},
-                                                               {fun(&SScriptEnvironmentalRegion::Latitude), "Latitude"},
-                                                               {fun(&SScriptEnvironmentalRegion::Longitude), "Longitude"},
-                                                               {fun(&SScriptEnvironmentalRegion::SizeX), "SizeX"},
-                                                               {fun(&SScriptEnvironmentalRegion::SizeY), "SizeY"},
-                                                               {fun(&SScriptEnvironmentalRegion::CornerRadius), "CornerRadius"},
-                                                               {fun(&SScriptEnvironmentalRegion::Rotation), "Rotation"},
-                                                               {fun(&SScriptEnvironmentalRegion::TransitionPerimeter), "TransitionPerimeter"},
-                                                             });
+  chaiscript::utility::add_class<SScriptEnvironmentalRegion>(
+    *m,
+    "EnvironmentalRegionControl",
+    {constructor<SScriptEnvironmentalRegion()>(), constructor<SScriptEnvironmentalRegion(const SScriptEnvironmentalRegion&)>()},
+    {
+      {fun(&SScriptEnvironmentalRegion::RegionID), "RegionID"},
+      {fun(&SScriptEnvironmentalRegion::RegionState), "RegionState"},
+      {fun(&SScriptEnvironmentalRegion::MergeWeatherProperties), "MergeWeatherProperties"},
+      {fun(&SScriptEnvironmentalRegion::MergeAerosolConcentrations), "MergeAerosolConcentrations"},
+      {fun(&SScriptEnvironmentalRegion::MergeMaritimeSurfaceConditions), "MergeMaritimeSurfaceConditions"},
+      {fun(&SScriptEnvironmentalRegion::MergeTerrestrialSurfaceConditions), "MergeTerrestrialSurfaceConditions"},
+      {fun(&SScriptEnvironmentalRegion::Latitude), "Latitude"},
+      {fun(&SScriptEnvironmentalRegion::Longitude), "Longitude"},
+      {fun(&SScriptEnvironmentalRegion::SizeX), "SizeX"},
+      {fun(&SScriptEnvironmentalRegion::SizeY), "SizeY"},
+      {fun(&SScriptEnvironmentalRegion::CornerRadius), "CornerRadius"},
+      {fun(&SScriptEnvironmentalRegion::Rotation), "Rotation"},
+      {fun(&SScriptEnvironmentalRegion::TransitionPerimeter), "TransitionPerimeter"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side Earth reference model selection and ellipsoid parameters. */
 struct SScriptEarthReferenceModel
 {
   bool CustomERMEnable = false;
@@ -2177,16 +2411,20 @@ void RegisterEarthReferenceDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendEarthReferenceModelDefinition), "sendEarthReferenceModelDefinition");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptEarthReferenceModel>(*m, "EarthReferenceModelDefinition", {constructor<SScriptEarthReferenceModel()>(), constructor<SScriptEarthReferenceModel(const SScriptEarthReferenceModel&)>()},
-                                                             {
-                                                               {fun(&SScriptEarthReferenceModel::CustomERMEnable), "CustomERMEnable"},
-                                                               {fun(&SScriptEarthReferenceModel::EquatorialRadius), "EquatorialRadius"},
-                                                               {fun(&SScriptEarthReferenceModel::Flattening), "Flattening"},
-                                                             });
+  chaiscript::utility::add_class<SScriptEarthReferenceModel>(
+    *m,
+    "EarthReferenceModelDefinition",
+    {constructor<SScriptEarthReferenceModel()>(), constructor<SScriptEarthReferenceModel(const SScriptEarthReferenceModel&)>()},
+    {
+      {fun(&SScriptEarthReferenceModel::CustomERMEnable), "CustomERMEnable"},
+      {fun(&SScriptEarthReferenceModel::EquatorialRadius), "EquatorialRadius"},
+      {fun(&SScriptEarthReferenceModel::Flattening), "Flattening"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side entity acceleration and coordinate-system selection. */
 struct SScriptEntityAccelerationControl
 {
   uint16_t EntityID = 0;
@@ -2207,9 +2445,9 @@ void sendEntityAccelerationControl(SScriptEntityAccelerationControl scriptAccele
   cigiAcceleration.linearAcceleration[0] = scriptAcceleration.XLinearAcceleration;
   cigiAcceleration.linearAcceleration[1] = scriptAcceleration.YLinearAcceleration;
   cigiAcceleration.linearAcceleration[2] = scriptAcceleration.ZLinearAcceleration;
-  cigiAcceleration.angularAcceleration.roll = Degrees(scriptAcceleration.RollAngularAcceleration);
-  cigiAcceleration.angularAcceleration.pitch = Degrees(scriptAcceleration.PitchAngularAcceleration);
-  cigiAcceleration.angularAcceleration.yaw = Degrees(scriptAcceleration.YawAngularAcceleration);
+  cigiAcceleration.angularAcceleration.roll = DegreesPerSecondSquared(scriptAcceleration.RollAngularAcceleration);
+  cigiAcceleration.angularAcceleration.pitch = DegreesPerSecondSquared(scriptAcceleration.PitchAngularAcceleration);
+  cigiAcceleration.angularAcceleration.yaw = DegreesPerSecondSquared(scriptAcceleration.YawAngularAcceleration);
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
   pHostSession->SendEntityAccelerationControl(cigiAcceleration);
@@ -2220,21 +2458,25 @@ void RegisterEntityAccelerationControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendEntityAccelerationControl), "sendEntityAccelerationControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptEntityAccelerationControl>(*m, "EntityAccelerationControl", {constructor<SScriptEntityAccelerationControl()>(), constructor<SScriptEntityAccelerationControl(const SScriptEntityAccelerationControl&)>()},
-                                                                   {
-                                                                     {fun(&SScriptEntityAccelerationControl::EntityID), "EntityID"},
-                                                                     {fun(&SScriptEntityAccelerationControl::CoordinateSystem), "CoordinateSystem"},
-                                                                     {fun(&SScriptEntityAccelerationControl::XLinearAcceleration), "XLinearAcceleration"},
-                                                                     {fun(&SScriptEntityAccelerationControl::YLinearAcceleration), "YLinearAcceleration"},
-                                                                     {fun(&SScriptEntityAccelerationControl::ZLinearAcceleration), "ZLinearAcceleration"},
-                                                                     {fun(&SScriptEntityAccelerationControl::RollAngularAcceleration), "RollAngularAcceleration"},
-                                                                     {fun(&SScriptEntityAccelerationControl::PitchAngularAcceleration), "PitchAngularAcceleration"},
-                                                                     {fun(&SScriptEntityAccelerationControl::YawAngularAcceleration), "YawAngularAcceleration"},
-                                                                   });
+  chaiscript::utility::add_class<SScriptEntityAccelerationControl>(
+    *m,
+    "EntityAccelerationControl",
+    {constructor<SScriptEntityAccelerationControl()>(), constructor<SScriptEntityAccelerationControl(const SScriptEntityAccelerationControl&)>()},
+    {
+      {fun(&SScriptEntityAccelerationControl::EntityID), "EntityID"},
+      {fun(&SScriptEntityAccelerationControl::CoordinateSystem), "CoordinateSystem"},
+      {fun(&SScriptEntityAccelerationControl::XLinearAcceleration), "XLinearAcceleration"},
+      {fun(&SScriptEntityAccelerationControl::YLinearAcceleration), "YLinearAcceleration"},
+      {fun(&SScriptEntityAccelerationControl::ZLinearAcceleration), "ZLinearAcceleration"},
+      {fun(&SScriptEntityAccelerationControl::RollAngularAcceleration), "RollAngularAcceleration"},
+      {fun(&SScriptEntityAccelerationControl::PitchAngularAcceleration), "PitchAngularAcceleration"},
+      {fun(&SScriptEntityAccelerationControl::YawAngularAcceleration), "YawAngularAcceleration"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side articulated-part acceleration settings. */
 struct SScriptArticulatedPartAccelerationControl
 {
   uint16_t EntityID = 0;
@@ -2255,9 +2497,9 @@ void sendArticulatedPartAccelerationControl(SScriptArticulatedPartAccelerationCo
   cigiAcceleration.linearAcceleration[0] = scriptAcceleration.XLinearAcceleration;
   cigiAcceleration.linearAcceleration[1] = scriptAcceleration.YLinearAcceleration;
   cigiAcceleration.linearAcceleration[2] = scriptAcceleration.ZLinearAcceleration;
-  cigiAcceleration.angularAcceleration.roll = Degrees(scriptAcceleration.RollAngularAcceleration);
-  cigiAcceleration.angularAcceleration.pitch = Degrees(scriptAcceleration.PitchAngularAcceleration);
-  cigiAcceleration.angularAcceleration.yaw = Degrees(scriptAcceleration.YawAngularAcceleration);
+  cigiAcceleration.angularAcceleration.roll = DegreesPerSecondSquared(scriptAcceleration.RollAngularAcceleration);
+  cigiAcceleration.angularAcceleration.pitch = DegreesPerSecondSquared(scriptAcceleration.PitchAngularAcceleration);
+  cigiAcceleration.angularAcceleration.yaw = DegreesPerSecondSquared(scriptAcceleration.YawAngularAcceleration);
   cigiAcceleration.eCoordinateSystem = EObjectCoordinateSystem::LOCAL;
 
   CHostSession* pHostSession = g_HostCigiLibGlobals.pHost->GetHostSession();
@@ -2269,21 +2511,25 @@ void RegisterArticulatedPartAccelerationControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendArticulatedPartAccelerationControl), "sendArticulatedPartAccelerationControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptArticulatedPartAccelerationControl>(*m, "ArticulatedPartAccelerationControl", {constructor<SScriptArticulatedPartAccelerationControl()>(), constructor<SScriptArticulatedPartAccelerationControl(const SScriptArticulatedPartAccelerationControl&)>()},
-                                                                            {
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::EntityID), "EntityID"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::ArticulatedPartID), "ArticulatedPartID"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::XLinearAcceleration), "XLinearAcceleration"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::YLinearAcceleration), "YLinearAcceleration"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::ZLinearAcceleration), "ZLinearAcceleration"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::RollAngularAcceleration), "RollAngularAcceleration"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::PitchAngularAcceleration), "PitchAngularAcceleration"},
-                                                                              {fun(&SScriptArticulatedPartAccelerationControl::YawAngularAcceleration), "YawAngularAcceleration"},
-                                                                            });
+  chaiscript::utility::add_class<SScriptArticulatedPartAccelerationControl>(
+    *m,
+    "ArticulatedPartAccelerationControl",
+    {constructor<SScriptArticulatedPartAccelerationControl()>(), constructor<SScriptArticulatedPartAccelerationControl(const SScriptArticulatedPartAccelerationControl&)>()},
+    {
+      {fun(&SScriptArticulatedPartAccelerationControl::EntityID), "EntityID"},
+      {fun(&SScriptArticulatedPartAccelerationControl::ArticulatedPartID), "ArticulatedPartID"},
+      {fun(&SScriptArticulatedPartAccelerationControl::XLinearAcceleration), "XLinearAcceleration"},
+      {fun(&SScriptArticulatedPartAccelerationControl::YLinearAcceleration), "YLinearAcceleration"},
+      {fun(&SScriptArticulatedPartAccelerationControl::ZLinearAcceleration), "ZLinearAcceleration"},
+      {fun(&SScriptArticulatedPartAccelerationControl::RollAngularAcceleration), "RollAngularAcceleration"},
+      {fun(&SScriptArticulatedPartAccelerationControl::PitchAngularAcceleration), "PitchAngularAcceleration"},
+      {fun(&SScriptArticulatedPartAccelerationControl::YawAngularAcceleration), "YawAngularAcceleration"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side terrain-height query at a geodetic position. */
 struct SScriptHATHOTGlobalRequest
 {
   uint16_t HATHOTID = 0;
@@ -2294,6 +2540,7 @@ struct SScriptHATHOTGlobalRequest
   string RequestType;
 };
 
+/** @brief Script-side terrain-height query at an entity-relative position. */
 struct SScriptHATHOTEntityRequest
 {
   uint16_t HATHOTID = 0;
@@ -2340,7 +2587,8 @@ void RegisterHATHOTGlobalRequest(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendHATHOTGlobalRequest), "sendHATHOTGlobalRequest");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptHATHOTGlobalRequest>(*m, "HATHOTGlobalRequest",
+  chaiscript::utility::add_class<SScriptHATHOTGlobalRequest>(*m,
+                                                             "HATHOTGlobalRequest",
                                                              {
                                                                constructor<SScriptHATHOTGlobalRequest()>(),
                                                                constructor<SScriptHATHOTGlobalRequest(const SScriptHATHOTGlobalRequest&)>(),
@@ -2362,16 +2610,19 @@ void RegisterHATHOTEntityRequest(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendHATHOTEntityRequest), "sendHATHOTEntityRequest");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptHATHOTEntityRequest>(*m, "HATHOTEntityRequest", {constructor<SScriptHATHOTEntityRequest()>(), constructor<SScriptHATHOTEntityRequest(const SScriptHATHOTEntityRequest&)>()},
-                                                             {
-                                                               {fun(&SScriptHATHOTEntityRequest::HATHOTID), "HATHOTID"},
-                                                               {fun(&SScriptHATHOTEntityRequest::EntityID), "EntityID"},
-                                                               {fun(&SScriptHATHOTEntityRequest::UpdatePeriod), "UpdatePeriod"},
-                                                               {fun(&SScriptHATHOTEntityRequest::XOffset), "XOffset"},
-                                                               {fun(&SScriptHATHOTEntityRequest::YOffset), "YOffset"},
-                                                               {fun(&SScriptHATHOTEntityRequest::ZOffset), "ZOffset"},
-                                                               {fun(&SScriptHATHOTEntityRequest::RequestType), "RequestType"},
-                                                             });
+  chaiscript::utility::add_class<SScriptHATHOTEntityRequest>(
+    *m,
+    "HATHOTEntityRequest",
+    {constructor<SScriptHATHOTEntityRequest()>(), constructor<SScriptHATHOTEntityRequest(const SScriptHATHOTEntityRequest&)>()},
+    {
+      {fun(&SScriptHATHOTEntityRequest::HATHOTID), "HATHOTID"},
+      {fun(&SScriptHATHOTEntityRequest::EntityID), "EntityID"},
+      {fun(&SScriptHATHOTEntityRequest::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptHATHOTEntityRequest::XOffset), "XOffset"},
+      {fun(&SScriptHATHOTEntityRequest::YOffset), "YOffset"},
+      {fun(&SScriptHATHOTEntityRequest::ZOffset), "ZOffset"},
+      {fun(&SScriptHATHOTEntityRequest::RequestType), "RequestType"},
+    });
 
   chai.add(m);
 }
@@ -2404,6 +2655,7 @@ void Wait(float fSeconds, string sCallback)
   g_pScriptRuntime->AddWaitCallback(waitCallback);
 }
 
+/** @brief Script-side maritime surface conditions applied globally. */
 struct SScriptGlobalMaritimeSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2413,6 +2665,7 @@ struct SScriptGlobalMaritimeSurfaceConditionsControl
   float SurfaceClarity = 0;
 };
 
+/** @brief Script-side maritime surface conditions applied to a region. */
 struct SScriptRegionMaritimeSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2423,6 +2676,7 @@ struct SScriptRegionMaritimeSurfaceConditionsControl
   uint16_t RegionID = 0;
 };
 
+/** @brief Script-side maritime surface conditions associated with an entity. */
 struct SScriptEntityMaritimeSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2433,6 +2687,7 @@ struct SScriptEntityMaritimeSurfaceConditionsControl
   uint16_t EntityID = 0;
 };
 
+/** @brief Script-side maritime surface condition fields with explicit scope and target selection. */
 struct SScriptMaritimeSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2526,15 +2781,18 @@ void RegisterGlobalMaritimeSurfaceConditionsControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendGlobalMaritimeSurfaceConditionsControl), "sendGlobalMaritimeSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptGlobalMaritimeSurfaceConditionsControl>(*m, "GlobalMaritimeSurfaceConditionsControl",
-                                                                                {constructor<SScriptGlobalMaritimeSurfaceConditionsControl()>(), constructor<SScriptGlobalMaritimeSurfaceConditionsControl(const SScriptGlobalMaritimeSurfaceConditionsControl&)>()},
-                                                                                {
-                                                                                  {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                                  {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
-                                                                                  {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
-                                                                                  {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
-                                                                                  {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
-                                                                                });
+  chaiscript::utility::add_class<SScriptGlobalMaritimeSurfaceConditionsControl>(
+    *m,
+    "GlobalMaritimeSurfaceConditionsControl",
+    {constructor<SScriptGlobalMaritimeSurfaceConditionsControl()>(),
+     constructor<SScriptGlobalMaritimeSurfaceConditionsControl(const SScriptGlobalMaritimeSurfaceConditionsControl&)>()},
+    {
+      {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
+      {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
+      {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
+      {fun(&SScriptGlobalMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
+    });
 
   chai.add(m);
 }
@@ -2544,16 +2802,19 @@ void RegisterRegionMaritimeSurfaceConditionsControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendRegionMaritimeSurfaceConditionsControl), "sendRegionMaritimeSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptRegionMaritimeSurfaceConditionsControl>(*m, "RegionMaritimeSurfaceConditionsControl",
-                                                                                {constructor<SScriptRegionMaritimeSurfaceConditionsControl()>(), constructor<SScriptRegionMaritimeSurfaceConditionsControl(const SScriptRegionMaritimeSurfaceConditionsControl&)>()},
-                                                                                {
-                                                                                  {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                                  {fun(&SScriptRegionMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
-                                                                                  {fun(&SScriptRegionMaritimeSurfaceConditionsControl::RegionID), "RegionID"},
-                                                                                  {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
-                                                                                  {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
-                                                                                  {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
-                                                                                });
+  chaiscript::utility::add_class<SScriptRegionMaritimeSurfaceConditionsControl>(
+    *m,
+    "RegionMaritimeSurfaceConditionsControl",
+    {constructor<SScriptRegionMaritimeSurfaceConditionsControl()>(),
+     constructor<SScriptRegionMaritimeSurfaceConditionsControl(const SScriptRegionMaritimeSurfaceConditionsControl&)>()},
+    {
+      {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&SScriptRegionMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
+      {fun(&SScriptRegionMaritimeSurfaceConditionsControl::RegionID), "RegionID"},
+      {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
+      {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
+      {fun(&SScriptRegionMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
+    });
 
   chai.add(m);
 }
@@ -2563,16 +2824,19 @@ void RegisterEntityMaritimeSurfaceConditionsControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendEntityMaritimeSurfaceConditionsControl), "sendEntityMaritimeSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptEntityMaritimeSurfaceConditionsControl>(*m, "EntityMaritimeSurfaceConditionsControl",
-                                                                                {constructor<SScriptEntityMaritimeSurfaceConditionsControl()>(), constructor<SScriptEntityMaritimeSurfaceConditionsControl(const SScriptEntityMaritimeSurfaceConditionsControl&)>()},
-                                                                                {
-                                                                                  {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                                  {fun(&SScriptEntityMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
-                                                                                  {fun(&SScriptEntityMaritimeSurfaceConditionsControl::EntityID), "EntityID"},
-                                                                                  {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
-                                                                                  {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
-                                                                                  {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
-                                                                                });
+  chaiscript::utility::add_class<SScriptEntityMaritimeSurfaceConditionsControl>(
+    *m,
+    "EntityMaritimeSurfaceConditionsControl",
+    {constructor<SScriptEntityMaritimeSurfaceConditionsControl()>(),
+     constructor<SScriptEntityMaritimeSurfaceConditionsControl(const SScriptEntityMaritimeSurfaceConditionsControl&)>()},
+    {
+      {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&SScriptEntityMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
+      {fun(&SScriptEntityMaritimeSurfaceConditionsControl::EntityID), "EntityID"},
+      {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
+      {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
+      {fun(&SScriptEntityMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
+    });
 
   chai.add(m);
 }
@@ -2582,21 +2846,25 @@ void RegisterMaritimeSurfaceConditionsControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendMaritimeSurfaceConditionsControl), "sendMaritimeSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptMaritimeSurfaceConditionsControl>(*m, "MaritimeSurfaceConditionsControl", {constructor<SScriptMaritimeSurfaceConditionsControl()>(), constructor<SScriptMaritimeSurfaceConditionsControl(const SScriptMaritimeSurfaceConditionsControl&)>()},
-                                                                          {
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::Scope), "Scope"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::RegionID), "RegionID"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::EntityID), "EntityID"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
-                                                                            {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
-                                                                          });
+  chaiscript::utility::add_class<SScriptMaritimeSurfaceConditionsControl>(
+    *m,
+    "MaritimeSurfaceConditionsControl",
+    {constructor<SScriptMaritimeSurfaceConditionsControl()>(), constructor<SScriptMaritimeSurfaceConditionsControl(const SScriptMaritimeSurfaceConditionsControl&)>()},
+    {
+      {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::WhitecapEnable), "WhitecapEnable"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::Scope), "Scope"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::RegionID), "RegionID"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::EntityID), "EntityID"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::SeaSurfaceHeight), "SeaSurfaceHeight"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
+      {fun(&SScriptMaritimeSurfaceConditionsControl::SurfaceClarity), "SurfaceClarity"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side terrestrial surface condition and severity associated with an entity. */
 struct ScriptEntityTerrestrialSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2606,6 +2874,7 @@ struct ScriptEntityTerrestrialSurfaceConditionsControl
   uint16_t EntityID = 0;// environmental entity ID
 };
 
+/** @brief Script-side terrestrial surface condition and severity applied to a region. */
 struct ScriptRegionTerrestrialSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2616,6 +2885,7 @@ struct ScriptRegionTerrestrialSurfaceConditionsControl
   uint16_t RegionID = 0;
 };
 
+/** @brief Script-side terrestrial surface condition and severity applied globally. */
 struct ScriptGlobalTerrestrialSurfaceConditionsControl
 {
   bool SurfaceConditionsEnable = false;
@@ -2670,57 +2940,70 @@ void sendGlobalTerrestrialSurfaceConditionsControl(const ScriptGlobalTerrestrial
 
 void RegisterGlobalTerrestrialSurfaceConditionsControl(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun(static_cast<void (*)(const ScriptGlobalTerrestrialSurfaceConditionsControl&)>(&sendGlobalTerrestrialSurfaceConditionsControl)), "sendGlobalTerrestrialSurfaceConditionsControl");
+  chai.add(chaiscript::fun(static_cast<void (*)(const ScriptGlobalTerrestrialSurfaceConditionsControl&)>(&sendGlobalTerrestrialSurfaceConditionsControl)),
+           "sendGlobalTerrestrialSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<ScriptGlobalTerrestrialSurfaceConditionsControl>(*m, "GlobalTerrestrialSurfaceConditionsControl",
-                                                                                  {constructor<ScriptGlobalTerrestrialSurfaceConditionsControl()>(), constructor<ScriptGlobalTerrestrialSurfaceConditionsControl(const ScriptGlobalTerrestrialSurfaceConditionsControl&)>()},
-                                                                                  {
-                                                                                    {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                                    {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::SurfaceConditionID), "SurfaceConditionID"},
-                                                                                    {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::Severity), "Severity"},
-                                                                                    {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::Coverage), "Coverage"},
-                                                                                  });
+  chaiscript::utility::add_class<ScriptGlobalTerrestrialSurfaceConditionsControl>(
+    *m,
+    "GlobalTerrestrialSurfaceConditionsControl",
+    {constructor<ScriptGlobalTerrestrialSurfaceConditionsControl()>(),
+     constructor<ScriptGlobalTerrestrialSurfaceConditionsControl(const ScriptGlobalTerrestrialSurfaceConditionsControl&)>()},
+    {
+      {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::SurfaceConditionID), "SurfaceConditionID"},
+      {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::Severity), "Severity"},
+      {fun(&ScriptGlobalTerrestrialSurfaceConditionsControl::Coverage), "Coverage"},
+    });
 
   chai.add(m);
 }
 
 void RegisterRegionTerrestrialSurfaceConditionsControl(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun(static_cast<void (*)(const ScriptRegionTerrestrialSurfaceConditionsControl&)>(&sendRegionTerrestrialSurfaceConditionsControl)), "sendRegionTerrestrialSurfaceConditionsControl");
+  chai.add(chaiscript::fun(static_cast<void (*)(const ScriptRegionTerrestrialSurfaceConditionsControl&)>(&sendRegionTerrestrialSurfaceConditionsControl)),
+           "sendRegionTerrestrialSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<ScriptRegionTerrestrialSurfaceConditionsControl>(*m, "RegionTerrestrialSurfaceConditionsControl",
-                                                                                  {constructor<ScriptRegionTerrestrialSurfaceConditionsControl()>(), constructor<ScriptRegionTerrestrialSurfaceConditionsControl(const ScriptRegionTerrestrialSurfaceConditionsControl&)>()},
-                                                                                  {
-                                                                                    {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                                    {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::SurfaceConditionID), "SurfaceConditionID"},
-                                                                                    {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::Severity), "Severity"},
-                                                                                    {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::Coverage), "Coverage"},
-                                                                                    {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::RegionID), "RegionID"},
-                                                                                  });
+  chaiscript::utility::add_class<ScriptRegionTerrestrialSurfaceConditionsControl>(
+    *m,
+    "RegionTerrestrialSurfaceConditionsControl",
+    {constructor<ScriptRegionTerrestrialSurfaceConditionsControl()>(),
+     constructor<ScriptRegionTerrestrialSurfaceConditionsControl(const ScriptRegionTerrestrialSurfaceConditionsControl&)>()},
+    {
+      {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::SurfaceConditionID), "SurfaceConditionID"},
+      {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::Severity), "Severity"},
+      {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::Coverage), "Coverage"},
+      {fun(&ScriptRegionTerrestrialSurfaceConditionsControl::RegionID), "RegionID"},
+    });
 
   chai.add(m);
 }
 
 void RegisterEntityTerrestrialSurfaceConditionsControl(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun(static_cast<void (*)(const ScriptEntityTerrestrialSurfaceConditionsControl&)>(&sendEntityTerrestrialSurfaceConditionsControl)), "sendEntityTerrestrialSurfaceConditionsControl");
+  chai.add(chaiscript::fun(static_cast<void (*)(const ScriptEntityTerrestrialSurfaceConditionsControl&)>(&sendEntityTerrestrialSurfaceConditionsControl)),
+           "sendEntityTerrestrialSurfaceConditionsControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<ScriptEntityTerrestrialSurfaceConditionsControl>(*m, "EntityTerrestrialSurfaceConditionsControl",
-                                                                                  {constructor<ScriptEntityTerrestrialSurfaceConditionsControl()>(), constructor<ScriptEntityTerrestrialSurfaceConditionsControl(const ScriptEntityTerrestrialSurfaceConditionsControl&)>()},
-                                                                                  {
-                                                                                    {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
-                                                                                    {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::SurfaceConditionID), "SurfaceConditionID"},
-                                                                                    {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::Severity), "Severity"},
-                                                                                    {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::Coverage), "Coverage"},
-                                                                                    {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::EntityID), "EntityID"},
-                                                                                  });
+  chaiscript::utility::add_class<ScriptEntityTerrestrialSurfaceConditionsControl>(
+    *m,
+    "EntityTerrestrialSurfaceConditionsControl",
+    {constructor<ScriptEntityTerrestrialSurfaceConditionsControl()>(),
+     constructor<ScriptEntityTerrestrialSurfaceConditionsControl(const ScriptEntityTerrestrialSurfaceConditionsControl&)>()},
+    {
+      {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::SurfaceConditionsEnable), "SurfaceConditionsEnable"},
+      {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::SurfaceConditionID), "SurfaceConditionID"},
+      {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::Severity), "Severity"},
+      {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::Coverage), "Coverage"},
+      {fun(&ScriptEntityTerrestrialSurfaceConditionsControl::EntityID), "EntityID"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side basic line-of-sight segment request between geodetic endpoints. */
 struct SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic
 {
   uint16_t LOSID = 0;
@@ -2735,6 +3018,7 @@ struct SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic
   double DestinationAltitude = 0;
 };
 
+/** @brief Script-side extended line-of-sight segment request between geodetic endpoints. */
 struct SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended
 {
   uint16_t LOSID = 0;
@@ -2750,6 +3034,7 @@ struct SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended
   string ResponseCoordinateSystem;
 };
 
+/** @brief Script-side basic line-of-sight segment request from geodetic to entity-relative coordinates. */
 struct SScriptLineOfSightSegmentRequestGeodeticToEntityBasic
 {
   uint16_t LOSID = 0;
@@ -2765,6 +3050,7 @@ struct SScriptLineOfSightSegmentRequestGeodeticToEntityBasic
   double DestinationZOffset = 0;
 };
 
+/** @brief Script-side extended line-of-sight segment request from geodetic to entity-relative coordinates. */
 struct SScriptLineOfSightSegmentRequestGeodeticToEntityExtended
 {
   uint16_t LOSID = 0;
@@ -2781,6 +3067,7 @@ struct SScriptLineOfSightSegmentRequestGeodeticToEntityExtended
   string ResponseCoordinateSystem;
 };
 
+/** @brief Script-side basic line-of-sight segment request from entity-relative to geodetic coordinates. */
 struct SScriptLineOfSightSegmentRequestEntityToGeodeticBasic
 {
   uint16_t LOSID = 0;
@@ -2796,6 +3083,7 @@ struct SScriptLineOfSightSegmentRequestEntityToGeodeticBasic
   double DestinationAltitude = 0;
 };
 
+/** @brief Script-side extended line-of-sight segment request from entity-relative to geodetic coordinates. */
 struct SScriptLineOfSightSegmentRequestEntityToGeodeticExtended
 {
   uint16_t LOSID = 0;
@@ -2812,6 +3100,7 @@ struct SScriptLineOfSightSegmentRequestEntityToGeodeticExtended
   string ResponseCoordinateSystem;
 };
 
+/** @brief Script-side basic line-of-sight segment request between entity-relative endpoints. */
 struct SScriptLineOfSightSegmentRequestEntityToEntityBasic
 {
   uint16_t LOSID = 0;
@@ -2828,6 +3117,7 @@ struct SScriptLineOfSightSegmentRequestEntityToEntityBasic
   double DestinationZOffset = 0;
 };
 
+/** @brief Script-side extended line-of-sight segment request between entity-relative endpoints. */
 struct SScriptLineOfSightSegmentRequestEntityToEntityExtended
 {
   uint16_t LOSID = 0;
@@ -3007,7 +3297,10 @@ void RegisterLineOfSightSegmentRequestGeodeticToGeodeticBasic(ChaiScript& chai)
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
   chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic>(
-    *m, "LineOfSightSegmentRequestGeodeticToGeodeticBasic", {constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic()>(), constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic(const SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic&)>()},
+    *m,
+    "LineOfSightSegmentRequestGeodeticToGeodeticBasic",
+    {constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic()>(),
+     constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic(const SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic&)>()},
     {
       {fun(&SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic::LOSID), "LOSID"},
       {fun(&SScriptLineOfSightSegmentRequestGeodeticToGeodeticBasic::UpdatePeriod), "UpdatePeriod"},
@@ -3030,7 +3323,10 @@ void RegisterLineOfSightSegmentRequestGeodeticToGeodeticExtended(ChaiScript& cha
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
   chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended>(
-    *m, "LineOfSightSegmentRequestGeodeticToGeodeticExtended", {constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended()>(), constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended(const SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended&)>()},
+    *m,
+    "LineOfSightSegmentRequestGeodeticToGeodeticExtended",
+    {constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended()>(),
+     constructor<SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended(const SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended&)>()},
     {
       {fun(&SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended::LOSID), "LOSID"},
       {fun(&SScriptLineOfSightSegmentRequestGeodeticToGeodeticExtended::UpdatePeriod), "UpdatePeriod"},
@@ -3053,21 +3349,24 @@ void RegisterLineOfSightSegmentRequestGeodeticToEntityBasic(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightSegmentRequestGeodeticToEntityBasic), "sendLineOfSightSegmentRequestGeodeticToEntityBasic");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestGeodeticToEntityBasic>(*m, "LineOfSightSegmentRequestGeodeticToEntityBasic",
-                                                                                        {constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityBasic()>(), constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityBasic(const SScriptLineOfSightSegmentRequestGeodeticToEntityBasic&)>()},
-                                                                                        {
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::LOSID), "LOSID"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::UpdatePeriod), "UpdatePeriod"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::AlphaThreshold), "AlphaThreshold"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::MaterialMask), "MaterialMask"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationEntityID), "DestinationEntityID"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::SourceLatitude), "SourceLatitude"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::SourceLongitude), "SourceLongitude"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::SourceAltitude), "SourceAltitude"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationXOffset), "DestinationXOffset"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationYOffset), "DestinationYOffset"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationZOffset), "DestinationZOffset"},
-                                                                                        });
+  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestGeodeticToEntityBasic>(
+    *m,
+    "LineOfSightSegmentRequestGeodeticToEntityBasic",
+    {constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityBasic()>(),
+     constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityBasic(const SScriptLineOfSightSegmentRequestGeodeticToEntityBasic&)>()},
+    {
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::MaterialMask), "MaterialMask"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationEntityID), "DestinationEntityID"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::SourceLatitude), "SourceLatitude"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::SourceLongitude), "SourceLongitude"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::SourceAltitude), "SourceAltitude"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationXOffset), "DestinationXOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationYOffset), "DestinationYOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityBasic::DestinationZOffset), "DestinationZOffset"},
+    });
 
   chai.add(m);
 }
@@ -3078,7 +3377,10 @@ void RegisterLineOfSightSegmentRequestGeodeticToEntityExtended(ChaiScript& chai)
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
   chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestGeodeticToEntityExtended>(
-    *m, "LineOfSightSegmentRequestGeodeticToEntityExtended", {constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityExtended()>(), constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityExtended(const SScriptLineOfSightSegmentRequestGeodeticToEntityExtended&)>()},
+    *m,
+    "LineOfSightSegmentRequestGeodeticToEntityExtended",
+    {constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityExtended()>(),
+     constructor<SScriptLineOfSightSegmentRequestGeodeticToEntityExtended(const SScriptLineOfSightSegmentRequestGeodeticToEntityExtended&)>()},
     {
       {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityExtended::LOSID), "LOSID"},
       {fun(&SScriptLineOfSightSegmentRequestGeodeticToEntityExtended::UpdatePeriod), "UpdatePeriod"},
@@ -3102,21 +3404,24 @@ void RegisterLineOfSightSegmentRequestEntityToGeodeticBasic(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightSegmentRequestEntityToGeodeticBasic), "sendLineOfSightSegmentRequestEntityToGeodeticBasic");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToGeodeticBasic>(*m, "LineOfSightSegmentRequestEntityToGeodeticBasic",
-                                                                                        {constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticBasic()>(), constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticBasic(const SScriptLineOfSightSegmentRequestEntityToGeodeticBasic&)>()},
-                                                                                        {
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::LOSID), "LOSID"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::UpdatePeriod), "UpdatePeriod"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::AlphaThreshold), "AlphaThreshold"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::MaterialMask), "MaterialMask"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceEntityID), "SourceEntityID"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceXOffset), "SourceXOffset"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceYOffset), "SourceYOffset"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceZOffset), "SourceZOffset"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::DestinationLatitude), "DestinationLatitude"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::DestinationLongitude), "DestinationLongitude"},
-                                                                                          {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::DestinationAltitude), "DestinationAltitude"},
-                                                                                        });
+  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToGeodeticBasic>(
+    *m,
+    "LineOfSightSegmentRequestEntityToGeodeticBasic",
+    {constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticBasic()>(),
+     constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticBasic(const SScriptLineOfSightSegmentRequestEntityToGeodeticBasic&)>()},
+    {
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::MaterialMask), "MaterialMask"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceEntityID), "SourceEntityID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceXOffset), "SourceXOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceYOffset), "SourceYOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::SourceZOffset), "SourceZOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::DestinationLatitude), "DestinationLatitude"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::DestinationLongitude), "DestinationLongitude"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticBasic::DestinationAltitude), "DestinationAltitude"},
+    });
 
   chai.add(m);
 }
@@ -3127,7 +3432,10 @@ void RegisterLineOfSightSegmentRequestEntityToGeodeticExtended(ChaiScript& chai)
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
   chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToGeodeticExtended>(
-    *m, "LineOfSightSegmentRequestEntityToGeodeticExtended", {constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticExtended()>(), constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticExtended(const SScriptLineOfSightSegmentRequestEntityToGeodeticExtended&)>()},
+    *m,
+    "LineOfSightSegmentRequestEntityToGeodeticExtended",
+    {constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticExtended()>(),
+     constructor<SScriptLineOfSightSegmentRequestEntityToGeodeticExtended(const SScriptLineOfSightSegmentRequestEntityToGeodeticExtended&)>()},
     {
       {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticExtended::LOSID), "LOSID"},
       {fun(&SScriptLineOfSightSegmentRequestEntityToGeodeticExtended::UpdatePeriod), "UpdatePeriod"},
@@ -3151,22 +3459,25 @@ void RegisterLineOfSightSegmentRequestEntityToEntityBasic(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightSegmentRequestEntityToEntityBasic), "sendLineOfSightSegmentRequestEntityToEntityBasic");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToEntityBasic>(*m, "LineOfSightSegmentRequestEntityToEntityBasic",
-                                                                                      {constructor<SScriptLineOfSightSegmentRequestEntityToEntityBasic()>(), constructor<SScriptLineOfSightSegmentRequestEntityToEntityBasic(const SScriptLineOfSightSegmentRequestEntityToEntityBasic&)>()},
-                                                                                      {
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::LOSID), "LOSID"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::UpdatePeriod), "UpdatePeriod"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::AlphaThreshold), "AlphaThreshold"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::MaterialMask), "MaterialMask"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceEntityID), "SourceEntityID"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationEntityID), "DestinationEntityID"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceXOffset), "SourceXOffset"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceYOffset), "SourceYOffset"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceZOffset), "SourceZOffset"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationXOffset), "DestinationXOffset"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationYOffset), "DestinationYOffset"},
-                                                                                        {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationZOffset), "DestinationZOffset"},
-                                                                                      });
+  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToEntityBasic>(
+    *m,
+    "LineOfSightSegmentRequestEntityToEntityBasic",
+    {constructor<SScriptLineOfSightSegmentRequestEntityToEntityBasic()>(),
+     constructor<SScriptLineOfSightSegmentRequestEntityToEntityBasic(const SScriptLineOfSightSegmentRequestEntityToEntityBasic&)>()},
+    {
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::MaterialMask), "MaterialMask"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceEntityID), "SourceEntityID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationEntityID), "DestinationEntityID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceXOffset), "SourceXOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceYOffset), "SourceYOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::SourceZOffset), "SourceZOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationXOffset), "DestinationXOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationYOffset), "DestinationYOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityBasic::DestinationZOffset), "DestinationZOffset"},
+    });
 
   chai.add(m);
 }
@@ -3176,27 +3487,31 @@ void RegisterLineOfSightSegmentRequestEntityToEntityExtended(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightSegmentRequestEntityToEntityExtended), "sendLineOfSightSegmentRequestEntityToEntityExtended");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToEntityExtended>(*m, "LineOfSightSegmentRequestEntityToEntityExtended",
-                                                                                         {constructor<SScriptLineOfSightSegmentRequestEntityToEntityExtended()>(), constructor<SScriptLineOfSightSegmentRequestEntityToEntityExtended(const SScriptLineOfSightSegmentRequestEntityToEntityExtended&)>()},
-                                                                                         {
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::LOSID), "LOSID"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::UpdatePeriod), "UpdatePeriod"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::AlphaThreshold), "AlphaThreshold"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::MaterialMask), "MaterialMask"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceEntityID), "SourceEntityID"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationEntityID), "DestinationEntityID"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceXOffset), "SourceXOffset"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceYOffset), "SourceYOffset"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceZOffset), "SourceZOffset"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationXOffset), "DestinationXOffset"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationYOffset), "DestinationYOffset"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationZOffset), "DestinationZOffset"},
-                                                                                           {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::ResponseCoordinateSystem), "ResponseCoordinateSystem"},
-                                                                                         });
+  chaiscript::utility::add_class<SScriptLineOfSightSegmentRequestEntityToEntityExtended>(
+    *m,
+    "LineOfSightSegmentRequestEntityToEntityExtended",
+    {constructor<SScriptLineOfSightSegmentRequestEntityToEntityExtended()>(),
+     constructor<SScriptLineOfSightSegmentRequestEntityToEntityExtended(const SScriptLineOfSightSegmentRequestEntityToEntityExtended&)>()},
+    {
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::MaterialMask), "MaterialMask"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceEntityID), "SourceEntityID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationEntityID), "DestinationEntityID"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceXOffset), "SourceXOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceYOffset), "SourceYOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::SourceZOffset), "SourceZOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationXOffset), "DestinationXOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationYOffset), "DestinationYOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::DestinationZOffset), "DestinationZOffset"},
+      {fun(&SScriptLineOfSightSegmentRequestEntityToEntityExtended::ResponseCoordinateSystem), "ResponseCoordinateSystem"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side basic line-of-sight vector request from a geodetic origin. */
 struct SScriptLineOfSightVectorRequestGeodeticBasic
 {
   uint16_t LOSID = 0;
@@ -3212,6 +3527,7 @@ struct SScriptLineOfSightVectorRequestGeodeticBasic
   double SourceAltitude = 0;
 };
 
+/** @brief Script-side extended line-of-sight vector request from a geodetic origin. */
 struct SScriptLineOfSightVectorRequestGeodeticExtended
 {
   uint16_t LOSID = 0;
@@ -3228,6 +3544,7 @@ struct SScriptLineOfSightVectorRequestGeodeticExtended
   string ResponseCoordinateSystem;
 };
 
+/** @brief Script-side basic line-of-sight vector request from an entity-relative origin. */
 struct SScriptLineOfSightVectorRequestEntityBasic
 {
   uint16_t LOSID = 0;
@@ -3244,6 +3561,7 @@ struct SScriptLineOfSightVectorRequestEntityBasic
   double SourceZOffset = 0;
 };
 
+/** @brief Script-side extended line-of-sight vector request from an entity-relative origin. */
 struct SScriptLineOfSightVectorRequestEntityExtended
 {
   uint16_t LOSID = 0;
@@ -3346,21 +3664,24 @@ void RegisterLineOfSightVectorRequestGeodeticBasic(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightVectorRequestGeodeticBasic), "sendLineOfSightVectorRequestGeodeticBasic");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestGeodeticBasic>(*m, "LineOfSightVectorRequestGeodeticBasic",
-                                                                               {constructor<SScriptLineOfSightVectorRequestGeodeticBasic()>(), constructor<SScriptLineOfSightVectorRequestGeodeticBasic(const SScriptLineOfSightVectorRequestGeodeticBasic&)>()},
-                                                                               {
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::LOSID), "LOSID"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::AlphaThreshold), "AlphaThreshold"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::UpdatePeriod), "UpdatePeriod"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::Azimuth), "Azimuth"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::Elevation), "Elevation"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::MinimumRange), "MinimumRange"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::MaximumRange), "MaximumRange"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::SourceLatitude), "SourceLatitude"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::SourceLongitude), "SourceLongitude"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::SourceAltitude), "SourceAltitude"},
-                                                                                 {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::MaterialMask), "MaterialMask"},
-                                                                               });
+  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestGeodeticBasic>(
+    *m,
+    "LineOfSightVectorRequestGeodeticBasic",
+    {constructor<SScriptLineOfSightVectorRequestGeodeticBasic()>(),
+     constructor<SScriptLineOfSightVectorRequestGeodeticBasic(const SScriptLineOfSightVectorRequestGeodeticBasic&)>()},
+    {
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::Azimuth), "Azimuth"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::Elevation), "Elevation"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::MinimumRange), "MinimumRange"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::MaximumRange), "MaximumRange"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::SourceLatitude), "SourceLatitude"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::SourceLongitude), "SourceLongitude"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::SourceAltitude), "SourceAltitude"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticBasic::MaterialMask), "MaterialMask"},
+    });
 
   chai.add(m);
 }
@@ -3370,22 +3691,25 @@ void RegisterLineOfSightVectorRequestGeodeticExtended(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightVectorRequestGeodeticExtended), "sendLineOfSightVectorRequestGeodeticExtended");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestGeodeticExtended>(*m, "LineOfSightVectorRequestGeodeticExtended",
-                                                                                  {constructor<SScriptLineOfSightVectorRequestGeodeticExtended()>(), constructor<SScriptLineOfSightVectorRequestGeodeticExtended(const SScriptLineOfSightVectorRequestGeodeticExtended&)>()},
-                                                                                  {
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::LOSID), "LOSID"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::AlphaThreshold), "AlphaThreshold"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::UpdatePeriod), "UpdatePeriod"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::Azimuth), "Azimuth"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::Elevation), "Elevation"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::MinimumRange), "MinimumRange"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::MaximumRange), "MaximumRange"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::SourceLatitude), "SourceLatitude"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::SourceLongitude), "SourceLongitude"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::SourceAltitude), "SourceAltitude"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::MaterialMask), "MaterialMask"},
-                                                                                    {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::ResponseCoordinateSystem), "ResponseCoordinateSystem"},
-                                                                                  });
+  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestGeodeticExtended>(
+    *m,
+    "LineOfSightVectorRequestGeodeticExtended",
+    {constructor<SScriptLineOfSightVectorRequestGeodeticExtended()>(),
+     constructor<SScriptLineOfSightVectorRequestGeodeticExtended(const SScriptLineOfSightVectorRequestGeodeticExtended&)>()},
+    {
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::Azimuth), "Azimuth"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::Elevation), "Elevation"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::MinimumRange), "MinimumRange"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::MaximumRange), "MaximumRange"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::SourceLatitude), "SourceLatitude"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::SourceLongitude), "SourceLongitude"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::SourceAltitude), "SourceAltitude"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::MaterialMask), "MaterialMask"},
+      {fun(&SScriptLineOfSightVectorRequestGeodeticExtended::ResponseCoordinateSystem), "ResponseCoordinateSystem"},
+    });
 
   chai.add(m);
 }
@@ -3395,21 +3719,24 @@ void RegisterLineOfSightVectorRequestEntityBasic(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightVectorRequestEntityBasic), "sendLineOfSightVectorRequestEntityBasic");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestEntityBasic>(*m, "LineOfSightVectorRequestEntityBasic", {constructor<SScriptLineOfSightVectorRequestEntityBasic()>(), constructor<SScriptLineOfSightVectorRequestEntityBasic(const SScriptLineOfSightVectorRequestEntityBasic&)>()},
-                                                                             {
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::LOSID), "LOSID"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::EntityID), "EntityID"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::AlphaThreshold), "AlphaThreshold"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::UpdatePeriod), "UpdatePeriod"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::Azimuth), "Azimuth"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::Elevation), "Elevation"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::MinimumRange), "MinimumRange"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::MaximumRange), "MaximumRange"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::SourceXOffset), "SourceXOffset"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::SourceYOffset), "SourceYOffset"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::SourceZOffset), "SourceZOffset"},
-                                                                               {fun(&SScriptLineOfSightVectorRequestEntityBasic::MaterialMask), "MaterialMask"},
-                                                                             });
+  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestEntityBasic>(
+    *m,
+    "LineOfSightVectorRequestEntityBasic",
+    {constructor<SScriptLineOfSightVectorRequestEntityBasic()>(), constructor<SScriptLineOfSightVectorRequestEntityBasic(const SScriptLineOfSightVectorRequestEntityBasic&)>()},
+    {
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::EntityID), "EntityID"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::Azimuth), "Azimuth"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::Elevation), "Elevation"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::MinimumRange), "MinimumRange"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::MaximumRange), "MaximumRange"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::SourceXOffset), "SourceXOffset"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::SourceYOffset), "SourceYOffset"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::SourceZOffset), "SourceZOffset"},
+      {fun(&SScriptLineOfSightVectorRequestEntityBasic::MaterialMask), "MaterialMask"},
+    });
 
   chai.add(m);
 }
@@ -3419,27 +3746,31 @@ void RegisterLineOfSightVectorRequestEntityExtended(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendLineOfSightVectorRequestEntityExtended), "sendLineOfSightVectorRequestEntityExtended");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestEntityExtended>(*m, "LineOfSightVectorRequestEntityExtended",
-                                                                                {constructor<SScriptLineOfSightVectorRequestEntityExtended()>(), constructor<SScriptLineOfSightVectorRequestEntityExtended(const SScriptLineOfSightVectorRequestEntityExtended&)>()},
-                                                                                {
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::LOSID), "LOSID"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::EntityID), "EntityID"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::AlphaThreshold), "AlphaThreshold"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::UpdatePeriod), "UpdatePeriod"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::Azimuth), "Azimuth"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::Elevation), "Elevation"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::MinimumRange), "MinimumRange"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::MaximumRange), "MaximumRange"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::SourceXOffset), "SourceXOffset"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::SourceYOffset), "SourceYOffset"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::SourceZOffset), "SourceZOffset"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::MaterialMask), "MaterialMask"},
-                                                                                  {fun(&SScriptLineOfSightVectorRequestEntityExtended::ResponseCoordinateSystem), "ResponseCoordinateSystem"},
-                                                                                });
+  chaiscript::utility::add_class<SScriptLineOfSightVectorRequestEntityExtended>(
+    *m,
+    "LineOfSightVectorRequestEntityExtended",
+    {constructor<SScriptLineOfSightVectorRequestEntityExtended()>(),
+     constructor<SScriptLineOfSightVectorRequestEntityExtended(const SScriptLineOfSightVectorRequestEntityExtended&)>()},
+    {
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::LOSID), "LOSID"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::EntityID), "EntityID"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::AlphaThreshold), "AlphaThreshold"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::UpdatePeriod), "UpdatePeriod"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::Azimuth), "Azimuth"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::Elevation), "Elevation"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::MinimumRange), "MinimumRange"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::MaximumRange), "MaximumRange"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::SourceXOffset), "SourceXOffset"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::SourceYOffset), "SourceYOffset"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::SourceZOffset), "SourceZOffset"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::MaterialMask), "MaterialMask"},
+      {fun(&SScriptLineOfSightVectorRequestEntityExtended::ResponseCoordinateSystem), "ResponseCoordinateSystem"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side query selecting environmental condition responses at a geodetic position. */
 struct SScriptEnvironmentalConditionsRequest
 {
   uint8_t RequestID = 0;
@@ -3475,21 +3806,25 @@ void RegisterEnvironmentalConditionsRequest(ChaiScript& chai)
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptEnvironmentalConditionsRequest>(*m, "EnvironmentalConditionsRequest", {constructor<SScriptEnvironmentalConditionsRequest()>(), constructor<SScriptEnvironmentalConditionsRequest(const SScriptEnvironmentalConditionsRequest&)>()},
-                                                                        {
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::RequestID), "RequestID"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::Latitude), "Latitude"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::Longitude), "Longitude"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::Altitude), "Altitude"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::MaritimeSurfaceConditionsRequest), "MaritimeSurfaceConditionsRequest"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::TerrestrialSurfaceConditionsRequest), "TerrestrialSurfaceConditionsRequest"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::WeatherConditionsRequest), "WeatherConditionsRequest"},
-                                                                          {fun(&SScriptEnvironmentalConditionsRequest::AerosolConcentrationsRequest), "AerosolConcentrationsRequest"},
-                                                                        });
+  chaiscript::utility::add_class<SScriptEnvironmentalConditionsRequest>(
+    *m,
+    "EnvironmentalConditionsRequest",
+    {constructor<SScriptEnvironmentalConditionsRequest()>(), constructor<SScriptEnvironmentalConditionsRequest(const SScriptEnvironmentalConditionsRequest&)>()},
+    {
+      {fun(&SScriptEnvironmentalConditionsRequest::RequestID), "RequestID"},
+      {fun(&SScriptEnvironmentalConditionsRequest::Latitude), "Latitude"},
+      {fun(&SScriptEnvironmentalConditionsRequest::Longitude), "Longitude"},
+      {fun(&SScriptEnvironmentalConditionsRequest::Altitude), "Altitude"},
+      {fun(&SScriptEnvironmentalConditionsRequest::MaritimeSurfaceConditionsRequest), "MaritimeSurfaceConditionsRequest"},
+      {fun(&SScriptEnvironmentalConditionsRequest::TerrestrialSurfaceConditionsRequest), "TerrestrialSurfaceConditionsRequest"},
+      {fun(&SScriptEnvironmentalConditionsRequest::WeatherConditionsRequest), "WeatherConditionsRequest"},
+      {fun(&SScriptEnvironmentalConditionsRequest::AerosolConcentrationsRequest), "AerosolConcentrationsRequest"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script callback payload carrying weather conditions returned by an environmental query. */
 struct SScriptWeatherConditionsResponse
 {
   int RequestID = 0;
@@ -3503,8 +3838,9 @@ struct SScriptWeatherConditionsResponse
 };
 
 void CScriptRuntime::OnHostCigiWeatherConditionsResponseEvent(const HostCigiWeatherConditionsResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -3540,23 +3876,32 @@ void CScriptRuntime::OnHostCigiWeatherConditionsResponseEvent(const HostCigiWeat
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
 void RegisterWeatherConditionsResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptWeatherConditionsResponse>(*m, "WeatherConditionsResponse", {constructor<SScriptWeatherConditionsResponse()>(), constructor<SScriptWeatherConditionsResponse(const SScriptWeatherConditionsResponse&)>()},
-                                                                   {
-                                                                     {fun(&SScriptWeatherConditionsResponse::RequestID), "RequestID"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::Humidity), "Humidity"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::AirTemperature), "AirTemperature"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::VisibilityRange), "VisibilityRange"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::HorizontalWindSpeed), "HorizontalWindSpeed"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::VerticalWindSpeed), "VerticalWindSpeed"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::WindDirection), "WindDirection"},
-                                                                     {fun(&SScriptWeatherConditionsResponse::BarometricPressure), "BarometricPressure"},
-                                                                   });
+  chaiscript::utility::add_class<SScriptWeatherConditionsResponse>(
+    *m,
+    "WeatherConditionsResponse",
+    {constructor<SScriptWeatherConditionsResponse()>(), constructor<SScriptWeatherConditionsResponse(const SScriptWeatherConditionsResponse&)>()},
+    {
+      {fun(&SScriptWeatherConditionsResponse::RequestID), "RequestID"},
+      {fun(&SScriptWeatherConditionsResponse::Humidity), "Humidity"},
+      {fun(&SScriptWeatherConditionsResponse::AirTemperature), "AirTemperature"},
+      {fun(&SScriptWeatherConditionsResponse::VisibilityRange), "VisibilityRange"},
+      {fun(&SScriptWeatherConditionsResponse::HorizontalWindSpeed), "HorizontalWindSpeed"},
+      {fun(&SScriptWeatherConditionsResponse::VerticalWindSpeed), "VerticalWindSpeed"},
+      {fun(&SScriptWeatherConditionsResponse::WindDirection), "WindDirection"},
+      {fun(&SScriptWeatherConditionsResponse::BarometricPressure), "BarometricPressure"},
+    });
   chai.add(m);
 }
 
+/** @brief Script callback payload carrying aerosol concentration returned by an environmental query. */
 struct SScriptAerosolConcentrationResponse
 {
   int RequestID = 0;
@@ -3565,8 +3910,9 @@ struct SScriptAerosolConcentrationResponse
 };
 
 void CScriptRuntime::OnHostCigiAerosolConcentrationResponseEvent(const HostCigiAerosolConcentrationResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -3597,18 +3943,27 @@ void CScriptRuntime::OnHostCigiAerosolConcentrationResponseEvent(const HostCigiA
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
 void RegisterAerosolConcentrationResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptAerosolConcentrationResponse>(*m, "AerosolConcentrationResponse", {constructor<SScriptAerosolConcentrationResponse()>(), constructor<SScriptAerosolConcentrationResponse(const SScriptAerosolConcentrationResponse&)>()},
-                                                                      {
-                                                                        {fun(&SScriptAerosolConcentrationResponse::RequestID), "RequestID"},
-                                                                        {fun(&SScriptAerosolConcentrationResponse::LayerID), "LayerID"},
-                                                                        {fun(&SScriptAerosolConcentrationResponse::AerosolConcentration), "AerosolConcentration"},
-                                                                      });
+  chaiscript::utility::add_class<SScriptAerosolConcentrationResponse>(
+    *m,
+    "AerosolConcentrationResponse",
+    {constructor<SScriptAerosolConcentrationResponse()>(), constructor<SScriptAerosolConcentrationResponse(const SScriptAerosolConcentrationResponse&)>()},
+    {
+      {fun(&SScriptAerosolConcentrationResponse::RequestID), "RequestID"},
+      {fun(&SScriptAerosolConcentrationResponse::LayerID), "LayerID"},
+      {fun(&SScriptAerosolConcentrationResponse::AerosolConcentration), "AerosolConcentration"},
+    });
   chai.add(m);
 }
 
+/** @brief Script callback payload carrying maritime surface conditions returned by an environmental query. */
 struct SScriptMaritimeSurfaceConditionsResponse
 {
   int RequestID = 0;
@@ -3618,8 +3973,9 @@ struct SScriptMaritimeSurfaceConditionsResponse
 };
 
 void CScriptRuntime::OnHostCigiMaritimeSurfaceConditionsResponseEvent(const HostCigiMaritimeSurfaceConditionsResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -3651,19 +4007,28 @@ void CScriptRuntime::OnHostCigiMaritimeSurfaceConditionsResponseEvent(const Host
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
 void RegisterMaritimeSurfaceConditionsResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptMaritimeSurfaceConditionsResponse>(*m, "MaritimeSurfaceConditionsResponse", {constructor<SScriptMaritimeSurfaceConditionsResponse()>(), constructor<SScriptMaritimeSurfaceConditionsResponse(const SScriptMaritimeSurfaceConditionsResponse&)>()},
-                                                                           {
-                                                                             {fun(&SScriptMaritimeSurfaceConditionsResponse::RequestID), "RequestID"},
-                                                                             {fun(&SScriptMaritimeSurfaceConditionsResponse::SeaSurfaceHeight), "SeaSurfaceHeight"},
-                                                                             {fun(&SScriptMaritimeSurfaceConditionsResponse::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
-                                                                             {fun(&SScriptMaritimeSurfaceConditionsResponse::SurfaceClarity), "SurfaceClarity"},
-                                                                           });
+  chaiscript::utility::add_class<SScriptMaritimeSurfaceConditionsResponse>(
+    *m,
+    "MaritimeSurfaceConditionsResponse",
+    {constructor<SScriptMaritimeSurfaceConditionsResponse()>(), constructor<SScriptMaritimeSurfaceConditionsResponse(const SScriptMaritimeSurfaceConditionsResponse&)>()},
+    {
+      {fun(&SScriptMaritimeSurfaceConditionsResponse::RequestID), "RequestID"},
+      {fun(&SScriptMaritimeSurfaceConditionsResponse::SeaSurfaceHeight), "SeaSurfaceHeight"},
+      {fun(&SScriptMaritimeSurfaceConditionsResponse::SurfaceWaterTemperature), "SurfaceWaterTemperature"},
+      {fun(&SScriptMaritimeSurfaceConditionsResponse::SurfaceClarity), "SurfaceClarity"},
+    });
   chai.add(m);
 }
 
+/** @brief Script callback payload carrying terrestrial surface conditions returned by an environmental query. */
 struct SScriptTerrestrialSurfaceConditionsResponse
 {
   int RequestID = 0;
@@ -3671,8 +4036,9 @@ struct SScriptTerrestrialSurfaceConditionsResponse
 };
 
 void CScriptRuntime::OnHostCigiTerrestrialSurfaceConditionsResponseEvent(const HostCigiTerrestrialSurfaceConditionsResponseEventArgs& args)
+try
 {
-  if (m_pChaiScript == nullptr || !m_bIsExecutingScript)
+  if (m_pChaiScript == nullptr || !m_bIsExecutingScript || !IsActiveSessionEvent(args))
   {
     return;
   }
@@ -3680,7 +4046,8 @@ void CScriptRuntime::OnHostCigiTerrestrialSurfaceConditionsResponseEvent(const H
   auto pFunctionExists = m_pChaiScript->eval<std::function<bool(const std::string&)>>("function_exists");
   if (pFunctionExists("OnTerrestrialSurfaceConditionsResponse"))
   {
-    auto pFuncOnTerrestrialSurfaceConditionsResponse = m_pChaiScript->eval<std::function<void(SScriptTerrestrialSurfaceConditionsResponse&)>>("OnTerrestrialSurfaceConditionsResponse");
+    auto pFuncOnTerrestrialSurfaceConditionsResponse =
+      m_pChaiScript->eval<std::function<void(SScriptTerrestrialSurfaceConditionsResponse&)>>("OnTerrestrialSurfaceConditionsResponse");
     try
     {
       SScriptTerrestrialSurfaceConditionsResponse terrestrialSurfaceConditionsResponse;
@@ -3702,17 +4069,26 @@ void CScriptRuntime::OnHostCigiTerrestrialSurfaceConditionsResponseEvent(const H
   }
 }
 
+catch (const std::exception& ex)
+{
+  HandleScriptError(__func__, ex.what());
+}
+
 void RegisterTerrestrialSurfaceConditionsResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptTerrestrialSurfaceConditionsResponse>(*m, "TerrestrialSurfaceConditionsResponse", {constructor<SScriptTerrestrialSurfaceConditionsResponse()>(), constructor<SScriptTerrestrialSurfaceConditionsResponse(const SScriptTerrestrialSurfaceConditionsResponse&)>()},
-                                                                              {
-                                                                                {fun(&SScriptTerrestrialSurfaceConditionsResponse::RequestID), "RequestID"},
-                                                                                {fun(&SScriptTerrestrialSurfaceConditionsResponse::SurfaceConditionID), "SurfaceConditionID"},
-                                                                              });
+  chaiscript::utility::add_class<SScriptTerrestrialSurfaceConditionsResponse>(
+    *m,
+    "TerrestrialSurfaceConditionsResponse",
+    {constructor<SScriptTerrestrialSurfaceConditionsResponse()>(), constructor<SScriptTerrestrialSurfaceConditionsResponse(const SScriptTerrestrialSurfaceConditionsResponse&)>()},
+    {
+      {fun(&SScriptTerrestrialSurfaceConditionsResponse::RequestID), "RequestID"},
+      {fun(&SScriptTerrestrialSurfaceConditionsResponse::SurfaceConditionID), "SurfaceConditionID"},
+    });
   chai.add(m);
 }
 
+/** @brief Script-side source and destination identifiers for cloning a symbol. */
 struct SScriptSymbolClone
 {
   uint16_t SymbolID = 0;
@@ -3736,7 +4112,9 @@ void RegisterSymbolClone(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolClone), "sendSymbolClone");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptSymbolClone>(*m, "SymbolClone", {constructor<SScriptSymbolClone()>(), constructor<SScriptSymbolClone(const SScriptSymbolClone&)>()},
+  chaiscript::utility::add_class<SScriptSymbolClone>(*m,
+                                                     "SymbolClone",
+                                                     {constructor<SScriptSymbolClone()>(), constructor<SScriptSymbolClone(const SScriptSymbolClone&)>()},
                                                      {
                                                        {fun(&SScriptSymbolClone::SourceID), "SourceID"},
                                                        {fun(&SScriptSymbolClone::SourceType), "SourceType"},
@@ -3746,6 +4124,7 @@ void RegisterSymbolClone(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side symbol state, hierarchy, transformation, and drawing settings. */
 struct SScriptSymbolControl
 {
   uint16_t SymbolID = 0;
@@ -3803,7 +4182,9 @@ void RegisterSymbolControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolControl), "sendSymbolControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptSymbolControl>(*m, "SymbolControl", {constructor<SScriptSymbolControl()>(), constructor<SScriptSymbolControl(const SScriptSymbolControl&)>()},
+  chaiscript::utility::add_class<SScriptSymbolControl>(*m,
+                                                       "SymbolControl",
+                                                       {constructor<SScriptSymbolControl()>(), constructor<SScriptSymbolControl(const SScriptSymbolControl&)>()},
                                                        {
                                                          {fun(&SScriptSymbolControl::SymbolID), "SymbolID"},
                                                          {fun(&SScriptSymbolControl::ParentSymbolID), "ParentSymbolID"},
@@ -3829,6 +4210,7 @@ void RegisterSymbolControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side wave definition, state, and scope selection. */
 struct SScriptWaveControl
 {
   uint8_t WaveID = 0;
@@ -3883,7 +4265,9 @@ void RegisterWaveControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendWaveControl), "sendWaveControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptWaveControl>(*m, "WaveControl", {constructor<SScriptWaveControl()>(), constructor<SScriptWaveControl(const SScriptWaveControl&)>()},
+  chaiscript::utility::add_class<SScriptWaveControl>(*m,
+                                                     "WaveControl",
+                                                     {constructor<SScriptWaveControl()>(), constructor<SScriptWaveControl(const SScriptWaveControl&)>()},
                                                      {
                                                        {fun(&SScriptWaveControl::WaveID), "WaveID"},
                                                        {fun(&SScriptWaveControl::WaveEnable), "WaveEnable"},
@@ -3901,6 +4285,7 @@ void RegisterWaveControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side sensor selection, tracking, and imaging control settings. */
 struct SScriptSensorControl
 {
   uint8_t SensorID = 0;
@@ -3945,7 +4330,9 @@ void RegisterSensorControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSensorControl), "sendSensorControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptSensorControl&>(*m, "SensorControl", {constructor<SScriptSensorControl()>(), constructor<SScriptSensorControl(const SScriptSensorControl&)>()},
+  chaiscript::utility::add_class<SScriptSensorControl&>(*m,
+                                                        "SensorControl",
+                                                        {constructor<SScriptSensorControl()>(), constructor<SScriptSensorControl(const SScriptSensorControl&)>()},
                                                         {
                                                           {fun(&SScriptSensorControl::SensorID), "SensorID"},
                                                           {fun(&SScriptSensorControl::TrackMode), "TrackMode"},
@@ -3965,6 +4352,7 @@ void RegisterSensorControl(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side motion-tracker settings targeting a view or view group. */
 struct SScriptMotionTrackerControl
 {
   int TrackerID = 0;
@@ -4028,23 +4416,27 @@ void RegisterMotionTrackerControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendMotionTrackerControl), "sendMotionTrackerControl");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptMotionTrackerControl>(*m, "MotionTrackerControl", {constructor<SScriptMotionTrackerControl()>(), constructor<SScriptMotionTrackerControl(const SScriptMotionTrackerControl&)>()},
-                                                              {
-                                                                {fun(&SScriptMotionTrackerControl::TrackerID), "TrackerID"},
-                                                                {fun(&SScriptMotionTrackerControl::TrackerEnable), "TrackerEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::BoresightEnable), "BoresightEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::XEnable), "XEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::YEnable), "YEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::ZEnable), "ZEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::RollEnable), "RollEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::PitchEnable), "PitchEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::YawEnable), "YawEnable"},
-                                                                {fun(&SScriptMotionTrackerControl::ViewViewGroupSelect), "ViewViewGroupSelect"},
-                                                                {fun(&SScriptMotionTrackerControl::ViewViewGroupID), "ViewViewGroupID"},
-                                                              });
+  chaiscript::utility::add_class<SScriptMotionTrackerControl>(
+    *m,
+    "MotionTrackerControl",
+    {constructor<SScriptMotionTrackerControl()>(), constructor<SScriptMotionTrackerControl(const SScriptMotionTrackerControl&)>()},
+    {
+      {fun(&SScriptMotionTrackerControl::TrackerID), "TrackerID"},
+      {fun(&SScriptMotionTrackerControl::TrackerEnable), "TrackerEnable"},
+      {fun(&SScriptMotionTrackerControl::BoresightEnable), "BoresightEnable"},
+      {fun(&SScriptMotionTrackerControl::XEnable), "XEnable"},
+      {fun(&SScriptMotionTrackerControl::YEnable), "YEnable"},
+      {fun(&SScriptMotionTrackerControl::ZEnable), "ZEnable"},
+      {fun(&SScriptMotionTrackerControl::RollEnable), "RollEnable"},
+      {fun(&SScriptMotionTrackerControl::PitchEnable), "PitchEnable"},
+      {fun(&SScriptMotionTrackerControl::YawEnable), "YawEnable"},
+      {fun(&SScriptMotionTrackerControl::ViewViewGroupSelect), "ViewViewGroupSelect"},
+      {fun(&SScriptMotionTrackerControl::ViewViewGroupID), "ViewViewGroupID"},
+    });
   chai.add(m);
 }
 
+/** @brief Script-side entity collision segment endpoints, enable state, and material mask. */
 struct SScriptCollisionDetectionSegmentDefinition
 {
   uint8_t SegmentID = 0;
@@ -4083,23 +4475,27 @@ void RegisterCollisionDetectionSegmentDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendCollisionDetectionSegmentDefinition), "sendCollisionDetectionSegmentDefinition");
 
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptCollisionDetectionSegmentDefinition>(*m, "CollisionDetectionSegmentDefinition", {constructor<SScriptCollisionDetectionSegmentDefinition()>(), constructor<SScriptCollisionDetectionSegmentDefinition(const SScriptCollisionDetectionSegmentDefinition&)>()},
-                                                                             {
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::SegmentID), "SegmentID"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::SegmentEnable), "SegmentEnable"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::EntityID), "EntityID"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::X1), "X1"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::Y1), "Y1"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::Z1), "Z1"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::X2), "X2"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::Y2), "Y2"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::Z2), "Z2"},
-                                                                               {fun(&SScriptCollisionDetectionSegmentDefinition::MaterialMask), "MaterialMask"},
-                                                                             });
+  chaiscript::utility::add_class<SScriptCollisionDetectionSegmentDefinition>(
+    *m,
+    "CollisionDetectionSegmentDefinition",
+    {constructor<SScriptCollisionDetectionSegmentDefinition()>(), constructor<SScriptCollisionDetectionSegmentDefinition(const SScriptCollisionDetectionSegmentDefinition&)>()},
+    {
+      {fun(&SScriptCollisionDetectionSegmentDefinition::SegmentID), "SegmentID"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::SegmentEnable), "SegmentEnable"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::EntityID), "EntityID"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::X1), "X1"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::Y1), "Y1"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::Z1), "Z1"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::X2), "X2"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::Y2), "Y2"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::Z2), "Z2"},
+      {fun(&SScriptCollisionDetectionSegmentDefinition::MaterialMask), "MaterialMask"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side collision-volume geometry and type selection for cuboid or sphere definitions. */
 struct SScriptCollisionDetectionVolumeDefinition
 {
   uint8_t VolumeID = 0;
@@ -4135,8 +4531,8 @@ void sendCollisionDetectionVolumeDefinition(SScriptCollisionDetectionVolumeDefin
     collisionDetectionCuboidDefinition.fHeight = scriptCollisionDetectionVolumeDefinition.RadiusHeight;
     collisionDetectionCuboidDefinition.fWidth = scriptCollisionDetectionVolumeDefinition.Width;
     collisionDetectionCuboidDefinition.fDepth = scriptCollisionDetectionVolumeDefinition.Depth;
-    collisionDetectionCuboidDefinition.rotation.roll = Degrees(scriptCollisionDetectionVolumeDefinition.Roll);
-    collisionDetectionCuboidDefinition.rotation.pitch = Degrees(scriptCollisionDetectionVolumeDefinition.Pitch);
+    collisionDetectionCuboidDefinition.rotation.roll = Degrees180(scriptCollisionDetectionVolumeDefinition.Roll);
+    collisionDetectionCuboidDefinition.rotation.pitch = Degrees90(scriptCollisionDetectionVolumeDefinition.Pitch);
     collisionDetectionCuboidDefinition.rotation.yaw = Degrees(scriptCollisionDetectionVolumeDefinition.Yaw);
 
     CHostSession* pSession = g_HostCigiLibGlobals.pHost->GetHostSession();
@@ -4164,26 +4560,30 @@ void RegisterCollisionDetectionVolumeDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendCollisionDetectionVolumeDefinition), "sendCollisionDetectionVolumeDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptCollisionDetectionVolumeDefinition>(*m, "CollisionDetectionVolumeDefinition", {constructor<SScriptCollisionDetectionVolumeDefinition()>(), constructor<SScriptCollisionDetectionVolumeDefinition(const SScriptCollisionDetectionVolumeDefinition&)>()},
-                                                                            {
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::VolumeID), "VolumeID"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::VolumeEnable), "VolumeEnable"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::VolumeType), "VolumeType"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::EntityID), "EntityID"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::X), "X"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Y), "Y"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Z), "Z"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::RadiusHeight), "RadiusHeight"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Width), "Width"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Depth), "Depth"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Roll), "Roll"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Pitch), "Pitch"},
-                                                                              {fun(&SScriptCollisionDetectionVolumeDefinition::Yaw), "Yaw"},
-                                                                            });
+  chaiscript::utility::add_class<SScriptCollisionDetectionVolumeDefinition>(
+    *m,
+    "CollisionDetectionVolumeDefinition",
+    {constructor<SScriptCollisionDetectionVolumeDefinition()>(), constructor<SScriptCollisionDetectionVolumeDefinition(const SScriptCollisionDetectionVolumeDefinition&)>()},
+    {
+      {fun(&SScriptCollisionDetectionVolumeDefinition::VolumeID), "VolumeID"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::VolumeEnable), "VolumeEnable"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::VolumeType), "VolumeType"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::EntityID), "EntityID"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::X), "X"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Y), "Y"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Z), "Z"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::RadiusHeight), "RadiusHeight"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Width), "Width"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Depth), "Depth"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Roll), "Roll"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Pitch), "Pitch"},
+      {fun(&SScriptCollisionDetectionVolumeDefinition::Yaw), "Yaw"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side object selection and coordinate-system request for a position query. */
 struct SScriptPositionRequest
 {
   uint8_t ArticulatedPartID = 0;
@@ -4212,7 +4612,9 @@ void RegisterPositionRequest(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendPositionRequest), "sendPositionRequest");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptPositionRequest>(*m, "PositionRequest", {constructor<SScriptPositionRequest()>(), constructor<SScriptPositionRequest(const SScriptPositionRequest&)>()},
+  chaiscript::utility::add_class<SScriptPositionRequest>(*m,
+                                                         "PositionRequest",
+                                                         {constructor<SScriptPositionRequest()>(), constructor<SScriptPositionRequest(const SScriptPositionRequest&)>()},
                                                          {
                                                            {fun(&SScriptPositionRequest::ArticulatedPartID), "ArticulatedPartID"},
                                                            {fun(&SScriptPositionRequest::UpdateMode), "UpdateMode"},
@@ -4223,6 +4625,7 @@ void RegisterPositionRequest(ChaiScript& chai)
   chai.add(m);
 }
 
+/** @brief Script-side symbol surface geometry and entity, billboard, or view attachment selection. */
 struct SScriptSymbolSurfaceDefinition
 {
   uint16_t SurfaceID = 0;
@@ -4325,30 +4728,34 @@ void RegisterSymbolSurfaceDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolSurfaceDefinition), "sendSymbolSurfaceDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolSurfaceDefinition>(*m, "SymbolSurfaceDefinition", {constructor<SScriptSymbolSurfaceDefinition()>(), constructor<SScriptSymbolSurfaceDefinition(const SScriptSymbolSurfaceDefinition&)>()},
-                                                                 {
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::SurfaceID), "SurfaceID"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::EntityViewID), "EntityViewID"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::SurfaceState), "SurfaceState"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::AttachType), "AttachType"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::Billboard), "Billboard"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::PerspectiveGrowthEnable), "PerspectiveGrowthEnable"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::XOffsetLeft), "XOffsetLeft"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::YOffsetRight), "YOffsetRight"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::ZOffsetTop), "ZOffsetTop"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::YawBottom), "YawBottom"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::Pitch), "Pitch"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::Roll), "Roll"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::Width), "Width"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::Height), "Height"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::MinU), "MinU"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::MaxU), "MaxU"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::MinV), "MinV"},
-                                                                   {fun(&SScriptSymbolSurfaceDefinition::MaxV), "MaxV"},
-                                                                 });
+  chaiscript::utility::add_class<SScriptSymbolSurfaceDefinition>(
+    *m,
+    "SymbolSurfaceDefinition",
+    {constructor<SScriptSymbolSurfaceDefinition()>(), constructor<SScriptSymbolSurfaceDefinition(const SScriptSymbolSurfaceDefinition&)>()},
+    {
+      {fun(&SScriptSymbolSurfaceDefinition::SurfaceID), "SurfaceID"},
+      {fun(&SScriptSymbolSurfaceDefinition::EntityViewID), "EntityViewID"},
+      {fun(&SScriptSymbolSurfaceDefinition::SurfaceState), "SurfaceState"},
+      {fun(&SScriptSymbolSurfaceDefinition::AttachType), "AttachType"},
+      {fun(&SScriptSymbolSurfaceDefinition::Billboard), "Billboard"},
+      {fun(&SScriptSymbolSurfaceDefinition::PerspectiveGrowthEnable), "PerspectiveGrowthEnable"},
+      {fun(&SScriptSymbolSurfaceDefinition::XOffsetLeft), "XOffsetLeft"},
+      {fun(&SScriptSymbolSurfaceDefinition::YOffsetRight), "YOffsetRight"},
+      {fun(&SScriptSymbolSurfaceDefinition::ZOffsetTop), "ZOffsetTop"},
+      {fun(&SScriptSymbolSurfaceDefinition::YawBottom), "YawBottom"},
+      {fun(&SScriptSymbolSurfaceDefinition::Pitch), "Pitch"},
+      {fun(&SScriptSymbolSurfaceDefinition::Roll), "Roll"},
+      {fun(&SScriptSymbolSurfaceDefinition::Width), "Width"},
+      {fun(&SScriptSymbolSurfaceDefinition::Height), "Height"},
+      {fun(&SScriptSymbolSurfaceDefinition::MinU), "MinU"},
+      {fun(&SScriptSymbolSurfaceDefinition::MaxU), "MaxU"},
+      {fun(&SScriptSymbolSurfaceDefinition::MinV), "MinV"},
+      {fun(&SScriptSymbolSurfaceDefinition::MaxV), "MaxV"},
+    });
   chai.add(m);
 }
 
+/** @brief Script-side text symbol content, font selection, and layout fields. */
 struct SScriptSymbolTextDefinition
 {
   string Alignment;
@@ -4380,19 +4787,23 @@ void RegisterSymbolTextDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolTextDefinition), "sendSymbolTextDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolTextDefinition>(*m, "SymbolTextDefinition", {constructor<SScriptSymbolTextDefinition()>(), constructor<SScriptSymbolTextDefinition(const SScriptSymbolTextDefinition&)>()},
-                                                              {
-                                                                {fun(&SScriptSymbolTextDefinition::Alignment), "Alignment"},
-                                                                {fun(&SScriptSymbolTextDefinition::Orientation), "Orientation"},
-                                                                {fun(&SScriptSymbolTextDefinition::FontCategory), "FontCategory"},
-                                                                {fun(&SScriptSymbolTextDefinition::FontName), "FontName"},
-                                                                {fun(&SScriptSymbolTextDefinition::SymbolID), "SymbolID"},
-                                                                {fun(&SScriptSymbolTextDefinition::FontSize), "FontSize"},
-                                                                {fun(&SScriptSymbolTextDefinition::Octet), "Octet"},
-                                                              });
+  chaiscript::utility::add_class<SScriptSymbolTextDefinition>(
+    *m,
+    "SymbolTextDefinition",
+    {constructor<SScriptSymbolTextDefinition()>(), constructor<SScriptSymbolTextDefinition(const SScriptSymbolTextDefinition&)>()},
+    {
+      {fun(&SScriptSymbolTextDefinition::Alignment), "Alignment"},
+      {fun(&SScriptSymbolTextDefinition::Orientation), "Orientation"},
+      {fun(&SScriptSymbolTextDefinition::FontCategory), "FontCategory"},
+      {fun(&SScriptSymbolTextDefinition::FontName), "FontName"},
+      {fun(&SScriptSymbolTextDefinition::SymbolID), "SymbolID"},
+      {fun(&SScriptSymbolTextDefinition::FontSize), "FontSize"},
+      {fun(&SScriptSymbolTextDefinition::Octet), "Octet"},
+    });
   chai.add(m);
 }
 
+/** @brief Script-side circle geometry record used within a circle symbol definition. */
 struct SScriptSymbolCircle
 {
   float CenterU = 0;
@@ -4403,6 +4814,7 @@ struct SScriptSymbolCircle
   float EndAngle = 0;
 };
 
+/** @brief Script-side circle symbol definition containing drawing settings and circle records. */
 struct SScriptSymbolCircleDefinition
 {
   uint16_t SymbolID = 0;
@@ -4443,7 +4855,9 @@ void sendSymbolCircleDefinition(SScriptSymbolCircleDefinition scriptSymbolCircle
 void RegisterSymbolCircle(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
-  chaiscript::utility::add_class<SScriptSymbolCircle>(*m, "SymbolCircle", {constructor<SScriptSymbolCircle()>(), constructor<SScriptSymbolCircle(const SScriptSymbolCircle&)>()},
+  chaiscript::utility::add_class<SScriptSymbolCircle>(*m,
+                                                      "SymbolCircle",
+                                                      {constructor<SScriptSymbolCircle()>(), constructor<SScriptSymbolCircle(const SScriptSymbolCircle&)>()},
                                                       {{fun(&SScriptSymbolCircle::CenterU), "CenterU"},
                                                        {fun(&SScriptSymbolCircle::CenterV), "CenterV"},
                                                        {fun(&SScriptSymbolCircle::Radius), "Radius"},
@@ -4458,25 +4872,30 @@ void RegisterSymbolCircleDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolCircleDefinition), "sendSymbolCircleDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolCircleDefinition>(*m, "SymbolCircleDefinition", {constructor<SScriptSymbolCircleDefinition()>(), constructor<SScriptSymbolCircleDefinition(const SScriptSymbolCircleDefinition&)>()},
-                                                                {{fun(&SScriptSymbolCircleDefinition::SymbolID), "SymbolID"},
-                                                                 {fun(&SScriptSymbolCircleDefinition::StipplePattern), "StipplePattern"},
-                                                                 {fun(&SScriptSymbolCircleDefinition::DrawingStyle), "DrawingStyle"},
-                                                                 {fun(&SScriptSymbolCircleDefinition::LineWidth), "LineWidth"},
-                                                                 {fun(&SScriptSymbolCircleDefinition::StipplePatternLength), "StipplePatternLength"},
-                                                                 {fun(&SScriptSymbolCircleDefinition::Circles), "Circles"}});
+  chaiscript::utility::add_class<SScriptSymbolCircleDefinition>(
+    *m,
+    "SymbolCircleDefinition",
+    {constructor<SScriptSymbolCircleDefinition()>(), constructor<SScriptSymbolCircleDefinition(const SScriptSymbolCircleDefinition&)>()},
+    {{fun(&SScriptSymbolCircleDefinition::SymbolID), "SymbolID"},
+     {fun(&SScriptSymbolCircleDefinition::StipplePattern), "StipplePattern"},
+     {fun(&SScriptSymbolCircleDefinition::DrawingStyle), "DrawingStyle"},
+     {fun(&SScriptSymbolCircleDefinition::LineWidth), "LineWidth"},
+     {fun(&SScriptSymbolCircleDefinition::StipplePatternLength), "StipplePatternLength"},
+     {fun(&SScriptSymbolCircleDefinition::Circles), "Circles"}});
 
   chai.add(m);
   RegisterSymbolCircle(chai);
   chai.add(chaiscript::bootstrap::standard_library::vector_type<std::vector<SScriptSymbolCircle>>("CircleList"));
 }
 
+/** @brief Script-side two-coordinate vertex used by symbol polygon definitions. */
 struct ScriptVertexUV
 {
   float U = 0;
   float V = 0;
 };
 
+/** @brief Script-side polygon symbol definition containing primitive settings and vertex records. */
 struct SScriptSymbolPolygonDefinition
 {
   uint16_t SymbolID = 0;
@@ -4513,7 +4932,9 @@ void RegisterVertexUV(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<ScriptVertexUV>(*m, "VertexUV", {constructor<ScriptVertexUV()>(), constructor<ScriptVertexUV(const ScriptVertexUV&)>()},
+  chaiscript::utility::add_class<ScriptVertexUV>(*m,
+                                                 "VertexUV",
+                                                 {constructor<ScriptVertexUV()>(), constructor<ScriptVertexUV(const ScriptVertexUV&)>()},
                                                  {
                                                    {fun(&ScriptVertexUV::U), "U"},
                                                    {fun(&ScriptVertexUV::V), "V"},
@@ -4529,20 +4950,24 @@ void RegisterSymbolPolygonDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolPolygonDefinition), "sendSymbolPolygonDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolPolygonDefinition>(*m, "SymbolPolygonDefinition", {constructor<SScriptSymbolPolygonDefinition()>(), constructor<SScriptSymbolPolygonDefinition(const SScriptSymbolPolygonDefinition&)>()},
-                                                                 {
-                                                                   {fun(&SScriptSymbolPolygonDefinition::SymbolID), "SymbolID"},
-                                                                   {fun(&SScriptSymbolPolygonDefinition::StipplePattern), "StipplePattern"},
-                                                                   {fun(&SScriptSymbolPolygonDefinition::PrimitiveType), "PrimitiveType"},
-                                                                   {fun(&SScriptSymbolPolygonDefinition::LineWidth), "LineWidth"},
-                                                                   {fun(&SScriptSymbolPolygonDefinition::StipplePatternLength), "StipplePatternLength"},
-                                                                   {fun(&SScriptSymbolPolygonDefinition::Vertices), "Vertices"},
-                                                                 });
+  chaiscript::utility::add_class<SScriptSymbolPolygonDefinition>(
+    *m,
+    "SymbolPolygonDefinition",
+    {constructor<SScriptSymbolPolygonDefinition()>(), constructor<SScriptSymbolPolygonDefinition(const SScriptSymbolPolygonDefinition&)>()},
+    {
+      {fun(&SScriptSymbolPolygonDefinition::SymbolID), "SymbolID"},
+      {fun(&SScriptSymbolPolygonDefinition::StipplePattern), "StipplePattern"},
+      {fun(&SScriptSymbolPolygonDefinition::PrimitiveType), "PrimitiveType"},
+      {fun(&SScriptSymbolPolygonDefinition::LineWidth), "LineWidth"},
+      {fun(&SScriptSymbolPolygonDefinition::StipplePatternLength), "StipplePatternLength"},
+      {fun(&SScriptSymbolPolygonDefinition::Vertices), "Vertices"},
+    });
 
   chai.add(m);
   chai.add(chaiscript::bootstrap::standard_library::vector_type<std::vector<ScriptVertexUV>>("VertexList"));
 }
 
+/** @brief Script-side short symbol update selecting control parameters and their values. */
 struct SScriptShortSymbolControl
 {
   uint16_t SymbolID = 0;
@@ -4586,12 +5011,14 @@ void sendShortSymbolControl(SScriptShortSymbolControl scriptShortSymbolControl)
     shortSymbolControl.attributeValue1.rgba.b = scriptShortSymbolControl.Color1Blue;
     shortSymbolControl.attributeValue1.rgba.a = scriptShortSymbolControl.Color1Alpha;
   }
-  else if (scriptShortSymbolControl.AttributeSelect1 == "Flash Period" || scriptShortSymbolControl.AttributeSelect1 == "Position U" || scriptShortSymbolControl.AttributeSelect1 == "Position V" || scriptShortSymbolControl.AttributeSelect1 == "Rotation" ||
+  else if (scriptShortSymbolControl.AttributeSelect1 == "Flash Period" || scriptShortSymbolControl.AttributeSelect1 == "Position U" ||
+           scriptShortSymbolControl.AttributeSelect1 == "Position V" || scriptShortSymbolControl.AttributeSelect1 == "Rotation" ||
            scriptShortSymbolControl.AttributeSelect1 == "Scale U" || scriptShortSymbolControl.AttributeSelect1 == "Scale V")
   {
     shortSymbolControl.attributeValue1.f = scriptShortSymbolControl.AttributeValue1_Float;
   }
-  else if (scriptShortSymbolControl.AttributeSelect1 == "Surface ID" || scriptShortSymbolControl.AttributeSelect1 == "Parent Symbol ID" || scriptShortSymbolControl.AttributeSelect1 == "Layer" || scriptShortSymbolControl.AttributeSelect1 == "Flash Duty Cycle Percentage")
+  else if (scriptShortSymbolControl.AttributeSelect1 == "Surface ID" || scriptShortSymbolControl.AttributeSelect1 == "Parent Symbol ID" ||
+           scriptShortSymbolControl.AttributeSelect1 == "Layer" || scriptShortSymbolControl.AttributeSelect1 == "Flash Duty Cycle Percentage")
   {
     shortSymbolControl.attributeValue1.n = scriptShortSymbolControl.AttributeValue1_Int;
   }
@@ -4608,12 +5035,14 @@ void sendShortSymbolControl(SScriptShortSymbolControl scriptShortSymbolControl)
     shortSymbolControl.attributeValue2.rgba.b = scriptShortSymbolControl.Color2Blue;
     shortSymbolControl.attributeValue2.rgba.a = scriptShortSymbolControl.Color2Alpha;
   }
-  else if (scriptShortSymbolControl.AttributeSelect2 == "Flash Period" || scriptShortSymbolControl.AttributeSelect2 == "Position U" || scriptShortSymbolControl.AttributeSelect2 == "Position V" || scriptShortSymbolControl.AttributeSelect2 == "Rotation" ||
+  else if (scriptShortSymbolControl.AttributeSelect2 == "Flash Period" || scriptShortSymbolControl.AttributeSelect2 == "Position U" ||
+           scriptShortSymbolControl.AttributeSelect2 == "Position V" || scriptShortSymbolControl.AttributeSelect2 == "Rotation" ||
            scriptShortSymbolControl.AttributeSelect2 == "Scale U" || scriptShortSymbolControl.AttributeSelect2 == "Scale V")
   {
     shortSymbolControl.attributeValue2.f = scriptShortSymbolControl.AttributeValue2_Float;
   }
-  else if (scriptShortSymbolControl.AttributeSelect2 == "Surface ID" || scriptShortSymbolControl.AttributeSelect2 == "Parent Symbol ID" || scriptShortSymbolControl.AttributeSelect2 == "Layer" || scriptShortSymbolControl.AttributeSelect2 == "Flash Duty Cycle Percentage")
+  else if (scriptShortSymbolControl.AttributeSelect2 == "Surface ID" || scriptShortSymbolControl.AttributeSelect2 == "Parent Symbol ID" ||
+           scriptShortSymbolControl.AttributeSelect2 == "Layer" || scriptShortSymbolControl.AttributeSelect2 == "Flash Duty Cycle Percentage")
   {
     shortSymbolControl.attributeValue2.n = scriptShortSymbolControl.AttributeValue2_Int;
   }
@@ -4631,32 +5060,36 @@ void RegisterShortSymbolControl(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendShortSymbolControl), "sendShortSymbolControl");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptShortSymbolControl>(*m, "ShortSymbolControl", {constructor<SScriptShortSymbolControl()>(), constructor<SScriptShortSymbolControl(const SScriptShortSymbolControl&)>()},
-                                                            {
-                                                              {fun(&SScriptShortSymbolControl::SymbolID), "SymbolID"},
-                                                              {fun(&SScriptShortSymbolControl::AttributeSelect1), "AttributeSelect1"},
-                                                              {fun(&SScriptShortSymbolControl::AttributeSelect2), "AttributeSelect2"},
-                                                              {fun(&SScriptShortSymbolControl::SymbolState), "SymbolState"},
-                                                              {fun(&SScriptShortSymbolControl::AttachState), "AttachState"},
-                                                              {fun(&SScriptShortSymbolControl::FlashControl), "FlashControl"},
-                                                              {fun(&SScriptShortSymbolControl::InheritColor), "InheritColor"},
-                                                              {fun(&SScriptShortSymbolControl::AttributeValue1_Float), "AttributeValue1_Float"},
-                                                              {fun(&SScriptShortSymbolControl::AttributeValue1_Int), "AttributeValue1_Int"},
-                                                              {fun(&SScriptShortSymbolControl::AttributeValue2_Float), "AttributeValue2_Float"},
-                                                              {fun(&SScriptShortSymbolControl::AttributeValue2_Int), "AttributeValue2_Int"},
-                                                              {fun(&SScriptShortSymbolControl::Color1Red), "Color1Red"},
-                                                              {fun(&SScriptShortSymbolControl::Color1Green), "Color1Green"},
-                                                              {fun(&SScriptShortSymbolControl::Color1Blue), "Color1Blue"},
-                                                              {fun(&SScriptShortSymbolControl::Color1Alpha), "Color1Alpha"},
-                                                              {fun(&SScriptShortSymbolControl::Color2Red), "Color2Red"},
-                                                              {fun(&SScriptShortSymbolControl::Color2Green), "Color2Green"},
-                                                              {fun(&SScriptShortSymbolControl::Color2Blue), "Color2Blue"},
-                                                              {fun(&SScriptShortSymbolControl::Color2Alpha), "Color2Alpha"},
-                                                            });
+  chaiscript::utility::add_class<SScriptShortSymbolControl>(
+    *m,
+    "ShortSymbolControl",
+    {constructor<SScriptShortSymbolControl()>(), constructor<SScriptShortSymbolControl(const SScriptShortSymbolControl&)>()},
+    {
+      {fun(&SScriptShortSymbolControl::SymbolID), "SymbolID"},
+      {fun(&SScriptShortSymbolControl::AttributeSelect1), "AttributeSelect1"},
+      {fun(&SScriptShortSymbolControl::AttributeSelect2), "AttributeSelect2"},
+      {fun(&SScriptShortSymbolControl::SymbolState), "SymbolState"},
+      {fun(&SScriptShortSymbolControl::AttachState), "AttachState"},
+      {fun(&SScriptShortSymbolControl::FlashControl), "FlashControl"},
+      {fun(&SScriptShortSymbolControl::InheritColor), "InheritColor"},
+      {fun(&SScriptShortSymbolControl::AttributeValue1_Float), "AttributeValue1_Float"},
+      {fun(&SScriptShortSymbolControl::AttributeValue1_Int), "AttributeValue1_Int"},
+      {fun(&SScriptShortSymbolControl::AttributeValue2_Float), "AttributeValue2_Float"},
+      {fun(&SScriptShortSymbolControl::AttributeValue2_Int), "AttributeValue2_Int"},
+      {fun(&SScriptShortSymbolControl::Color1Red), "Color1Red"},
+      {fun(&SScriptShortSymbolControl::Color1Green), "Color1Green"},
+      {fun(&SScriptShortSymbolControl::Color1Blue), "Color1Blue"},
+      {fun(&SScriptShortSymbolControl::Color1Alpha), "Color1Alpha"},
+      {fun(&SScriptShortSymbolControl::Color2Red), "Color2Red"},
+      {fun(&SScriptShortSymbolControl::Color2Green), "Color2Green"},
+      {fun(&SScriptShortSymbolControl::Color2Blue), "Color2Blue"},
+      {fun(&SScriptShortSymbolControl::Color2Alpha), "Color2Alpha"},
+    });
 
   chai.add(m);
 }
 
+/** @brief Script-side circle record carrying geometry and texture coordinates. */
 struct SScriptSymbolTexturedCircle
 {
   float CenterU = 0;
@@ -4671,6 +5104,7 @@ struct SScriptSymbolTexturedCircle
   float TextureMappingRotation = 0;
 };
 
+/** @brief Script-side textured-circle symbol definition containing texture settings and circle records. */
 struct SScriptSymbolTexturedCircleDefinition
 {
   uint16_t SymbolID = 0;
@@ -4714,19 +5148,22 @@ void RegisterSymbolTexturedCircle(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolTexturedCircle>(*m, "SymbolTexturedCircle", {constructor<SScriptSymbolTexturedCircle()>(), constructor<SScriptSymbolTexturedCircle(const SScriptSymbolTexturedCircle&)>()},
-                                                              {
-                                                                {fun(&SScriptSymbolTexturedCircle::CenterU), "CenterU"},
-                                                                {fun(&SScriptSymbolTexturedCircle::CenterV), "CenterV"},
-                                                                {fun(&SScriptSymbolTexturedCircle::Radius), "Radius"},
-                                                                {fun(&SScriptSymbolTexturedCircle::InnerRadius), "InnerRadius"},
-                                                                {fun(&SScriptSymbolTexturedCircle::StartAngle), "StartAngle"},
-                                                                {fun(&SScriptSymbolTexturedCircle::EndAngle), "EndAngle"},
-                                                                {fun(&SScriptSymbolTexturedCircle::TextureCoordinateS), "TextureCoordinateS"},
-                                                                {fun(&SScriptSymbolTexturedCircle::TextureCoordinateT), "TextureCoordinateT"},
-                                                                {fun(&SScriptSymbolTexturedCircle::TextureMappingRadius), "TextureMappingRadius"},
-                                                                {fun(&SScriptSymbolTexturedCircle::TextureMappingRotation), "TextureMappingRotation"},
-                                                              });
+  chaiscript::utility::add_class<SScriptSymbolTexturedCircle>(
+    *m,
+    "SymbolTexturedCircle",
+    {constructor<SScriptSymbolTexturedCircle()>(), constructor<SScriptSymbolTexturedCircle(const SScriptSymbolTexturedCircle&)>()},
+    {
+      {fun(&SScriptSymbolTexturedCircle::CenterU), "CenterU"},
+      {fun(&SScriptSymbolTexturedCircle::CenterV), "CenterV"},
+      {fun(&SScriptSymbolTexturedCircle::Radius), "Radius"},
+      {fun(&SScriptSymbolTexturedCircle::InnerRadius), "InnerRadius"},
+      {fun(&SScriptSymbolTexturedCircle::StartAngle), "StartAngle"},
+      {fun(&SScriptSymbolTexturedCircle::EndAngle), "EndAngle"},
+      {fun(&SScriptSymbolTexturedCircle::TextureCoordinateS), "TextureCoordinateS"},
+      {fun(&SScriptSymbolTexturedCircle::TextureCoordinateT), "TextureCoordinateT"},
+      {fun(&SScriptSymbolTexturedCircle::TextureMappingRadius), "TextureMappingRadius"},
+      {fun(&SScriptSymbolTexturedCircle::TextureMappingRotation), "TextureMappingRotation"},
+    });
 
   chai.add(m);
 }
@@ -4736,19 +5173,23 @@ void RegisterSymbolTexturedCircleDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolTexturedCircleDefinition), "sendSymbolTexturedCircleDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolTexturedCircleDefinition>(*m, "SymbolTexturedCircleDefinition", {constructor<SScriptSymbolTexturedCircleDefinition()>(), constructor<SScriptSymbolTexturedCircleDefinition(const SScriptSymbolTexturedCircleDefinition&)>()},
-                                                                        {
-                                                                          {fun(&SScriptSymbolTexturedCircleDefinition::SymbolID), "SymbolID"},
-                                                                          {fun(&SScriptSymbolTexturedCircleDefinition::TextureID), "TextureID"},
-                                                                          {fun(&SScriptSymbolTexturedCircleDefinition::TextureFilterMode), "TextureFilterMode"},
-                                                                          {fun(&SScriptSymbolTexturedCircleDefinition::TextureRepeatOrClamp), "TextureRepeatOrClamp"},
-                                                                          {fun(&SScriptSymbolTexturedCircleDefinition::Circles), "Circles"},
-                                                                        });
+  chaiscript::utility::add_class<SScriptSymbolTexturedCircleDefinition>(
+    *m,
+    "SymbolTexturedCircleDefinition",
+    {constructor<SScriptSymbolTexturedCircleDefinition()>(), constructor<SScriptSymbolTexturedCircleDefinition(const SScriptSymbolTexturedCircleDefinition&)>()},
+    {
+      {fun(&SScriptSymbolTexturedCircleDefinition::SymbolID), "SymbolID"},
+      {fun(&SScriptSymbolTexturedCircleDefinition::TextureID), "TextureID"},
+      {fun(&SScriptSymbolTexturedCircleDefinition::TextureFilterMode), "TextureFilterMode"},
+      {fun(&SScriptSymbolTexturedCircleDefinition::TextureRepeatOrClamp), "TextureRepeatOrClamp"},
+      {fun(&SScriptSymbolTexturedCircleDefinition::Circles), "Circles"},
+    });
 
   chai.add(m);
   chai.add(chaiscript::bootstrap::standard_library::vector_type<std::vector<SScriptSymbolTexturedCircle>>("TexturedCircleList"));
 }
 
+/** @brief Script-side textured polygon vertex containing position and texture coordinates. */
 struct SScriptSymbolTexturedVertex
 {
   float VertexU = 0;
@@ -4757,6 +5198,7 @@ struct SScriptSymbolTexturedVertex
   float TextureCoordinateT = 0;
 };
 
+/** @brief Script-side textured-polygon symbol definition containing texture settings and vertex records. */
 struct SScriptSymbolTexturedPolygonDefinition
 {
   uint16_t SymbolID = 0;
@@ -4795,13 +5237,16 @@ void RegisterSymbolTexturedPolygonVertex(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolTexturedVertex>(*m, "SymbolTexturedPolygonVertex", {constructor<SScriptSymbolTexturedVertex()>(), constructor<SScriptSymbolTexturedVertex(const SScriptSymbolTexturedVertex&)>()},
-                                                              {
-                                                                {fun(&SScriptSymbolTexturedVertex::VertexU), "VertexU"},
-                                                                {fun(&SScriptSymbolTexturedVertex::VertexV), "VertexV"},
-                                                                {fun(&SScriptSymbolTexturedVertex::TextureCoordinateS), "TextureCoordinateS"},
-                                                                {fun(&SScriptSymbolTexturedVertex::TextureCoordinateT), "TextureCoordinateT"},
-                                                              });
+  chaiscript::utility::add_class<SScriptSymbolTexturedVertex>(
+    *m,
+    "SymbolTexturedPolygonVertex",
+    {constructor<SScriptSymbolTexturedVertex()>(), constructor<SScriptSymbolTexturedVertex(const SScriptSymbolTexturedVertex&)>()},
+    {
+      {fun(&SScriptSymbolTexturedVertex::VertexU), "VertexU"},
+      {fun(&SScriptSymbolTexturedVertex::VertexV), "VertexV"},
+      {fun(&SScriptSymbolTexturedVertex::TextureCoordinateS), "TextureCoordinateS"},
+      {fun(&SScriptSymbolTexturedVertex::TextureCoordinateT), "TextureCoordinateT"},
+    });
   chai.add(m);
 }
 
@@ -4810,15 +5255,18 @@ void RegisterSymbolTexturedPolygonDefinition(ChaiScript& chai)
   chai.add(chaiscript::fun(&sendSymbolTexturedPolygonDefinition), "sendSymbolTexturedPolygonDefinition");
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptSymbolTexturedPolygonDefinition>(*m, "SymbolTexturedPolygonDefinition", {constructor<SScriptSymbolTexturedPolygonDefinition()>(), constructor<SScriptSymbolTexturedPolygonDefinition(const SScriptSymbolTexturedPolygonDefinition&)>()},
-                                                                         {
-                                                                           {fun(&SScriptSymbolTexturedPolygonDefinition::SymbolID), "SymbolID"},
-                                                                           {fun(&SScriptSymbolTexturedPolygonDefinition::TextureID), "TextureID"},
-                                                                           {fun(&SScriptSymbolTexturedPolygonDefinition::PrimitiveType), "PrimitiveType"},
-                                                                           {fun(&SScriptSymbolTexturedPolygonDefinition::TextureFilterMode), "TextureFilterMode"},
-                                                                           {fun(&SScriptSymbolTexturedPolygonDefinition::TextureRepeatMode), "TextureRepeatMode"},
-                                                                           {fun(&SScriptSymbolTexturedPolygonDefinition::Vertices), "Vertices"},
-                                                                         });
+  chaiscript::utility::add_class<SScriptSymbolTexturedPolygonDefinition>(
+    *m,
+    "SymbolTexturedPolygonDefinition",
+    {constructor<SScriptSymbolTexturedPolygonDefinition()>(), constructor<SScriptSymbolTexturedPolygonDefinition(const SScriptSymbolTexturedPolygonDefinition&)>()},
+    {
+      {fun(&SScriptSymbolTexturedPolygonDefinition::SymbolID), "SymbolID"},
+      {fun(&SScriptSymbolTexturedPolygonDefinition::TextureID), "TextureID"},
+      {fun(&SScriptSymbolTexturedPolygonDefinition::PrimitiveType), "PrimitiveType"},
+      {fun(&SScriptSymbolTexturedPolygonDefinition::TextureFilterMode), "TextureFilterMode"},
+      {fun(&SScriptSymbolTexturedPolygonDefinition::TextureRepeatMode), "TextureRepeatMode"},
+      {fun(&SScriptSymbolTexturedPolygonDefinition::Vertices), "Vertices"},
+    });
   chai.add(m);
 }
 
@@ -4826,7 +5274,9 @@ void RegisterScriptHatHotResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptHatHotResponse>(*m, "HATHOTResponse", {constructor<SScriptHatHotResponse()>(), constructor<SScriptHatHotResponse(const SScriptHatHotResponse&)>()},
+  chaiscript::utility::add_class<SScriptHatHotResponse>(*m,
+                                                        "HATHOTResponse",
+                                                        {constructor<SScriptHatHotResponse()>(), constructor<SScriptHatHotResponse(const SScriptHatHotResponse&)>()},
                                                         {
                                                           {fun(&SScriptHatHotResponse::HatHotId), "HATHOTId"},
                                                           {fun(&SScriptHatHotResponse::Height), "Height"},
@@ -4840,17 +5290,20 @@ void RegisterScriptHatHotExtendedResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptHatHotExtendedResponse>(*m, "HATHOTExtendedResponse", {constructor<SScriptHatHotExtendedResponse()>(), constructor<SScriptHatHotExtendedResponse(const SScriptHatHotExtendedResponse&)>()},
-                                                                {
-                                                                  {fun(&SScriptHatHotExtendedResponse::HatHotId), "HATHOTId"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::HostFrameLSN), "HostFrameLSN"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::Hat), "Hat"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::Hot), "Hot"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::MaterialCode), "MaterialCode"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::NormalAzimuth), "NormalAzimuth"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::NormalElevation), "NormalElevation"},
-                                                                  {fun(&SScriptHatHotExtendedResponse::Valid), "Valid"},
-                                                                });
+  chaiscript::utility::add_class<SScriptHatHotExtendedResponse>(
+    *m,
+    "HATHOTExtendedResponse",
+    {constructor<SScriptHatHotExtendedResponse()>(), constructor<SScriptHatHotExtendedResponse(const SScriptHatHotExtendedResponse&)>()},
+    {
+      {fun(&SScriptHatHotExtendedResponse::HatHotId), "HATHOTId"},
+      {fun(&SScriptHatHotExtendedResponse::HostFrameLSN), "HostFrameLSN"},
+      {fun(&SScriptHatHotExtendedResponse::Hat), "Hat"},
+      {fun(&SScriptHatHotExtendedResponse::Hot), "Hot"},
+      {fun(&SScriptHatHotExtendedResponse::MaterialCode), "MaterialCode"},
+      {fun(&SScriptHatHotExtendedResponse::NormalAzimuth), "NormalAzimuth"},
+      {fun(&SScriptHatHotExtendedResponse::NormalElevation), "NormalElevation"},
+      {fun(&SScriptHatHotExtendedResponse::Valid), "Valid"},
+    });
   chai.add(m);
 }
 
@@ -4858,14 +5311,17 @@ void RegisterScriptLineOfSightResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptLineOfSightResponse>(*m, "LineOfSightResponse", {constructor<SScriptLineOfSightResponse()>(), constructor<SScriptLineOfSightResponse(const SScriptLineOfSightResponse&)>()},
-                                                             {
-                                                               {fun(&SScriptLineOfSightResponse::RequestID), "RequestID"},
-                                                               {fun(&SScriptLineOfSightResponse::Valid), "Valid"},
-                                                               {fun(&SScriptLineOfSightResponse::Range), "Range"},
-                                                               {fun(&SScriptLineOfSightResponse::ResponseCount), "ResponseCount"},
-                                                               {fun(&SScriptLineOfSightResponse::HostFrameLSN), "HostFrameLSN"},
-                                                             });
+  chaiscript::utility::add_class<SScriptLineOfSightResponse>(
+    *m,
+    "LineOfSightResponse",
+    {constructor<SScriptLineOfSightResponse()>(), constructor<SScriptLineOfSightResponse(const SScriptLineOfSightResponse&)>()},
+    {
+      {fun(&SScriptLineOfSightResponse::RequestID), "RequestID"},
+      {fun(&SScriptLineOfSightResponse::Valid), "Valid"},
+      {fun(&SScriptLineOfSightResponse::Range), "Range"},
+      {fun(&SScriptLineOfSightResponse::ResponseCount), "ResponseCount"},
+      {fun(&SScriptLineOfSightResponse::HostFrameLSN), "HostFrameLSN"},
+    });
   chai.add(m);
 }
 
@@ -4873,16 +5329,19 @@ void RegisterScriptLineOfSightEntityResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptLineOfSightEntityResponse>(*m, "LineOfSightEntityResponse", {constructor<SScriptLineOfSightEntityResponse()>(), constructor<SScriptLineOfSightEntityResponse(const SScriptLineOfSightEntityResponse&)>()},
-                                                                   {
-                                                                     {fun(&SScriptLineOfSightEntityResponse::RequestID), "RequestID"},
-                                                                     {fun(&SScriptLineOfSightEntityResponse::EntityID), "EntityID"},
-                                                                     {fun(&SScriptLineOfSightEntityResponse::Valid), "Valid"},
-                                                                     {fun(&SScriptLineOfSightEntityResponse::Visible), "Visible"},
-                                                                     {fun(&SScriptLineOfSightEntityResponse::Range), "Range"},
-                                                                     {fun(&SScriptLineOfSightEntityResponse::ResponseCount), "ResponseCount"},
-                                                                     {fun(&SScriptLineOfSightEntityResponse::HostFrameLSN), "HostFrameLSN"},
-                                                                   });
+  chaiscript::utility::add_class<SScriptLineOfSightEntityResponse>(
+    *m,
+    "LineOfSightEntityResponse",
+    {constructor<SScriptLineOfSightEntityResponse()>(), constructor<SScriptLineOfSightEntityResponse(const SScriptLineOfSightEntityResponse&)>()},
+    {
+      {fun(&SScriptLineOfSightEntityResponse::RequestID), "RequestID"},
+      {fun(&SScriptLineOfSightEntityResponse::EntityID), "EntityID"},
+      {fun(&SScriptLineOfSightEntityResponse::Valid), "Valid"},
+      {fun(&SScriptLineOfSightEntityResponse::Visible), "Visible"},
+      {fun(&SScriptLineOfSightEntityResponse::Range), "Range"},
+      {fun(&SScriptLineOfSightEntityResponse::ResponseCount), "ResponseCount"},
+      {fun(&SScriptLineOfSightEntityResponse::HostFrameLSN), "HostFrameLSN"},
+    });
   chai.add(m);
 }
 
@@ -4890,26 +5349,29 @@ void RegisterScriptLineOfSightExtendedGeodeticCoordinatesResponse(ChaiScript& ch
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptLineOfSightExtendedGeodeticCoordinatesResponse>(*m, "LineOfSightExtendedGeodeticCoordinatesResponse",
-                                                                                        {constructor<SScriptLineOfSightExtendedGeodeticCoordinatesResponse()>(), constructor<SScriptLineOfSightExtendedGeodeticCoordinatesResponse(const SScriptLineOfSightExtendedGeodeticCoordinatesResponse&)>()},
-                                                                                        {
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::RequestID), "RequestID"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Valid), "Valid"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Range), "Range"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::ResponseCount), "ResponseCount"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::HostFrameLSN), "HostFrameLSN"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::RangeValid), "RangeValid"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::NormalAzimuth), "NormalAzimuth"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::NormalElevation), "NormalElevation"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::MaterialCode), "MaterialCode"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Latitude), "Latitude"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Longitude), "Longitude"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Altitude), "Altitude"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorR), "SurfaceColorR"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorG), "SurfaceColorG"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorB), "SurfaceColorB"},
-                                                                                          {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorA), "SurfaceColorA"},
-                                                                                        });
+  chaiscript::utility::add_class<SScriptLineOfSightExtendedGeodeticCoordinatesResponse>(
+    *m,
+    "LineOfSightExtendedGeodeticCoordinatesResponse",
+    {constructor<SScriptLineOfSightExtendedGeodeticCoordinatesResponse()>(),
+     constructor<SScriptLineOfSightExtendedGeodeticCoordinatesResponse(const SScriptLineOfSightExtendedGeodeticCoordinatesResponse&)>()},
+    {
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::RequestID), "RequestID"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Valid), "Valid"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Range), "Range"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::ResponseCount), "ResponseCount"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::HostFrameLSN), "HostFrameLSN"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::RangeValid), "RangeValid"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::NormalAzimuth), "NormalAzimuth"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::NormalElevation), "NormalElevation"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::MaterialCode), "MaterialCode"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Latitude), "Latitude"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Longitude), "Longitude"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::Altitude), "Altitude"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorR), "SurfaceColorR"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorG), "SurfaceColorG"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorB), "SurfaceColorB"},
+      {fun(&SScriptLineOfSightExtendedGeodeticCoordinatesResponse::SurfaceColorA), "SurfaceColorA"},
+    });
   chai.add(m);
 }
 
@@ -4918,7 +5380,10 @@ void RegisterScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse(ChaiScri
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
   chaiscript::utility::add_class<SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse>(
-    *m, "LineOfSightExtendedEntityGeodeticCoordinatesResponse", {constructor<SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse()>(), constructor<SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse(const SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse&)>()},
+    *m,
+    "LineOfSightExtendedEntityGeodeticCoordinatesResponse",
+    {constructor<SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse()>(),
+     constructor<SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse(const SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse&)>()},
     {
       {fun(&SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse::RequestID), "RequestID"},
       {fun(&SScriptLineOfSightExtendedEntityGeodeticCoordinatesResponse::EntityID), "EntityID"},
@@ -4946,28 +5411,31 @@ void RegisterScriptLineOfSightExtendedEntityCoordinatesResponse(ChaiScript& chai
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptLineOfSightExtendedEntityCoordinatesResponse>(*m, "LineOfSightExtendedEntityCoordinatesResponse",
-                                                                                      {constructor<SScriptLineOfSightExtendedEntityCoordinatesResponse()>(), constructor<SScriptLineOfSightExtendedEntityCoordinatesResponse(const SScriptLineOfSightExtendedEntityCoordinatesResponse&)>()},
-                                                                                      {
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::RequestID), "RequestID"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::EntityID), "EntityID"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Valid), "Valid"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Visible), "Visible"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Range), "Range"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::ResponseCount), "ResponseCount"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::HostFrameLSN), "HostFrameLSN"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::RangeValid), "RangeValid"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::NormalAzimuth), "NormalAzimuth"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::NormalElevation), "NormalElevation"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::MaterialCode), "MaterialCode"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::X), "X"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Y), "Y"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Z), "Z"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorR), "SurfaceColorR"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorG), "SurfaceColorG"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorB), "SurfaceColorB"},
-                                                                                        {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorA), "SurfaceColorA"},
-                                                                                      });
+  chaiscript::utility::add_class<SScriptLineOfSightExtendedEntityCoordinatesResponse>(
+    *m,
+    "LineOfSightExtendedEntityCoordinatesResponse",
+    {constructor<SScriptLineOfSightExtendedEntityCoordinatesResponse()>(),
+     constructor<SScriptLineOfSightExtendedEntityCoordinatesResponse(const SScriptLineOfSightExtendedEntityCoordinatesResponse&)>()},
+    {
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::RequestID), "RequestID"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::EntityID), "EntityID"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Valid), "Valid"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Visible), "Visible"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Range), "Range"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::ResponseCount), "ResponseCount"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::HostFrameLSN), "HostFrameLSN"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::RangeValid), "RangeValid"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::NormalAzimuth), "NormalAzimuth"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::NormalElevation), "NormalElevation"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::MaterialCode), "MaterialCode"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::X), "X"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Y), "Y"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::Z), "Z"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorR), "SurfaceColorR"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorG), "SurfaceColorG"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorB), "SurfaceColorB"},
+      {fun(&SScriptLineOfSightExtendedEntityCoordinatesResponse::SurfaceColorA), "SurfaceColorA"},
+    });
   chai.add(m);
 }
 
@@ -4975,13 +5443,16 @@ void RegisterScriptCollisionSegmentResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptCollisionSegmentResponse>(*m, "CollisionSegmentResponse", {constructor<SScriptCollisionSegmentResponse()>(), constructor<SScriptCollisionSegmentResponse(const SScriptCollisionSegmentResponse&)>()},
-                                                                  {
-                                                                    {fun(&SScriptCollisionSegmentResponse::EntityID), "EntityID"},
-                                                                    {fun(&SScriptCollisionSegmentResponse::SegmentID), "SegmentID"},
-                                                                    {fun(&SScriptCollisionSegmentResponse::IntersectionDistance), "IntersectionDistance"},
-                                                                    {fun(&SScriptCollisionSegmentResponse::MaterialCode), "MaterialCode"},
-                                                                  });
+  chaiscript::utility::add_class<SScriptCollisionSegmentResponse>(
+    *m,
+    "CollisionSegmentResponse",
+    {constructor<SScriptCollisionSegmentResponse()>(), constructor<SScriptCollisionSegmentResponse(const SScriptCollisionSegmentResponse&)>()},
+    {
+      {fun(&SScriptCollisionSegmentResponse::EntityID), "EntityID"},
+      {fun(&SScriptCollisionSegmentResponse::SegmentID), "SegmentID"},
+      {fun(&SScriptCollisionSegmentResponse::IntersectionDistance), "IntersectionDistance"},
+      {fun(&SScriptCollisionSegmentResponse::MaterialCode), "MaterialCode"},
+    });
   chai.add(m);
 }
 
@@ -4989,12 +5460,15 @@ void RegisterScriptCollisionVolumeResponse(ChaiScript& chai)
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptCollisionVolumeResponse>(*m, "CollisionVolumeResponse", {constructor<SScriptCollisionVolumeResponse()>(), constructor<SScriptCollisionVolumeResponse(const SScriptCollisionVolumeResponse&)>()},
-                                                                 {
-                                                                   {fun(&SScriptCollisionVolumeResponse::EntityID), "EntityID"},
-                                                                   {fun(&SScriptCollisionVolumeResponse::VolumeID), "VolumeID"},
-                                                                   {fun(&SScriptCollisionVolumeResponse::ContactedVolumeID), "ContactedVolumeID"},
-                                                                 });
+  chaiscript::utility::add_class<SScriptCollisionVolumeResponse>(
+    *m,
+    "CollisionVolumeResponse",
+    {constructor<SScriptCollisionVolumeResponse()>(), constructor<SScriptCollisionVolumeResponse(const SScriptCollisionVolumeResponse&)>()},
+    {
+      {fun(&SScriptCollisionVolumeResponse::EntityID), "EntityID"},
+      {fun(&SScriptCollisionVolumeResponse::VolumeID), "VolumeID"},
+      {fun(&SScriptCollisionVolumeResponse::ContactedVolumeID), "ContactedVolumeID"},
+    });
   chai.add(m);
 }
 
@@ -5002,17 +5476,21 @@ void RegisterScriptPositionResponseGeodeticCoordinatesDefinition(ChaiScript& cha
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptPositionResponseGeodeticCoordinates>(*m, "PositionResponseGeodeticCoordinates", {constructor<SScriptPositionResponseGeodeticCoordinates()>(), constructor<SScriptPositionResponseGeodeticCoordinates(const SScriptPositionResponseGeodeticCoordinates&)>()},
-                                                                             {
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::Latitude), "Latitude"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::Longitude), "Longitude"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::Altitude), "Altitude"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::ObjectClass), "ObjectClass"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::objectID), "ObjectID"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::Roll), "Roll"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::Pitch), "Pitch"},
-                                                                               {fun(&SScriptPositionResponseGeodeticCoordinates::Yaw), "Yaw"},
-                                                                             });
+  chaiscript::utility::add_class<SScriptPositionResponseGeodeticCoordinates>(
+    *m,
+    "PositionResponseGeodeticCoordinates",
+    {constructor<SScriptPositionResponseGeodeticCoordinates()>(), constructor<SScriptPositionResponseGeodeticCoordinates(const SScriptPositionResponseGeodeticCoordinates&)>()},
+    {
+      {fun(&SScriptPositionResponseGeodeticCoordinates::Latitude), "Latitude"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::Longitude), "Longitude"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::Altitude), "Altitude"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::ObjectClass), "ObjectClass"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::objectID), "ObjectID"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::ArticulatedPartID), "ArticulatedPartID"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::Roll), "Roll"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::Pitch), "Pitch"},
+      {fun(&SScriptPositionResponseGeodeticCoordinates::Yaw), "Yaw"},
+    });
   chai.add(m);
 }
 
@@ -5020,18 +5498,22 @@ void RegisterScriptPositionResponseParentEntityCoordinatesDefinition(ChaiScript&
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptPositionResponseParentEntityCoordinates>(*m, "PositionResponseParentEntityCoordinates",
-                                                                                 {constructor<SScriptPositionResponseParentEntityCoordinates()>(), constructor<SScriptPositionResponseParentEntityCoordinates(const SScriptPositionResponseParentEntityCoordinates&)>()},
-                                                                                 {
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::xOffset), "X"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::yOffset), "Y"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::zOffset), "Z"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::ObjectClass), "ObjectClass"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::objectID), "ObjectID"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::Roll), "Roll"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::Pitch), "Pitch"},
-                                                                                   {fun(&SScriptPositionResponseParentEntityCoordinates::Yaw), "Yaw"},
-                                                                                 });
+  chaiscript::utility::add_class<SScriptPositionResponseParentEntityCoordinates>(
+    *m,
+    "PositionResponseParentEntityCoordinates",
+    {constructor<SScriptPositionResponseParentEntityCoordinates()>(),
+     constructor<SScriptPositionResponseParentEntityCoordinates(const SScriptPositionResponseParentEntityCoordinates&)>()},
+    {
+      {fun(&SScriptPositionResponseParentEntityCoordinates::xOffset), "X"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::yOffset), "Y"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::zOffset), "Z"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::ObjectClass), "ObjectClass"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::objectID), "ObjectID"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::ArticulatedPartID), "ArticulatedPartID"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::Roll), "Roll"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::Pitch), "Pitch"},
+      {fun(&SScriptPositionResponseParentEntityCoordinates::Yaw), "Yaw"},
+    });
   chai.add(m);
 }
 
@@ -5039,19 +5521,22 @@ void RegisterScriptPositionResponseArticulatedPartCoordinatesDefinition(ChaiScri
 {
   chaiscript::ModulePtr m = chaiscript::ModulePtr(new chaiscript::Module());
 
-  chaiscript::utility::add_class<SScriptPositionResponseArticulatedPartCoordinates>(*m, "PositionResponseArticulatedPartCoordinates",
-                                                                                    {constructor<SScriptPositionResponseArticulatedPartCoordinates()>(), constructor<SScriptPositionResponseArticulatedPartCoordinates(const SScriptPositionResponseArticulatedPartCoordinates&)>()},
-                                                                                    {
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::xOffset), "X"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::yOffset), "Y"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::zOffset), "Z"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::ArticulatedPartID), "ArticulatedPartID"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::ObjectClass), "ObjectClass"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::objectID), "ObjectID"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::Roll), "Roll"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::Pitch), "Pitch"},
-                                                                                      {fun(&SScriptPositionResponseArticulatedPartCoordinates::Yaw), "Yaw"},
-                                                                                    });
+  chaiscript::utility::add_class<SScriptPositionResponseArticulatedPartCoordinates>(
+    *m,
+    "PositionResponseArticulatedPartCoordinates",
+    {constructor<SScriptPositionResponseArticulatedPartCoordinates()>(),
+     constructor<SScriptPositionResponseArticulatedPartCoordinates(const SScriptPositionResponseArticulatedPartCoordinates&)>()},
+    {
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::xOffset), "X"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::yOffset), "Y"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::zOffset), "Z"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::ArticulatedPartID), "ArticulatedPartID"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::ObjectClass), "ObjectClass"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::objectID), "ObjectID"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::Roll), "Roll"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::Pitch), "Pitch"},
+      {fun(&SScriptPositionResponseArticulatedPartCoordinates::Yaw), "Yaw"},
+    });
   chai.add(m);
 }
 
@@ -5101,12 +5586,22 @@ void RegisterGetHostSeconds(ChaiScript& chai)
 
 void RegisterSin(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun([](float p) { return std::sin(p); }), "sin");
+  chai.add(chaiscript::fun(
+             [](float p)
+             {
+               return std::sin(p);
+             }),
+           "sin");
 }
 
 void RegisterCos(ChaiScript& chai)
 {
-  chai.add(chaiscript::fun([](float p) { return std::cos(p); }), "cos");
+  chai.add(chaiscript::fun(
+             [](float p)
+             {
+               return std::cos(p);
+             }),
+           "cos");
 }
 
 void RegisterModulo(ChaiScript& chai)
@@ -5249,7 +5744,10 @@ CScriptRuntime::~CScriptRuntime()
     g_HostCigiLibGlobals.pEventDispatcher->UnregisterListener<HostCigiEvent>(this);
   }
 
-  g_pScriptRuntime = nullptr;
+  if (g_pScriptRuntime == this)
+  {
+    g_pScriptRuntime = nullptr;
+  }
 }
 
 void CScriptRuntime::AddWaitCallback(const SWaitCallback& waitCallback)
@@ -5262,7 +5760,7 @@ void CScriptRuntime::Execute(const std::string& sCategory, const std::string& sF
   try
   {
     m_bIsExecutingScript = true;
-    m_WaitCallbacks.clear();
+    CancelWaitCallbacks();
 
     // restore previous state
     m_pChaiScript->set_state(base_state);
@@ -5283,7 +5781,7 @@ void CScriptRuntime::Execute(const std::string& sCategory, const std::string& sF
   catch (const chaiscript::exception::eval_error& ee)
   {
     m_bIsExecutingScript = false;
-    m_WaitCallbacks.clear();
+    CancelWaitCallbacks();
 
     string s = ee.pretty_print();
 
@@ -5294,7 +5792,7 @@ void CScriptRuntime::Execute(const std::string& sCategory, const std::string& sF
   catch (const std::exception& ex)
   {
     m_bIsExecutingScript = false;
-    m_WaitCallbacks.clear();
+    CancelWaitCallbacks();
 
     HostCigiErrorEventArgs args;
     args.sError = ex.what();

@@ -33,11 +33,14 @@ void CCigiMotionTrackerControlHandler::Handle(const sbio::cigi::SMotionTrackerVi
   }
 
   SSetMotionTrackerMessage data;
+  data.TrackerID = motionTrackerViewControl.motionTrackerID;
   data.BoresightEnabled = motionTrackerViewControl.bBoresightEnable;
   data.RollEnabled = motionTrackerViewControl.bRollEnable;
+  data.PitchEnabled = motionTrackerViewControl.bPitchEnable;
+  data.YawEnabled = motionTrackerViewControl.bYawEnable;
   data.TrackerEnabled = motionTrackerViewControl.bEnable;
   data.XEnabled = motionTrackerViewControl.bXEnable;
-  data.YEnabled = motionTrackerViewControl.bYawEnable;
+  data.YEnabled = motionTrackerViewControl.bYEnable;
   data.ZEnabled = motionTrackerViewControl.bZEnable;
 
   if (g_CigiLibGlobals.pEventMessenger != nullptr)
@@ -68,11 +71,14 @@ void CCigiMotionTrackerControlHandler::Handle(const sbio::cigi::SMotionTrackerVi
   }
 
   SSetMotionTrackerMessage data;
+  data.TrackerID = motionTrackerViewGroupControl.motionTrackerID;
   data.BoresightEnabled = motionTrackerViewGroupControl.bBoresightEnable;
   data.RollEnabled = motionTrackerViewGroupControl.bRollEnable;
+  data.PitchEnabled = motionTrackerViewGroupControl.bPitchEnable;
+  data.YawEnabled = motionTrackerViewGroupControl.bYawEnable;
   data.TrackerEnabled = motionTrackerViewGroupControl.bEnable;
   data.XEnabled = motionTrackerViewGroupControl.bXEnable;
-  data.YEnabled = motionTrackerViewGroupControl.bYawEnable;
+  data.YEnabled = motionTrackerViewGroupControl.bYEnable;
   data.ZEnabled = motionTrackerViewGroupControl.bZEnable;
 
   if (g_CigiLibGlobals.pEventMessenger != nullptr)

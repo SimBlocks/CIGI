@@ -26,6 +26,7 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 CCigiSymbol::CCigiSymbol(SymbolID symbolID, ESymbolType eSymbolType) : CSymbol(symbolID, eSymbolType)
 {
+  m_OwnColor = GetColor();
   m_pFlashStopWatch = std::make_unique<CStopWatch>();
 }
 
@@ -44,6 +45,8 @@ std::unique_ptr<CSymbol> CCigiSymbol::Clone(SymbolID symbolID)
 void CCigiSymbol::CopyFrom(CSymbol* pSymbol, SymbolID symbolID)
 {
   CSymbol::CopyFrom(pSymbol, symbolID);
+  m_OwnColor = GetColor();
+  m_bInheritColor = false;
 
   CCigiSymbol* pCigiSymbol = dynamic_cast<CCigiSymbol*>(pSymbol);
   if (pCigiSymbol == nullptr)
@@ -53,6 +56,7 @@ void CCigiSymbol::CopyFrom(CSymbol* pSymbol, SymbolID symbolID)
 
   m_fFlashPeriod = pCigiSymbol->GetFlashPeriod();
   m_fFlashDutyCycle = pCigiSymbol->GetFlashDutyCycle();
+  RestartFlash();
 
   if (m_pGeometry != nullptr && pSymbol->GetSymbolGeometry() != nullptr)
   {
@@ -70,31 +74,106 @@ float CCigiSymbol::GetFlashPeriod() const
   return m_fFlashPeriod;
 }
 
+uint8_t CCigiSymbol::GetLayerID() const
+{
+  return m_LayerID;
+}
+
+void CCigiSymbol::SetLayerID(uint8_t layerID)
+{
+  m_LayerID = layerID;
+}
+
 void CCigiSymbol::RestartFlash()
 {
-  m_pFlashStopWatch->Stop();
+  m_pFlashStopWatch->Reset();
   m_pFlashStopWatch->Start();
+  RefreshFlashVisibility();
 }
 
 void CCigiSymbol::SetColor(const SColor32& color)
 {
-  CSymbol::SetColor(color);
+  m_OwnColor = color;
+  UpdateEffectiveColor();
+}
 
-  SSetSymbolColorMessage data;
-  data.SymbolID = m_SymbolID;
-  data.Color.r = static_cast<float>(color.r) / 255.0f;
-  data.Color.g = static_cast<float>(color.g) / 255.0f;
-  data.Color.b = static_cast<float>(color.b) / 255.0f;
-  data.Color.a = static_cast<float>(color.a) / 255.0f;
+void CCigiSymbol::SetInheritColor(bool inheritColor)
+{
+  m_bInheritColor = inheritColor;
+  UpdateEffectiveColor();
+}
 
-  g_CigiLibGlobals.pEventMessenger->SendSetSymbolColorMessage(data);
+void CCigiSymbol::UpdateEffectiveColor()
+{
+  std::vector<CCigiSymbol*> symbolsToVisit = {this};
+  std::unordered_set<SymbolID, StrongTypeHash<SymbolID>> visitedSymbols;
+
+  // Perform a depth-first traversal of the symbol hierarchy to update colors for this symbol and all inheriting descendants.
+  while (!symbolsToVisit.empty())
+  {
+    // Pop the next symbol to visit from the stack.
+    CCigiSymbol* pSymbol = symbolsToVisit.back();
+    symbolsToVisit.pop_back();
+
+    // Skip symbols that have already been visited to avoid infinite loops in case of circular references.
+    if (!visitedSymbols.insert(pSymbol->GetSymbolID()).second)
+    {
+      continue;
+    }
+
+    // Determine the effective color for this symbol, considering inheritance.
+    SColor32 color = pSymbol->m_OwnColor;
+    if (pSymbol->m_bInheritColor && g_CigiLibGlobals.pSymbolSurfaceManager != nullptr)
+    {
+      const auto parentSymbolID = pSymbol->GetParentSymbolID();
+      CSymbol* pParent = nullptr;
+
+      if (parentSymbolID)
+      {
+        pParent = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(*parentSymbolID);
+      }
+
+      if (pParent != nullptr)
+      {
+        color = pParent->GetColor();
+      }
+    }
+
+    pSymbol->CSymbol::SetColor(color);
+
+    // Notify the image generator of the color change.
+    if (g_CigiLibGlobals.pEventMessenger != nullptr)
+    {
+      SSetSymbolColorMessage data;
+      data.SymbolID = pSymbol->GetSymbolID();
+      data.Color.r = static_cast<float>(color.r) / 255.0f;
+      data.Color.g = static_cast<float>(color.g) / 255.0f;
+      data.Color.b = static_cast<float>(color.b) / 255.0f;
+      data.Color.a = static_cast<float>(color.a) / 255.0f;
+      g_CigiLibGlobals.pEventMessenger->SendSetSymbolColorMessage(data);
+    }
+
+    // Add children that inherit color to the visit list.
+    if (g_CigiLibGlobals.pSymbolSurfaceManager != nullptr)
+    {
+      for (SymbolID childID : pSymbol->GetChildren())
+      {
+        auto* pChild = dynamic_cast<CCigiSymbol*>(g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(childID));
+        if (pChild != nullptr && pChild->m_bInheritColor && pChild->GetParentSymbolID() == pSymbol->GetSymbolID())
+        {
+          symbolsToVisit.push_back(pChild);
+        }
+      }
+    }
+  }
 }
 
 void CCigiSymbol::SetFlash(float fFlashDutyCycle, float fFlashPeriod)
 {
-  // ignore if values are equal
+  // Preserve the phase when settings are unchanged, but refresh inherited visibility.
   if (fequals(m_fFlashDutyCycle, fFlashDutyCycle) && fequals(m_fFlashPeriod, fFlashPeriod))
   {
+    RefreshFlashVisibility();
     return;
   }
 
@@ -103,60 +182,81 @@ void CCigiSymbol::SetFlash(float fFlashDutyCycle, float fFlashPeriod)
 
   // If a symbol�s flash period or duty cycle is changed, then that symbol�s flash cycle will be restarted.
   RestartFlash();
+}
 
-  if (fequals(m_fFlashDutyCycle, 1))
+CCigiSymbol* CCigiSymbol::GetFlashSource()
+{
+  CCigiSymbol* pSource = this;
+  CSymbol* pAncestor = this;
+  std::unordered_set<SymbolID, StrongTypeHash<SymbolID>> visitedSymbols;
+  while (pAncestor != nullptr && visitedSymbols.insert(pAncestor->GetSymbolID()).second)
   {
-    // The Flash Duty Cycle Percentage parameter specifies the percentage of each flash cycle that the symbol is visible.
-    // If this parameter is set to 100%, then no flashing occurs and the symbol is always visible.
+    auto* pCigiAncestor = dynamic_cast<CCigiSymbol*>(pAncestor);
+    if (pCigiAncestor != nullptr && pCigiAncestor->m_fFlashPeriod > 0 && pCigiAncestor->m_fFlashDutyCycle < 1)
+    {
+      // The highest flashing ancestor controls the entire descendant branch.
+      pSource = pCigiAncestor;
+    }
+    if (g_CigiLibGlobals.pSymbolSurfaceManager == nullptr)
+    {
+      break;
+    }
+
+    const auto parentSymbolID = pAncestor->GetParentSymbolID();
+    if (parentSymbolID)
+    {
+      pAncestor = g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(*parentSymbolID);
+    }
+    else
+    {
+      pAncestor = nullptr;
+    }
+  }
+  return pSource;
+}
+
+void CCigiSymbol::UpdateFlashVisibility()
+{
+  CCigiSymbol* pSource = GetFlashSource();
+  if (pSource->m_fFlashPeriod > 0)
+  {
+    double elapsed = pSource->m_pFlashStopWatch->GetElapsedSeconds();
+    if (elapsed >= pSource->m_fFlashPeriod)
+    {
+      pSource->m_pFlashStopWatch->Reset();
+      pSource->m_pFlashStopWatch->Start();
+      elapsed = 0;
+    }
+    SetFlashVisible(elapsed < pSource->m_fFlashDutyCycle * pSource->m_fFlashPeriod);
   }
   else
   {
-    // If a symbol�s duty cycle is less than 100%, then any descendents (child symbols, grandchildren, etc.) will inherit the symbol�s duty cycle and flash period.
-    // The Flash Duty Cycle Percentage and Flash Period attributes of the descendents will be ignored.
-    // If a symbol flashes, then any descendents will flash in synchronization with that symbol.
+    SetFlashVisible(true);
+  }
+}
 
-    // Perform a breadth-first traversal of the symbol tree rooted at this symbol, applying flash parameters to each descendant.
-    std::vector<CCigiSymbol*> symbolsToVisit = {this};
-    std::unordered_set<SymbolID, StrongTypeHash<SymbolID>> visitedSymbols;
-
-    // The root symbol is included in the traversal to ensure that its flash parameters are applied to itself and that its flash cycle is restarted.
-    while (!symbolsToVisit.empty())
+void CCigiSymbol::RefreshFlashVisibility()
+{
+  std::vector<CCigiSymbol*> symbolsToVisit = {this};
+  std::unordered_set<SymbolID, StrongTypeHash<SymbolID>> visitedSymbols;
+  while (!symbolsToVisit.empty())
+  {
+    CCigiSymbol* pSymbol = symbolsToVisit.back();
+    symbolsToVisit.pop_back();
+    if (!visitedSymbols.insert(pSymbol->GetSymbolID()).second)
     {
-      // Get the next symbol to visit from the back of the vector and remove it from the vector.
-      CCigiSymbol* pCurrentSymbol = symbolsToVisit.back();
-      symbolsToVisit.pop_back();
-
-      if (pCurrentSymbol == nullptr)
+      continue;
+    }
+    pSymbol->UpdateFlashVisibility();
+    if (g_CigiLibGlobals.pSymbolSurfaceManager != nullptr)
+    {
+      for (SymbolID childID : pSymbol->GetChildren())
       {
-        continue;
-      }
-
-      // Skip if the symbol has already been visited to prevent infinite loops in the case of circular references.
-      if (!visitedSymbols.insert(pCurrentSymbol->GetSymbolID()).second)
-      {
-        continue;
-      }
-
-      // Apply flash parameters to the current symbol if it is not the root symbol.
-      // The root symbol has already had its flash parameters updated and its flash cycle restarted.
-      if (pCurrentSymbol != this)
-      {
-        pCurrentSymbol->m_fFlashDutyCycle = m_fFlashDutyCycle;
-        pCurrentSymbol->m_fFlashPeriod = m_fFlashPeriod;
-        pCurrentSymbol->RestartFlash();
-      }
-
-      // Add the children of the current symbol to the vector of symbols to visit.
-      for (auto childID : pCurrentSymbol->m_Children)
-      {
-        // Get the symbol object for the child symbol ID and add it to the vector of symbols to visit if it is a CCigiSymbol.
-        CCigiSymbol* pChildSymbol = dynamic_cast<CCigiSymbol*>(g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(childID));
-        if (pChildSymbol == nullptr)
+        auto* pChild = dynamic_cast<CCigiSymbol*>(g_CigiLibGlobals.pSymbolSurfaceManager->GetSymbol(childID));
+        if (pChild != nullptr && pChild->GetParentSymbolID() == pSymbol->GetSymbolID())
         {
-          continue;
+          symbolsToVisit.push_back(pChild);
         }
-
-        symbolsToVisit.push_back(pChildSymbol);
       }
     }
   }
@@ -186,7 +286,7 @@ void CCigiSymbol::SetRotation(Degrees fRotation)
 
 void CCigiSymbol::SetSymbolSurfaceID(SymbolSurfaceID symbolSurfaceID)
 {
-  if (m_SymbolSurfaceID == symbolSurfaceID)
+  if (HasSymbolSurfaceID() && m_SymbolSurfaceID == symbolSurfaceID)
   {
     return;
   }
@@ -200,13 +300,27 @@ void CCigiSymbol::SetSymbolSurfaceID(SymbolSurfaceID symbolSurfaceID)
   g_CigiLibGlobals.pEventMessenger->SendSetSymbolSurfaceMessage(data);
 }
 
+void CCigiSymbol::ClearSymbolSurfaceID()
+{
+  if (!HasSymbolSurfaceID())
+  {
+    return;
+  }
+
+  CSymbol::ClearSymbolSurfaceID();
+
+  SClearSymbolSurfaceMessage data;
+  data.SymbolID = m_SymbolID;
+  g_CigiLibGlobals.pEventMessenger->SendClearSymbolSurfaceMessage(data);
+}
+
 void CCigiSymbol::SetVisible(bool bVisible, bool bForceChange)
 {
-  const bool bCurrentVisible = GetEffectiveVisibility();
+  const bool bCurrentVisible = GetEffectiveVisibility() && m_bFlashVisible;
 
   CSymbol::SetVisible(bVisible);
 
-  const bool bNewVisible = GetEffectiveVisibility();
+  const bool bNewVisible = GetEffectiveVisibility() && m_bFlashVisible;
   if (bCurrentVisible != bNewVisible || bForceChange)
   {
     SSetSymbolVisibleMessage data;
@@ -216,24 +330,22 @@ void CCigiSymbol::SetVisible(bool bVisible, bool bForceChange)
   }
 }
 
+void CCigiSymbol::SetFlashVisible(bool bVisible)
+{
+  const bool bCurrentVisible = GetEffectiveVisibility() && m_bFlashVisible;
+  m_bFlashVisible = bVisible;
+
+  // If the flash visibility has changed, update the host's visibility state to reflect the new effective visibility.
+  if (bCurrentVisible != (GetEffectiveVisibility() && m_bFlashVisible))
+  {
+    SetVisible(IsVisible(), true);
+  }
+}
+
 void CCigiSymbol::Update()
 {
   CSymbol::Update();
-
-  if (m_fFlashPeriod > 0)
-  {
-    if (m_pFlashStopWatch->GetElapsedSeconds() > m_fFlashPeriod)
-    {
-      SetVisible(true);
-
-      m_pFlashStopWatch->Reset();
-      m_pFlashStopWatch->Start();
-    }
-    else if (m_pFlashStopWatch->GetElapsedSeconds() > m_fFlashDutyCycle * m_fFlashPeriod)
-    {
-      SetVisible(false);
-    }
-  }
+  UpdateFlashVisibility();
 }
 
 //The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.

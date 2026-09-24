@@ -41,7 +41,7 @@ void CHostViewManager::Init(const std::filesystem::path& viewsConfigFilePath, st
     return;
   }
 
-  fstream file;
+  ifstream file;
   file.open(viewsConfigFilePath);
 
   if (!file.is_open())

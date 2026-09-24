@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include <vector>
 #include <memory>
+#include <optional>
 
 namespace sbio
 {
@@ -34,6 +35,10 @@ namespace sbio
      * `CSymbolSurfaceManager` and CIGI handlers. Concrete symbol types implement cloning behavior while the base
      * class manages visibility state, hierarchical relationships, and the optional geometry object produced from the
      * global `CSymbolGeometryFactory` during construction.
+     *
+     * Parent and child IDs are non-owning bookkeeping. Base setters do not resolve those IDs, maintain reciprocal
+     * relationships, propagate visibility to descendants, or send rendering updates. Tree-level visibility updates
+     * are provided by `CSymbolSurfaceManager`.
      *
      * @invariant `m_SymbolID` identifies this symbol instance.
      * @invariant `m_eSymbolType` remains the declared type supplied at construction.
@@ -58,7 +63,7 @@ namespace sbio
       CSymbol(sbio::symbol::SymbolID symbolID, ESymbolType eSymbolType);
 
       /**
-       * @brief Destroys the symbol.
+       * @brief Destroys the symbol and its owned geometry, without modifying other symbols' relationships.
        */
       virtual ~CSymbol() = 0;
 
@@ -75,14 +80,15 @@ namespace sbio
 
       /**
        * @brief Copies the base symbol state from another symbol.
-       * @param pSymbol Source symbol to read from.
+       * @param pSymbol Non-null, borrowed source symbol to read from.
        * @param symbolID Identifier to assign to this symbol after the copy.
        *
        * Copies color, position, scale, visibility, rotation, and surface attachment. The copied symbol is detached
        * from any parent, its child set is cleared, and `m_bHiddenByAncestor` is reset to `false`. Geometry is not
-       * copied by this function.
+       * copied by this function, and the declared symbol type is unchanged. No manager key or reciprocal parent/child
+       * relationship is updated; callers copying into a managed symbol must keep those records consistent.
        *
-       * @ownership `pSymbol` remains owned by the caller.
+       * @ownership No ownership of `pSymbol` is transferred.
        * @failurecases `pSymbol` must not be `nullptr`.
        */
       virtual void CopyFrom(CSymbol* pSymbol, sbio::symbol::SymbolID symbolID);
@@ -90,12 +96,14 @@ namespace sbio
       /**
        * @brief Returns the symbol's effective visibility.
        * @return `true` when the symbol is locally visible and not hidden by an ancestor; otherwise `false`.
+       *
+       * Uses the stored ancestor-hidden flag; it does not traverse parents or check surface assignment.
        */
       bool GetEffectiveVisibility() const;
 
       /**
        * @brief Returns the symbol color.
-       * @return Const reference to the stored color value.
+       * @return Borrowed reference to the stored color, valid for this symbol's lifetime and reflecting later changes.
        *
        * @ownership The returned reference remains owned by the symbol.
        */
@@ -159,12 +167,15 @@ namespace sbio
        * @param symbolID Child symbol ID to add.
        *
        * Duplicate child IDs are ignored by the underlying set.
+       * The child is not looked up, reparented, or owned by this symbol; cycles are not rejected.
        */
       void AddChild(sbio::symbol::SymbolID symbolID);
 
       /**
        * @brief Removes a recorded child relationship.
        * @param symbolID Child symbol ID to remove.
+       *
+       * Does not modify the child's stored parent ID or visibility.
        *
        * @failurecases Removing an ID that is not present has no effect.
        */
@@ -180,17 +191,18 @@ namespace sbio
 
       /**
        * @brief Returns the parent symbol ID.
-       * @return Parent symbol ID, or `UnknownSymbolID` when the symbol is top-level.
+       * @return Parent symbol ID, or `std::nullopt` when the symbol is top-level.
        */
-      sbio::symbol::SymbolID GetParentSymbolID() const;
+      std::optional<sbio::symbol::SymbolID> GetParentSymbolID() const;
 
       /**
        * @brief Replaces the parent symbol ID.
-       * @param parentSymbolID Parent symbol ID to store, or `UnknownSymbolID` to detach the symbol.
+       * @param parentSymbolID Parent symbol ID to store, or `std::nullopt` to detach the symbol.
        *
        * This function updates only the stored parent ID. It does not modify the parent's child collection.
+       * The ID need not resolve to a managed symbol, and the ancestor-hidden flag is not recomputed.
        */
-      void SetParentSymbolID(sbio::symbol::SymbolID parentSymbolID);
+      void SetParentSymbolID(std::optional<sbio::symbol::SymbolID> parentSymbolID);
 
       /**
        * @brief Returns the symbol ID.
@@ -200,7 +212,8 @@ namespace sbio
 
       /**
        * @brief Returns the associated geometry object.
-       * @return Non-owning pointer to the geometry object, or `nullptr` when no geometry was created.
+       * @return Borrowed pointer to the geometry object, or `nullptr` when no geometry was created.
+       * The pointer remains valid until the geometry is replaced by a derived class or the symbol is destroyed.
        *
        * @ownership The returned pointer remains owned by the symbol.
        */
@@ -209,12 +222,20 @@ namespace sbio
       /**
        * @brief Returns the attached symbol surface ID.
        * @return The stored symbol surface ID, or `UnknownSymbolSurfaceID` when no surface is assigned.
+       *
+       * Use `HasSymbolSurfaceID()` to distinguish an unassigned surface from surface ID 65535.
        */
       sbio::symbol::SymbolSurfaceID GetSymbolSurfaceID() const;
 
       /**
+       * @brief Reports whether a symbol surface ID has been assigned.
+       * @return `true` while a surface is assigned, including surface ID 65535; `false` initially or after clearing it.
+       */
+      bool HasSymbolSurfaceID() const;
+
+      /**
        * @brief Reports whether the symbol has no parent.
-       * @return `true` when `GetParentSymbolID()` is `UnknownSymbolID`; otherwise `false`.
+       * @return `true` when `GetParentSymbolID()` has no value; otherwise `false`.
        */
       bool IsTopLevel() const;
 
@@ -233,6 +254,8 @@ namespace sbio
       /**
        * @brief Stores whether an ancestor hides this symbol.
        * @param bHiddenByAncestor `true` when an ancestor should suppress effective visibility.
+       *
+       * Only stores the flag; it neither calls `SetVisible()` nor updates descendants.
        */
       void SetHiddenByAncestor(bool bHiddenByAncestor);
 
@@ -252,9 +275,18 @@ namespace sbio
        * @brief Replaces the attached symbol surface ID.
        * @param symbolSurfaceID Surface ID to store.
        *
+       * Marks the surface as assigned. All 16-bit IDs, including 65535, are valid assignments.
        * The base implementation performs no validation that the surface exists.
        */
       virtual void SetSymbolSurfaceID(sbio::symbol::SymbolSurfaceID symbolSurfaceID);
+
+      /**
+       * @brief Clears the surface assignment without changing the symbol's parent or local visibility.
+       *
+       * The base implementation stores `UnknownSymbolSurfaceID` and clears the assignment flag. It does not remove
+       * the surface from a manager or modify descendant symbols.
+       */
+      virtual void ClearSymbolSurfaceID();
 
     protected:
       sbio::symbol::SymbolID m_SymbolID;///< Unique symbol ID.
@@ -266,7 +298,8 @@ namespace sbio
       bool m_bHiddenByAncestor = false;///< `true` when an ancestor causes this symbol to be hidden.
       sbio::math::Degrees m_Rotation = UnknownDegrees;///< Symbol rotation.
       sbio::symbol::SymbolSurfaceID m_SymbolSurfaceID = UnknownSymbolSurfaceID;///< Attached symbol surface ID.
-      sbio::symbol::SymbolID m_ParentSymbolID = UnknownSymbolID;///< Parent symbol ID.
+      bool m_bSymbolSurfaceAssigned = false;///< Distinguishes an unassigned surface from any valid 16-bit surface ID.
+      std::optional<sbio::symbol::SymbolID> m_ParentSymbolID;///< Parent symbol ID, or no value for a top-level symbol.
 
       std::unordered_set<sbio::symbol::SymbolID, StrongTypeHash<sbio::symbol::SymbolID>> m_Children;///< Child symbol IDs.
       std::unique_ptr<CSymbolGeometry> m_pGeometry;///< Owned geometry created for this symbol, if available.

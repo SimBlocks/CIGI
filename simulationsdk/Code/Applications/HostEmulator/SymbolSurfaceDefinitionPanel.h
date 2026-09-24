@@ -32,13 +32,14 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending symbol surface definition packets.
-   * @param event The command event.
+   * @brief Submits an entity, entity-billboard, or view surface definition based on attachment and billboard selections.
+   * @param event Unused command event; requires an active session for supported selections.
+   * Relabeled controls retain their internal keys; view bounds are read from the shared offset and yaw controls.
    */
   void OnSend(wxCommandEvent& event);
   /**
-   * @brief Handles the entity view ID radio button event for updating the UI.
-   * @param event The command event.
+   * @brief Relabels shared ID/position fields for an entity attachment or view viewport bounds, without converting values.
+   * @param event Radio event; "Entity" selects entity labels, other strings select view labels.
    */
   void OnEntityViewIDRadio(wxCommandEvent& event);
 

@@ -27,6 +27,7 @@ namespace sbio
      *
      * `CSymbolText` stores the current `SSymbolTextDefinition` and keeps the embedded `symbolID` synchronized with
      * the identifier supplied by the caller when constructed or updated.
+     * It stores text and layout attributes; it does not load fonts, lay out glyphs, or issue rendering commands.
      *
      * @invariant `m_SymbolText.symbolID` matches the symbol ID last supplied to the constructor or `Set()`.
      */
@@ -36,6 +37,7 @@ namespace sbio
       /**
        * @brief Constructs text geometry for a symbol.
        * @param symbolID Symbol ID to store in the embedded `SSymbolTextDefinition` properties.
+       * Construction selects `ESymbolType::TEXT` without registering a symbol or surface.
        */
       CSymbolText(sbio::symbol::SymbolID symbolID);
 
@@ -45,14 +47,15 @@ namespace sbio
        *
        * Copies properties only when `pSymbolGeometry` is a `CSymbolText`. The stored symbol ID is preserved.
        *
-       * @ownership `pSymbolGeometry` remains owned by the caller.
+       * @ownership The source is borrowed; text is copied into destination-owned storage.
        * @failurecases If `pSymbolGeometry` is `nullptr` or does not reference `CSymbolText`, the function has no effect.
        */
       virtual void CopyFrom(CSymbolGeometry* pSymbolGeometry) override;
 
       /**
        * @brief Returns the stored text properties.
-       * @return Const reference to the internal `SSymbolTextDefinition` properties.
+       * @return Borrowed reference to the live `SSymbolTextDefinition` properties, valid for this geometry's lifetime.
+       * Later updates change the referenced value and may invalidate pointers, references, or iterators into its text.
        *
        * @ownership The returned reference remains owned by this object.
        */
@@ -64,6 +67,7 @@ namespace sbio
        * @param symbolID Symbol ID to write into the stored properties after copying.
        *
        * The `symbolID` embedded in `properties` is ignored and overwritten with `symbolID`.
+       * Text is copied. Font availability, font size, alignment, orientation, and text encoding are not validated.
        */
       void Set(sbio::symbol::SSymbolTextDefinition properties, sbio::symbol::SymbolID symbolID);
 

@@ -3,7 +3,7 @@
  * @file CigiSymbolTexturedPolygon.h
  * @brief Declares the CIGCigiSymbolTexturedPolygon class for SimBlocks CIGI IG symbol textured polygon management and geometry.
  *
- * Provides the CIGCigiSymbolTexturedPolygon class for representing and managing textured polygon symbols with CIGI-specific logic in the SimBlocks CIGI IG library.
+ * Provides the CIGCigiSymbolTexturedPolygon class for representing and managing textured polygon symbols with CIGI-specific logic in the SimBlocks IGCigiLib library.
  * Inherits from sbio::symbol::CSymbolTexturedPolygon and integrates with SimBlocks symbol geometry types for symbol rendering and manipulation.
  * Supports symbol geometry copying, symbol creation, update, and ID management for simulation symbols.
  *

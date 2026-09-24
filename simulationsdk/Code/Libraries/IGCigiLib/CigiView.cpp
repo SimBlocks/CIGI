@@ -75,9 +75,14 @@ sbio::math::TGeocentricTransform sbio::cigi::ig::CCigiView::GetWorldTransform() 
   }
   else
   {
+    TCigiBodyTransform childTransform;
+    if (!GetEffectiveChildTransform(childTransform))
+    {
+      return sbio::math::TGeocentricTransform();
+    }
     auto worldTransform = pEntity->GetWorldTransform();
-    worldTransform.pos += worldTransform.rotation * ConvertCigiBodyCoordinatesToBodyCoordinates(m_vOffset);
-    worldTransform.rotation = worldTransform.rotation * ConvertCigiBodyRotationToBodyRotation(SetupCigiObjectRotation(m_Rotation));
+    worldTransform.pos += worldTransform.rotation * ConvertCigiBodyCoordinatesToBodyCoordinates(childTransform.pos);
+    worldTransform.rotation = worldTransform.rotation * ConvertCigiBodyRotationToBodyRotation(childTransform.rotation);
     return worldTransform;
   }
 }
@@ -92,10 +97,30 @@ TCigiBodyTransform sbio::cigi::ig::CCigiView::GetChildTransform() const
   else
   {
     auto childTransform = TCigiBodyTransform();
-    childTransform.pos = m_vOffset;
-    childTransform.rotation = SetupCigiObjectRotation(m_Rotation);
+    GetEffectiveChildTransform(childTransform);
     return childTransform;
   }
+}
+
+bool CCigiView::GetEffectiveChildTransform(TCigiBodyTransform& transform) const
+{
+  CigiBodyCoordinates offset = m_vOffset;
+  TCigiBodyEulerRotation rotation = m_Rotation;
+  if (m_ViewGroupID != UnknownViewGroupID)
+  {
+    CCigiViewGroup* pViewGroup = dynamic_cast<CCigiViewGroup*>(g_CigiLibGlobals.pViewManager->GetViewGroup(m_ViewGroupID));
+    if (!pViewGroup)
+    {
+      return false;
+    }
+    offset += pViewGroup->GetOffset();
+    rotation.yaw += pViewGroup->GetRotation().yaw;
+    rotation.pitch += pViewGroup->GetRotation().pitch;
+    rotation.roll += pViewGroup->GetRotation().roll;
+  }
+  transform.pos = offset;
+  transform.rotation = SetupCigiObjectRotation(rotation);
+  return true;
 }
 
 void CCigiView::Reset()
@@ -103,6 +128,16 @@ void CCigiView::Reset()
   CView::Reset();
 
   m_AttachedEntityID = UnknownEntityID;
+}
+
+void CCigiView::BringToTop()
+{
+  if (g_CigiLibGlobals.pEventMessenger != nullptr)
+  {
+    SBringCameraToTopMessage data;
+    data.ViewID = m_ViewID;
+    g_CigiLibGlobals.pEventMessenger->SendBringCameraToTopMessage(data);
+  }
 }
 
 void CCigiView::SetAttachedEntityID(EntityID entityID)
@@ -141,7 +176,7 @@ void CCigiView::SetYaw(Degrees fYaw)
   }
 }
 
-void CCigiView::SetPitch(Degrees fPitch)
+void CCigiView::SetPitch(Degrees90 fPitch)
 {
   if (!fequals(m_Rotation.pitch.Value(), fPitch.Value()))
   {
@@ -150,7 +185,7 @@ void CCigiView::SetPitch(Degrees fPitch)
   }
 }
 
-void CCigiView::SetRoll(Degrees fRoll)
+void CCigiView::SetRoll(Degrees180 fRoll)
 {
   if (!fequals(m_Rotation.roll.Value(), fRoll.Value()))
   {
@@ -166,12 +201,20 @@ void CCigiView::SetTransformationDirty(bool bDirty)
 
 void sbio::cigi::ig::CCigiView::SetMirrorMode(sbio::EMirrorMode mirrorMode)
 {
-  m_eMirrorMode = mirrorMode;
+  if (m_eMirrorMode != mirrorMode)
+  {
+    m_eMirrorMode = mirrorMode;
+    m_bProjectionDirty = true;
+  }
 }
 
 void CCigiView::SetViewGroupID(sbio::ViewGroupID viewGroupID)
 {
-  m_ViewGroupID = viewGroupID;
+  if (m_ViewGroupID != viewGroupID)
+  {
+    m_ViewGroupID = viewGroupID;
+    m_bTransformationDirty = true;
+  }
 }
 
 sbio::ViewGroupID CCigiView::GetViewGroupID()
@@ -207,68 +250,22 @@ void CCigiView::UpdateTransformation()
     return;
   }
 
-  if (m_ViewGroupID == UnknownViewGroupID)
+  TCigiBodyTransform childTransform;
+  if (!GetEffectiveChildTransform(childTransform))
   {
-    BodyCoordinates bodyOffset = ConvertCigiBodyCoordinatesToBodyCoordinates(m_vOffset);
-
-    SUpdateAttachedCameraTransformMessage updateCameraTransformMessage;
-    updateCameraTransformMessage.ViewID = m_ViewID;
-    updateCameraTransformMessage.Offset = bodyOffset;
-
-    Eigen::Matrix3d yawPitchRoll = Eigen::Matrix3d::Identity();
-    Eigen::AngleAxisd yawAngle(DegreesToRadians(-m_Rotation.yaw).Value(), yawPitchRoll.col(2));
-    yawPitchRoll = yawAngle * yawPitchRoll;
-    Eigen::AngleAxisd pitchAngle(DegreesToRadians(m_Rotation.pitch).Value(), yawPitchRoll.col(0));
-    yawPitchRoll = pitchAngle * yawPitchRoll;
-    Eigen::AngleAxisd rollAngle(DegreesToRadians(m_Rotation.roll).Value(), yawPitchRoll.col(1));
-    yawPitchRoll = rollAngle * yawPitchRoll;
-
-    updateCameraTransformMessage.Rotation.Forward[0] = yawPitchRoll.col(1).x();
-    updateCameraTransformMessage.Rotation.Forward[1] = yawPitchRoll.col(1).y();
-    updateCameraTransformMessage.Rotation.Forward[2] = yawPitchRoll.col(1).z();
-    updateCameraTransformMessage.Rotation.Up[0] = yawPitchRoll.col(2).x();
-    updateCameraTransformMessage.Rotation.Up[1] = yawPitchRoll.col(2).y();
-    updateCameraTransformMessage.Rotation.Up[2] = yawPitchRoll.col(2).z();
-
-    if (g_CigiLibGlobals.pEventMessenger != nullptr)
-    {
-      g_CigiLibGlobals.pEventMessenger->SendUpdateAttachedCameraTransformMessage(updateCameraTransformMessage);
-    }
+    return;
   }
-  else
+
+  SUpdateAttachedCameraTransformMessage updateCameraTransformMessage;
+  updateCameraTransformMessage.ViewID = m_ViewID;
+  updateCameraTransformMessage.Offset = ConvertCigiBodyCoordinatesToBodyCoordinates(childTransform.pos);
+  TBodyMatrix rotation = ConvertCigiBodyRotationToBodyRotation(childTransform.rotation).toRotationMatrix();
+  updateCameraTransformMessage.Rotation.Forward = rotation.getCol(1);
+  updateCameraTransformMessage.Rotation.Up = rotation.getCol(2);
+
+  if (g_CigiLibGlobals.pEventMessenger != nullptr)
   {
-    CCigiViewGroup* pViewGroup = dynamic_cast<CCigiViewGroup*>(g_CigiLibGlobals.pViewManager->GetViewGroup(m_ViewGroupID));
-
-    if (!pViewGroup)
-    {
-      return;
-    }
-
-    BodyCoordinates bodyOffset = ConvertCigiBodyCoordinatesToBodyCoordinates(m_vOffset + pViewGroup->GetOffset());
-
-    SUpdateAttachedCameraTransformMessage updateCameraTransformMessage;
-    updateCameraTransformMessage.ViewID = m_ViewID;
-    updateCameraTransformMessage.Offset = bodyOffset;
-
-    Eigen::Matrix3d yawPitchRoll = Eigen::Matrix3d::Identity();
-    Eigen::AngleAxisd yawAngle(DegreesToRadians(-(m_Rotation.yaw + pViewGroup->GetRotation().yaw)).Value(), yawPitchRoll.col(2));
-    yawPitchRoll = yawAngle * yawPitchRoll;
-    Eigen::AngleAxisd pitchAngle(DegreesToRadians(m_Rotation.pitch + pViewGroup->GetRotation().pitch).Value(), yawPitchRoll.col(0));
-    yawPitchRoll = pitchAngle * yawPitchRoll;
-    Eigen::AngleAxisd rollAngle(DegreesToRadians(m_Rotation.roll + pViewGroup->GetRotation().roll).Value(), yawPitchRoll.col(1));
-    yawPitchRoll = rollAngle * yawPitchRoll;
-
-    updateCameraTransformMessage.Rotation.Forward[0] = yawPitchRoll.col(1).x();
-    updateCameraTransformMessage.Rotation.Forward[1] = yawPitchRoll.col(1).y();
-    updateCameraTransformMessage.Rotation.Forward[2] = yawPitchRoll.col(1).z();
-    updateCameraTransformMessage.Rotation.Up[0] = yawPitchRoll.col(2).x();
-    updateCameraTransformMessage.Rotation.Up[1] = yawPitchRoll.col(2).y();
-    updateCameraTransformMessage.Rotation.Up[2] = yawPitchRoll.col(2).z();
-
-    if (g_CigiLibGlobals.pEventMessenger != nullptr)
-    {
-      g_CigiLibGlobals.pEventMessenger->SendUpdateAttachedCameraTransformMessage(updateCameraTransformMessage);
-    }
+    g_CigiLibGlobals.pEventMessenger->SendUpdateAttachedCameraTransformMessage(updateCameraTransformMessage);
   }
 }
 

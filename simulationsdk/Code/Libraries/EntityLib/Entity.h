@@ -35,6 +35,8 @@ namespace sbio
      * A `CEntity` is either top-level or attached to another `CEntity`. Top-level entities expose a stored
      * geocentric world transform. Child entities expose a world transform composed from their parent's world
      * transform and their stored local body-space transform.
+     * Stored rates, clamp mode, and interpolation state are available to derived implementations;
+     * the base `Update()` does not apply them.
      *
      * Invariants:
      * - `GetEntityID()` always reports the identifier supplied to the constructor.
@@ -51,29 +53,39 @@ namespace sbio
       /**
        * @brief Constructs an entity with a fixed entity identifier.
        *
-       * @param entityID Unique identifier for the entity.
+       * @param entityID Identifier for the entity; uniqueness is not checked by this constructor.
        */
       CEntity(sbio::EntityID entityID);
 
       /**
-       * @brief Virtual destructor.
+       * @brief Destroys the entity without detaching it or its children and without calling `Remove()`.
+       *
+       * Callers must detach surviving children before destroying their parent.
        */
       virtual ~CEntity();
 
       /**
        * @brief Attaches this entity to a parent entity.
        *
-       * @param pParent Non-owning pointer to the parent entity. Passing `nullptr` detaches the entity.
+       * @param pParent Non-owning parent pointer that must remain valid while attached.
+       * Passing `nullptr` detaches the entity.
        *
        * Notes:
        * - Passing the current parent is a no-op.
        * - Passing `nullptr` is equivalent to calling `Unattach()`.
+       * - Self-attachment, attachment to a descendant, or a cyclic parent chain is rejected without changes.
+       * - Reparenting updates both parents' child-ID sets but does not modify stored transforms;
+       *   the resulting world transform may change.
        */
       virtual void AttachToEntity(CEntity* pParent);
 
       /**
        * @brief Detaches this entity from its current parent.
        *
+       * When attached, preserves the composed world transform, refreshes the cached geodetic position
+       * and rotation, and removes this entity's ID from the parent's child set. Clears the parent
+       * pointer and ID, sets the transformation-rate coordinate selector to `WORLD` without converting
+       * rate values, and marks the transform changed. The stored local transform is unchanged.
        * Calling this on a top-level entity is allowed.
        */
       virtual void Unattach();
@@ -116,32 +128,54 @@ namespace sbio
        * @param fDeltaTime Elapsed simulation time, in seconds.
        *
        * Notes:
+       * - The base implementation does nothing, including no motion integration or child updates.
        * - Derived classes can override this method to apply interpolation or other time-based behavior.
        */
       virtual void Update(double fDeltaTime);
 
       /**
-       * @brief Removes the entity from any external representation owned by a derived class.
+       * @brief Stores the interpolation enable state for this entity.
+       * @param bInterpolationEnabled `true` to enable interpolation in implementations that use this flag;
+       *                              `false` to disable it. The base `Update()` does not use the flag.
        */
-      virtual void Remove() {};
+      void SetInterpolationEnabled(bool bInterpolationEnabled);
+
+      /**
+       * @brief Reports the current interpolation enable state.
+       * @return Stored per-entity setting, temporarily masked by the global switch during a manager-driven update.
+       */
+      bool GetInterpolationEnabled() const;
+
+      /**
+       * @brief Hook for derived classes to remove an external entity representation.
+       *
+       * The base implementation does nothing; it does not detach or destroy the entity.
+       */
+      virtual void Remove();
 
       /**
        * @brief Updates the entity alpha in a derived representation.
        * @param fAlpha Alpha value requested by the caller.
+       *
+       * The base implementation does nothing and does not store or validate the value.
        */
-      virtual void SetAlpha(float fAlpha) {};
+      virtual void SetAlpha(float fAlpha);
 
       /**
        * @brief Enables or disables rendering in a derived representation.
        * @param bRenderEnabled `true` to request rendering; `false` to suppress it.
+       *
+       * The base implementation does nothing.
        */
-      virtual void SetRenderEnabled(bool bRenderEnabled) {};
+      virtual void SetRenderEnabled(bool bRenderEnabled);
 
       /**
        * @brief Enables or disables collision detection in a derived representation.
        * @param bCollisionDetectionEnabled `true` to enable collision detection; `false` to disable it.
+       *
+       * The base implementation does nothing.
        */
-      virtual void SetCollisionDetectionEnabled(bool bCollisionDetectionEnabled) {};
+      virtual void SetCollisionDetectionEnabled(bool bCollisionDetectionEnabled);
 
       /**
        * @brief Replaces the stored geocentric world transform.
@@ -149,13 +183,19 @@ namespace sbio
        * @param geocentricTransform New geocentric transform to store.
        *
        * Notes:
+       * - For top-level entities, also refreshes the cached geodetic position and body Euler rotation.
        * - Child entities still report a composed world transform from their parent and local transform.
+       * - Marks the transform changed.
        */
       void SetWorldTransform(sbio::math::TGeocentricTransform geocentricTransform);
 
       /**
        * @brief Replaces the stored world transform from geodetic input.
        * @param geodeticTransform New geodetic transform to convert and store.
+       *
+       * Stores the geodetic position and converted world transform, and marks the transform changed.
+       * Also refreshes the cached body Euler rotation for top-level entities. For child entities,
+       * the local transform and the world transform returned by `GetWorldTransform()` are unaffected.
        */
       void SetWorldTransform(sbio::math::TGeodeticTransform geodeticTransform);
 
@@ -170,6 +210,8 @@ namespace sbio
       /**
        * @brief Replaces the stored local transform relative to the parent.
        * @param childTransform New local body-space transform.
+       *
+       * Marks the transform changed; does not update the stored world transform or cached Euler rotation.
        */
       void SetChildTransform(const sbio::math::TBodyTransform& childTransform);
 
@@ -195,7 +237,8 @@ namespace sbio
 
       /**
        * @brief Gets the stored body Euler rotation.
-       * @return Const reference to the current body Euler rotation.
+       * @return Const reference to the cached body Euler rotation, not a rotation recomputed from
+       *         the parent or the local child transform. The reference is owned by this entity.
        */
       const sbio::math::TBodyEulerRotation& GetRotation() const;
 
@@ -214,6 +257,8 @@ namespace sbio
       /**
        * @brief Replaces the clamp mode.
        * @param eClamp New clamp mode.
+       *
+       * Marks the transform changed. The base class does not perform terrain clamping.
        */
       void SetClamp(EClamp eClamp);
 
@@ -223,6 +268,7 @@ namespace sbio
        * @param geodeticCoordinates New geodetic position.
        *
        * Notes:
+       * - For top-level entities, rebuilds the world transform using the stored rotation and marks it changed.
        * - For child entities, the local transform is unchanged.
        */
       void SetGeodeticCoordinates(const sbio::math::SGeodeticCoordinates& geodeticCoordinates);
@@ -230,6 +276,9 @@ namespace sbio
       /**
        * @brief Replaces the stored body Euler rotation.
        * @param rotation New body Euler rotation.
+       *
+       * For top-level entities, rebuilds the world transform using the cached geodetic position and
+       * marks it changed. For child entities, changes only the cached rotation, not the local transform.
        */
       void SetRotation(const sbio::math::TBodyEulerRotation& rotation);
 
@@ -255,7 +304,7 @@ namespace sbio
 
       typedef std::unordered_set<sbio::EntityID, StrongTypeHash<sbio::EntityID>> TChildrenIDs;///< Set of child entity IDs
       TChildrenIDs m_Children;///< Child entity IDs
-      CEntity* m_pParent = nullptr;///< Pointer to parent entity
+      CEntity* m_pParent = nullptr;///< Non-owning parent pointer; must remain valid while attached.
       sbio::math::TGeocentricTransform m_WorldTransform;///< World (geocentric) transform
       sbio::math::TBodyTransform m_LocalTransform;///< Local (body) transform
 

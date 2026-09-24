@@ -86,6 +86,12 @@ void CSymbolCircleDefinitionPanel::OnRemoveRow(wxCommandEvent& event)
   m_nNumRows = 0;
 }
 
+/**
+ * @brief Checks whether any cell in a grid row has empty text.
+ * @param pGrid Non-null, borrowed grid to inspect.
+ * @param row Valid row index in the grid.
+ * @return True if any cell is empty; false otherwise, including a grid with no columns. Does not validate numbers.
+ */
 bool IsMissingRowCell(wxGrid* pGrid, int row)
 {
   for (int c = 0; c < pGrid->GetNumberCols(); ++c)

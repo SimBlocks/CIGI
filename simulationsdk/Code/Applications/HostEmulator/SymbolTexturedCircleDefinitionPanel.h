@@ -33,23 +33,24 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the add row button event for adding rows to the grid.
-   * @param event The command event.
+   * @brief Inserts one grid row at the tracked insertion index and increments that index.
+   * @param event Unused command event.
    */
   void OnAddRow(wxCommandEvent& event);
   /**
-   * @brief Handles the remove row button event for removing rows from the grid.
-   * @param event The command event.
+   * @brief Clears all cell contents and resets the insertion index to zero; does not delete grid rows.
+   * @param event Unused command event.
    */
   void OnRemoveRow(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending symbol textured circle definition packets.
-   * @param event The command event.
+   * @brief Submits a textured-circle definition using rows with all ten cells populated.
+   * @param event Unused command event; requires an active host session.
+   * Skips incomplete rows. Converts cell values with ToFloat(); does not validate texture availability or confirm delivery.
    */
   void OnSend(wxCommandEvent& event);
 
 private:
-  int m_nNumRows = {10};///< Number of rows in the grid
+  int m_nNumRows = {10};///< Next insertion index, reset to zero by clearing cells without deleting rows.
   wxGrid* m_pGrid = nullptr;///< Grid control for symbol textured circle data entry
 };
 #endif

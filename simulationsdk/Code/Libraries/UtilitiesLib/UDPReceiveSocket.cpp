@@ -25,6 +25,17 @@ CUDPReceiveSocket::CUDPReceiveSocket(int nPort) : CUDPSocket(nPort)
 {
   try
   {
+    // Validate the port number range.
+    if (nPort < 0 || nPort > 65535)
+    {
+      if (g_UtilitiesGlobals.pLogger != nullptr)
+      {
+        g_UtilitiesGlobals.pLogger->LogError("UDP receive socket port must be in [0, 65535].");
+      }
+      return;
+    }
+
+    // Create a socket address for the specified port and bind a datagram socket to it.
     m_pSocketAddress = make_unique<SocketAddress>(static_cast<Poco::UInt16>(nPort));
     const SocketAddress& localSocketAddress = *m_pSocketAddress;
     m_pDatagramSocket = make_unique<DatagramSocket>(localSocketAddress, true);

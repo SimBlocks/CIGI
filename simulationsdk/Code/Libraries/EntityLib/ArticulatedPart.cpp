@@ -43,6 +43,11 @@ sbio::ArticulatedPartID CArticulatedPart::GetArticulatedPartID() const
 
 void CArticulatedPart::Update(double fDeltaTime)
 {
+  if (!m_bEnabled)
+  {
+    return;
+  }
+
   float t = static_cast<float>(fDeltaTime);
 
   if (t == 0)
@@ -59,18 +64,18 @@ void CArticulatedPart::Update(double fDeltaTime)
   }
 
   // Update the angular velocity based on the angular acceleration, then update the rotation based on the angular velocity.
-  if (!m_AccelerationRate.angularAcceleration.yaw.IsZero() || !m_AccelerationRate.angularAcceleration.pitch.IsZero() || !m_AccelerationRate.angularAcceleration.roll.IsZero() || !m_TransformationRate.angularVelocity.yaw.IsZero() || !m_TransformationRate.angularVelocity.pitch.IsZero() ||
-      !m_TransformationRate.angularVelocity.roll.IsZero())
+  if (!m_AccelerationRate.angularAcceleration.yaw.IsZero() || !m_AccelerationRate.angularAcceleration.pitch.IsZero() || !m_AccelerationRate.angularAcceleration.roll.IsZero() ||
+      !m_TransformationRate.angularVelocity.yaw.IsZero() || !m_TransformationRate.angularVelocity.pitch.IsZero() || !m_TransformationRate.angularVelocity.roll.IsZero())
   {
-    m_TransformationRate.angularVelocity.yaw += (m_AccelerationRate.angularAcceleration.yaw * static_cast<float>(fDeltaTime));
-    m_TransformationRate.angularVelocity.roll += (m_AccelerationRate.angularAcceleration.roll * static_cast<float>(fDeltaTime));
-    m_TransformationRate.angularVelocity.pitch += (m_AccelerationRate.angularAcceleration.pitch * static_cast<float>(fDeltaTime));
+    m_TransformationRate.angularVelocity.yaw += DegreesPerSecond(m_AccelerationRate.angularAcceleration.yaw.Value() * fDeltaTime);
+    m_TransformationRate.angularVelocity.roll += DegreesPerSecond(m_AccelerationRate.angularAcceleration.roll.Value() * fDeltaTime);
+    m_TransformationRate.angularVelocity.pitch += DegreesPerSecond(m_AccelerationRate.angularAcceleration.pitch.Value() * fDeltaTime);
 
     TBodyEulerRotation bodyEulerRotation;
     bodyEulerRotation = m_Rotation;
-    bodyEulerRotation.yaw += m_TransformationRate.angularVelocity.yaw * (float)fDeltaTime;
-    bodyEulerRotation.pitch += m_TransformationRate.angularVelocity.pitch * (float)fDeltaTime;
-    bodyEulerRotation.roll += m_TransformationRate.angularVelocity.roll * (float)fDeltaTime;
+    bodyEulerRotation.yaw += Degrees(m_TransformationRate.angularVelocity.yaw.Value() * fDeltaTime);
+    bodyEulerRotation.pitch += Degrees90(m_TransformationRate.angularVelocity.pitch.Value() * fDeltaTime);
+    bodyEulerRotation.roll += Degrees180(m_TransformationRate.angularVelocity.roll.Value() * fDeltaTime);
 
     SetBodyEulerRotation(bodyEulerRotation);
   }

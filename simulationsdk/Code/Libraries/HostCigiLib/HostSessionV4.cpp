@@ -106,7 +106,7 @@ void ByteSwapPacketV4(TPacket& packet)
 }
 
 template <typename TPacket>
-void PackPacketV4(CHostSession* pSession, const TPacket& packet, bool bByteSwap)
+bool PackPacketV4(CHostSession* pSession, const TPacket& packet, bool bByteSwap)
 {
   TPacket tempPacket = packet;
 
@@ -115,11 +115,13 @@ void PackPacketV4(CHostSession* pSession, const TPacket& packet, bool bByteSwap)
     ByteSwapPacketV4(tempPacket);
   }
 
-  pSession->Pack(&tempPacket, sizeof(TPacket));
+  return pSession->Pack(&tempPacket, sizeof(TPacket));
 }
 
 CHostSessionV4::CHostSessionV4()
 {
+  m_IGControl.reserved1 = 0;
+  m_IGControl.reserved2 = 0;
   m_IGControl.dbNumber = hostSetupOptions.defaultDatabaseID.Value();
   m_DesiredIGMode = EIGMode::RESET;
   m_IGControl.smoothingEnable = false;
@@ -149,7 +151,6 @@ void CHostSessionV4::ParseStartOfFramePacket(uint8_t* buffer)
 
   m_ActualIGMode = ConvertToIGMode(static_cast<CIGI::V40::SoF::IGMode>(startOfFramePacket.igMode));
   m_LastReceivedIGFrame = FrameNumber(startOfFramePacket.igFrameNumber);
-  DatabaseID databaseID = DatabaseID(startOfFramePacket.dbNumber);
 
   HostCigiStartOfFrameEventArgs startOfFrameArgs;
   startOfFrameArgs.startOfFrame.eVersion = ECigiVersion::VERSION_4_0;
@@ -158,47 +159,15 @@ void CHostSessionV4::ParseStartOfFramePacket(uint8_t* buffer)
   startOfFrameArgs.startOfFrame.bTimestampValid = startOfFramePacket.timestampValid != 0;
   startOfFrameArgs.startOfFrame.bEarthReferenceModel = startOfFramePacket.earthReferenceModel == CIGI::V40::SoF::EarthReferenceModel::eEarthReferenceModel_HostDefined;
   startOfFrameArgs.startOfFrame.igFrameNumber = m_LastReceivedIGFrame;
-  startOfFrameArgs.startOfFrame.microseconds = Microsecond(startOfFramePacket.timestamp);
+  startOfFrameArgs.startOfFrame.microseconds = Microsecond(static_cast<uint64_t>(startOfFramePacket.timestamp) * 10);
   startOfFrameArgs.startOfFrame.lastHostFrameNumber = FrameNumber(startOfFramePacket.lastHostFrameNumber);
   startOfFrameArgs.startOfFrame.bOverframing = startOfFramePacket.overframing != 0;
   startOfFrameArgs.startOfFrame.bPagingTerrain = startOfFramePacket.paging != 0;
   startOfFrameArgs.startOfFrame.bExcessiveVariableLengthData = startOfFramePacket.IGCondition3 != 0;
-  Event::Raise<HostCigiEvent>(startOfFrameArgs);
+  RaiseSessionEvent(startOfFrameArgs);
 
+  UpdateDatabaseState(CigiDatabaseNumber(startOfFramePacket.dbNumber));
   NotifyStartOfFrameReceived();
-
-  // handle IG-controlled database
-  if (hostSetupOptions.bDatabaseIGControlled)
-  {
-    m_eDatabaseState = EHostSessionDatabaseState::IG_CONTROLLED;
-  }
-
-  if (m_DesiredIGMode == EIGMode::OPERATE)
-  {
-    if (!hostSetupOptions.bDatabaseIGControlled)
-    {
-      if (startOfFramePacket.dbNumber == -128)
-      {
-        // If the Host requests a database that does not exist or fails to load, the IG shall set this parameter to -128.
-      }
-      else if (startOfFramePacket.dbNumber >= -127 && startOfFramePacket.dbNumber < 0)
-      {
-        // IG is loading database
-        m_eDatabaseState = EHostSessionDatabaseState::LOADING_ACKNOWLEDGED;
-      }
-      else if (startOfFramePacket.dbNumber > 0)
-      {
-        if (m_eDatabaseState != EHostSessionDatabaseState::LOADED)
-        {
-          m_eDatabaseState = EHostSessionDatabaseState::LOADED;
-
-          HostCigiDatabaseLoadedEventArgs args;
-          args.eDatabaseID = databaseID;
-          Event::Raise<HostCigiEvent>(args);
-        }
-      }
-    }
-  }
 }
 
 void CHostSessionV4::ParseHatHotResponsePacket(uint8_t* buffer)
@@ -223,7 +192,7 @@ void CHostSessionV4::ParseHatHotResponsePacket(uint8_t* buffer)
     msgArgs.sDataMessage << std::to_string(hatHotResponsePacket.eType_HOT);
   }
   msgArgs.sDataMessage << "\nHeight: " << hatHotResponsePacket.height;
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   // Raise the response event so that host chai scripts can use this data
   if (hatHotResponsePacket.responseType == CIGI::V40::HATHOTResponse::Type::eType_HAT)
@@ -233,7 +202,7 @@ void CHostSessionV4::ParseHatHotResponsePacket(uint8_t* buffer)
     hatArgs.hatResponse.hostFrameLSN = hatHotResponsePacket.hostFrameNumberLSN;
     hatArgs.hatResponse.HATHOTID = sbio::HATHOTID(hatHotResponsePacket.HATHOTId);
     hatArgs.hatResponse.heightAboveTerrain = hatHotResponsePacket.height;
-    Event::Raise<HostCigiEvent>(hatArgs);
+    RaiseSessionEvent(hatArgs);
   }
   else
   {
@@ -242,7 +211,7 @@ void CHostSessionV4::ParseHatHotResponsePacket(uint8_t* buffer)
     hotArgs.hotResponse.hostFrameLSN = hatHotResponsePacket.hostFrameNumberLSN;
     hotArgs.hotResponse.HATHOTID = sbio::HATHOTID(hatHotResponsePacket.HATHOTId);
     hotArgs.hotResponse.heightOfTerrain = HeightRelativeToWGS84Ellipsoid(hatHotResponsePacket.height);
-    Event::Raise<HostCigiEvent>(hotArgs);
+    RaiseSessionEvent(hotArgs);
   }
 }
 
@@ -262,7 +231,7 @@ void CHostSessionV4::ParseHatHotExtendedResponsePacket(uint8_t* buffer)
                        << "Normal Vector Azimuth: " << std::to_string(hatHotExtendedResponsePacket.normalVectorAzimuth) << "\n"
                        << "Normal Vector Elevation" << std::to_string(hatHotExtendedResponsePacket.normalVectorElevation);
 
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   // Raise the response event so that host chai scripts can use this data
   HostCigiHatHotExtendedResponseEventArgs hatHotArgs;
@@ -274,7 +243,7 @@ void CHostSessionV4::ParseHatHotExtendedResponsePacket(uint8_t* buffer)
   hatHotArgs.hatHotExtendedResponse.materialCode = MaterialID(hatHotExtendedResponsePacket.materialCode);
   hatHotArgs.hatHotExtendedResponse.normalVectorAzimuth = Degrees180(hatHotExtendedResponsePacket.normalVectorAzimuth);
   hatHotArgs.hatHotExtendedResponse.normalVectorElevation = Degrees90(hatHotExtendedResponsePacket.normalVectorElevation);
-  Event::Raise<HostCigiEvent>(hatHotArgs);
+  RaiseSessionEvent(hatHotArgs);
 }
 
 void CHostSessionV4::ParseLineOfSightResponsePacket(uint8_t* buffer)
@@ -292,7 +261,7 @@ void CHostSessionV4::ParseLineOfSightResponsePacket(uint8_t* buffer)
                        << "Host Frame Number LSN: " << std::to_string(lineOfSightResponsePacket.hostFrameNumberLSN) << "\n"
                        << "Response Count: " << std::to_string(lineOfSightResponsePacket.responseCount) << "\n"
                        << "Range: " << std::to_string(lineOfSightResponsePacket.range) << "\n";
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   if (lineOfSightResponsePacket.entityIdValid == 1)
   {
@@ -304,7 +273,7 @@ void CHostSessionV4::ParseLineOfSightResponsePacket(uint8_t* buffer)
     lineOfSightArgs.lineOfSightEntityResponse.hostFrameLSN = lineOfSightResponsePacket.hostFrameNumberLSN;
     lineOfSightArgs.lineOfSightEntityResponse.responseCount = lineOfSightResponsePacket.responseCount;
     lineOfSightArgs.lineOfSightEntityResponse.dRange = lineOfSightResponsePacket.range;
-    Event::Raise<HostCigiEvent>(lineOfSightArgs);
+    RaiseSessionEvent(lineOfSightArgs);
   }
   else
   {
@@ -314,7 +283,7 @@ void CHostSessionV4::ParseLineOfSightResponsePacket(uint8_t* buffer)
     lineOfSightArgs.lineOfSightResponse.hostFrameLSN = lineOfSightResponsePacket.hostFrameNumberLSN;
     lineOfSightArgs.lineOfSightResponse.responseCount = lineOfSightResponsePacket.responseCount;
     lineOfSightArgs.lineOfSightResponse.dRange = lineOfSightResponsePacket.range;
-    Event::Raise<HostCigiEvent>(lineOfSightArgs);
+    RaiseSessionEvent(lineOfSightArgs);
   }
 }
 
@@ -326,7 +295,10 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
 
   if (eResponseCoordinateSystem == ETopLevelCoordinateSystem::UNKNOWN)
   {
-    g_HostCigiLibGlobals.pLogger->LogWarning("Received Line of Sight Extended Response with unknown requested coordinate system.");
+    if (g_HostCigiLibGlobals.pLogger != nullptr)
+    {
+      g_HostCigiLibGlobals.pLogger->LogWarning("Received Line of Sight Extended Response with unknown requested coordinate system.");
+    }
     return;
   }
 
@@ -363,7 +335,7 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
                        << "Material Code: " << std::to_string(lineOfSightExtendedResponsePacket.materialCode) << "\n"
                        << "Normal Vector Azimuth: " << std::to_string(lineOfSightExtendedResponsePacket.normalVectorAzimuth) << "\n"
                        << "Normal Vector Elevation: " << std::to_string(lineOfSightExtendedResponsePacket.normalVectorElevation);
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   if (lineOfSightExtendedResponsePacket.entityIdValid == 1)
   {
@@ -374,7 +346,8 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.entityID = EntityID(lineOfSightExtendedResponsePacket.entityId);
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.bValid = lineOfSightExtendedResponsePacket.valid == 1;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.bRangeValid = lineOfSightExtendedResponsePacket.rangeValid == 1;
-      lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.bVisible = lineOfSightExtendedResponsePacket.visible == CIGI::V40::LineOfSightExtendedResponse::Visible::eVisible_Visible;
+      lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.bVisible =
+        lineOfSightExtendedResponsePacket.visible == CIGI::V40::LineOfSightExtendedResponse::Visible::eVisible_Visible;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.hostFrameLSN = lineOfSightExtendedResponsePacket.hostFrameNumberLSN;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.responseCount = lineOfSightExtendedResponsePacket.responseCount;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.dRange = lineOfSightExtendedResponsePacket.range;
@@ -383,13 +356,14 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.fNormalVectorElevation = lineOfSightExtendedResponsePacket.normalVectorElevation;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.latitude = Latitude(lineOfSightExtendedResponsePacket.latitudeXOffset);
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.longitude = Longitude(lineOfSightExtendedResponsePacket.longitudeYOffset);
-      lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(lineOfSightExtendedResponsePacket.altitudeZOffset);
+      lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.geodeticCoordinates.altitude =
+        HeightRelativeToWGS84Ellipsoid(lineOfSightExtendedResponsePacket.altitudeZOffset);
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor = sbio::SColor32();
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.r = lineOfSightExtendedResponsePacket.red;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
       lineOfSightArgs.lineOfSightExtendedEntityGeodeticCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-      Event::Raise<HostCigiEvent>(lineOfSightArgs);
+      RaiseSessionEvent(lineOfSightArgs);
     }
     else
     {
@@ -398,7 +372,8 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.entityID = EntityID(lineOfSightExtendedResponsePacket.entityId);
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.bValid = lineOfSightExtendedResponsePacket.valid == 1;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.bRangeValid = lineOfSightExtendedResponsePacket.rangeValid == 1;
-      lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.bVisible = lineOfSightExtendedResponsePacket.visible == CIGI::V40::LineOfSightExtendedResponse::Visible::eVisible_Visible;
+      lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.bVisible =
+        lineOfSightExtendedResponsePacket.visible == CIGI::V40::LineOfSightExtendedResponse::Visible::eVisible_Visible;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.hostFrameLSN = lineOfSightExtendedResponsePacket.hostFrameNumberLSN;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.responseCount = lineOfSightExtendedResponsePacket.responseCount;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.dRange = lineOfSightExtendedResponsePacket.range;
@@ -413,7 +388,7 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
       lineOfSightArgs.lineOfSightExtendedEntityCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-      Event::Raise<HostCigiEvent>(lineOfSightArgs);
+      RaiseSessionEvent(lineOfSightArgs);
     }
   }
   else
@@ -423,7 +398,8 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.lineOfSightRequestID = lineOfSightRequestID;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.bValid = lineOfSightExtendedResponsePacket.valid == 1;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.bRangeValid = lineOfSightExtendedResponsePacket.rangeValid == 1;
-    lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.bVisible = lineOfSightExtendedResponsePacket.visible == CIGI::V40::LineOfSightExtendedResponse::Visible::eVisible_Visible;
+    lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.bVisible =
+      lineOfSightExtendedResponsePacket.visible == CIGI::V40::LineOfSightExtendedResponse::Visible::eVisible_Visible;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.hostFrameLSN = lineOfSightExtendedResponsePacket.hostFrameNumberLSN;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.responseCount = lineOfSightExtendedResponsePacket.responseCount;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.dRange = lineOfSightExtendedResponsePacket.range;
@@ -438,7 +414,7 @@ void CHostSessionV4::ParseLineOfSightExtendedResponsePacket(uint8_t* buffer)
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.g = lineOfSightExtendedResponsePacket.green;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.b = lineOfSightExtendedResponsePacket.blue;
     lineOfSightArgs.lineOfSightExtendedGeodeticCoordinatesResponse.surfaceColor.a = lineOfSightExtendedResponsePacket.alpha;
-    Event::Raise<HostCigiEvent>(lineOfSightArgs);
+    RaiseSessionEvent(lineOfSightArgs);
   }
 }
 
@@ -457,7 +433,7 @@ void CHostSessionV4::ParseSensorResponsePacket(uint8_t* buffer)
                     << "Gate Y Position: " << std::to_string(sensorResponse.gateYPosition) << "\n"
                     << "Host Frame Number: " << std::to_string(sensorResponse.hostFrameCounter);
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiSensorResponseEventArgs sensorArgs;
   sensorArgs.sensorResponse.sensorID = SensorID(sensorResponse.sensorId);
@@ -485,7 +461,7 @@ void CHostSessionV4::ParseSensorResponsePacket(uint8_t* buffer)
     sensorArgs.sensorResponse.eSensorStatus = ESensorStatus::BREAKLOCK;
   }
 
-  Event::Raise<HostCigiEvent>(sensorArgs);
+  RaiseSessionEvent(sensorArgs);
 }
 
 void CHostSessionV4::ParseSensorExtendedResponsePacket(uint8_t* buffer)
@@ -508,7 +484,7 @@ void CHostSessionV4::ParseSensorExtendedResponsePacket(uint8_t* buffer)
                     << "Track Point Longitude: " << std::to_string(sensorExtendedResponsePacket.trackPointLongitude) << "\n"
                     << "Track Point Altitude: " << std::to_string(sensorExtendedResponsePacket.trackPointAltitude);
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   if (sensorExtendedResponsePacket.entityIdValid)
   {
@@ -543,7 +519,7 @@ void CHostSessionV4::ParseSensorExtendedResponsePacket(uint8_t* buffer)
 
     sensorArgs.sensorExtendedEntityResponse.entityID = EntityID(sensorExtendedResponsePacket.entityId);
 
-    Event::Raise<HostCigiEvent>(sensorArgs);
+    RaiseSessionEvent(sensorArgs);
   }
   else
   {
@@ -576,7 +552,7 @@ void CHostSessionV4::ParseSensorExtendedResponsePacket(uint8_t* buffer)
       sensorArgs.sensorExtendedResponse.eSensorStatus = ESensorStatus::BREAKLOCK;
     }
 
-    Event::Raise<HostCigiEvent>(sensorArgs);
+    RaiseSessionEvent(sensorArgs);
   }
 }
 
@@ -590,7 +566,8 @@ void CHostSessionV4::ParsePositionResponsePacket(uint8_t* buffer)
     args.sDataMessage << "Received: " << GetCigiOpCodeName(ECigiOpCodeV4::POSITION_RESPONSE) << "\n"
                       << "Articulated Part ID: " << std::to_string(positionResponsePacket.articulatedPartId) << "\n"
                       << "Object Class: " << ConvertObjectClassToString(static_cast<CIGI::V40::PositionResponse::ObjectClass>(positionResponsePacket.objectClass)) << "\n"
-                      << "Coordinate System: " << ConvertCoordSysGeoParSubToString(static_cast<CIGI::V40::PositionResponse::CoordinateSystem>(positionResponsePacket.coordinateSystem)) << "\n"
+                      << "Coordinate System: "
+                      << ConvertCoordSysGeoParSubToString(static_cast<CIGI::V40::PositionResponse::CoordinateSystem>(positionResponsePacket.coordinateSystem)) << "\n"
                       << "Object ID: " << std::to_string(positionResponsePacket.objectId) << "\n";
 
     if (positionResponsePacket.coordinateSystem == CIGI::V40::PositionResponse::CoordinateSystem::eCoordinateSystem_Geodetic)
@@ -610,7 +587,7 @@ void CHostSessionV4::ParsePositionResponsePacket(uint8_t* buffer)
                       << "Pitch: " << std::to_string(positionResponsePacket.pitch) << "\n"
                       << "Yaw: " << std::to_string(positionResponsePacket.yaw);
 
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 
   if (positionResponsePacket.coordinateSystem == CIGI::V40::PositionResponse::CoordinateSystem::eCoordinateSystem_Geodetic)
@@ -624,11 +601,12 @@ void CHostSessionV4::ParsePositionResponsePacket(uint8_t* buffer)
     positionResponse.geodeticCoordinates.altitude = HeightRelativeToWGS84Ellipsoid(positionResponsePacket.altitudeZOffset);
     positionResponse.eObjectClass = ConvertObjectClass(static_cast<CIGI::V40::PositionResponse::ObjectClass>(positionResponsePacket.objectClass));
     positionResponse.objectID = positionResponsePacket.objectId;
-    positionResponse.rotation.roll = Degrees(positionResponsePacket.roll);
-    positionResponse.rotation.pitch = Degrees(positionResponsePacket.pitch);
+    positionResponse.articulatedPartID = ArticulatedPartID(positionResponsePacket.articulatedPartId);
+    positionResponse.rotation.roll = Degrees180(positionResponsePacket.roll);
+    positionResponse.rotation.pitch = Degrees90(positionResponsePacket.pitch);
     positionResponse.rotation.yaw = Degrees(positionResponsePacket.yaw);
 
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
   else if (positionResponsePacket.coordinateSystem == CIGI::V40::PositionResponse::CoordinateSystem::eCoordinateSystem_ParentEntity)
   {
@@ -641,11 +619,12 @@ void CHostSessionV4::ParsePositionResponsePacket(uint8_t* buffer)
     positionResponse.offset[2] = positionResponsePacket.altitudeZOffset;
     positionResponse.eObjectClass = ConvertObjectClass(static_cast<CIGI::V40::PositionResponse::ObjectClass>(positionResponsePacket.objectClass));
     positionResponse.objectID = positionResponsePacket.objectId;
-    positionResponse.rotation.roll = Degrees(positionResponsePacket.roll);
-    positionResponse.rotation.pitch = Degrees(positionResponsePacket.pitch);
+    positionResponse.articulatedPartID = ArticulatedPartID(positionResponsePacket.articulatedPartId);
+    positionResponse.rotation.roll = Degrees180(positionResponsePacket.roll);
+    positionResponse.rotation.pitch = Degrees90(positionResponsePacket.pitch);
     positionResponse.rotation.yaw = Degrees(positionResponsePacket.yaw);
 
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
   else if (positionResponsePacket.coordinateSystem == CIGI::V40::PositionResponse::CoordinateSystem::eCoordinateSystem_Submodel)
   {
@@ -659,11 +638,11 @@ void CHostSessionV4::ParsePositionResponsePacket(uint8_t* buffer)
     positionResponse.articulatedPartID = ArticulatedPartID(positionResponsePacket.articulatedPartId);
     positionResponse.eObjectClass = ConvertObjectClass(static_cast<CIGI::V40::PositionResponse::ObjectClass>(positionResponsePacket.objectClass));
     positionResponse.objectID = positionResponsePacket.objectId;
-    positionResponse.rotation.roll = Degrees(positionResponsePacket.roll);
-    positionResponse.rotation.pitch = Degrees(positionResponsePacket.pitch);
+    positionResponse.rotation.roll = Degrees180(positionResponsePacket.roll);
+    positionResponse.rotation.pitch = Degrees90(positionResponsePacket.pitch);
     positionResponse.rotation.yaw = Degrees(positionResponsePacket.yaw);
 
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -684,7 +663,7 @@ void CHostSessionV4::ParseWeatherConditionsResponsePacket(uint8_t* buffer)
                     << "Wind Direction: " << std::to_string(weatherConditionsResponsePacket.windDirection) << "\n"
                     << "Barometric Pressure: " << std::to_string(weatherConditionsResponsePacket.barometricPressure);
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiWeatherConditionsResponseEventArgs responseArgs;
   responseArgs.weatherConditionsResponse.requestID = weatherConditionsResponsePacket.requestId;
@@ -695,7 +674,7 @@ void CHostSessionV4::ParseWeatherConditionsResponsePacket(uint8_t* buffer)
   responseArgs.weatherConditionsResponse.windSpeedHorVer.verticalWindSpeed = weatherConditionsResponsePacket.verticalWindSpeed;
   responseArgs.weatherConditionsResponse.fWindDirection = weatherConditionsResponsePacket.windDirection;
   responseArgs.weatherConditionsResponse.fBarometricPressure = weatherConditionsResponsePacket.barometricPressure;
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV4::ParseAerosolConcentrationResponsePacket(uint8_t* buffer)
@@ -708,13 +687,13 @@ void CHostSessionV4::ParseAerosolConcentrationResponsePacket(uint8_t* buffer)
                     << "Layer ID: " << std::to_string(aerosolConcentrationResponsePacket.layerId) << "\n"
                     << "Aerosol Concentration: " << std::to_string(aerosolConcentrationResponsePacket.aerosolConcentration);
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiAerosolConcentrationResponseEventArgs responseArgs;
   responseArgs.aerosolConcentrationResponse.requestID = aerosolConcentrationResponsePacket.requestId;
   responseArgs.aerosolConcentrationResponse.layerID = aerosolConcentrationResponsePacket.layerId;
   responseArgs.aerosolConcentrationResponse.fAerosolConcentration = aerosolConcentrationResponsePacket.aerosolConcentration;
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV4::ParseMaritimeSurfaceConditionsResponsePacket(uint8_t* buffer)
@@ -728,14 +707,14 @@ void CHostSessionV4::ParseMaritimeSurfaceConditionsResponsePacket(uint8_t* buffe
                     << "Surface Water Temperature: " << std::to_string(maritimeSurfaceConditionsResponsePacket.surfaceWaterTemperature) << "\n"
                     << "Surface Clarity: " << std::to_string(maritimeSurfaceConditionsResponsePacket.surfaceClarity) << "%";
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiMaritimeSurfaceConditionsResponseEventArgs responseArgs;
   responseArgs.maritimeSurfaceConditionsResponse.requestID = maritimeSurfaceConditionsResponsePacket.requestId;
   responseArgs.maritimeSurfaceConditionsResponse.fSeaSurfaceHeight = HeightRelativeToWGS84Ellipsoid(maritimeSurfaceConditionsResponsePacket.seaSurfaceHeight);
   responseArgs.maritimeSurfaceConditionsResponse.fSurfaceWaterTemperature = TemperatureCelsius(maritimeSurfaceConditionsResponsePacket.surfaceWaterTemperature);
   responseArgs.maritimeSurfaceConditionsResponse.surfaceClarity = Percentage(maritimeSurfaceConditionsResponsePacket.surfaceClarity / 100.0f);
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV4::ParseTerrestrialSurfaceConditionsResponsePacket(uint8_t* buffer)
@@ -747,12 +726,12 @@ void CHostSessionV4::ParseTerrestrialSurfaceConditionsResponsePacket(uint8_t* bu
                     << "Request ID: " << std::to_string(terrestrialSurfaceConditionsResponsePacket.requestId) << "\n"
                     << "Surface Condition ID: " << std::to_string(terrestrialSurfaceConditionsResponsePacket.surfaceConditionId) << "\n";
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiTerrestrialSurfaceConditionsResponseEventArgs responseArgs;
   responseArgs.terrestrialSurfaceConditionsResponse.requestID = terrestrialSurfaceConditionsResponsePacket.requestId;
   responseArgs.terrestrialSurfaceConditionsResponse.surfaceConditionID = terrestrialSurfaceConditionsResponsePacket.surfaceConditionId;
-  Event::Raise<HostCigiEvent>(responseArgs);
+  RaiseSessionEvent(responseArgs);
 }
 
 void CHostSessionV4::ParseCollisionDetectionSegmentNotificationPacket(uint8_t* buffer)
@@ -779,7 +758,7 @@ void CHostSessionV4::ParseCollisionDetectionSegmentNotificationPacket(uint8_t* b
   }
   msgArgs.sDataMessage << "Material Code: " << std::to_string(collisionDetectionSegmentNotificationPacket.materialCode) << "\n"
                        << "Intersection Distance: " << std::to_string(collisionDetectionSegmentNotificationPacket.intersectionDistance);
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   // Raise the response event so that host chai scripts can use this data
   if (collisionDetectionSegmentNotificationPacket.collisionType == CIGI::V40::CollisionDetectionSegmentNotification::CollisionType::eCollisionType_NonEntity)
@@ -789,7 +768,7 @@ void CHostSessionV4::ParseCollisionDetectionSegmentNotificationPacket(uint8_t* b
     collisionSegmentArgs.collisionDetectionSegmentNotification.segmentID = SegmentID(collisionDetectionSegmentNotificationPacket.segmentId);
     collisionSegmentArgs.collisionDetectionSegmentNotification.fIntersectionDistance = collisionDetectionSegmentNotificationPacket.intersectionDistance;
     collisionSegmentArgs.collisionDetectionSegmentNotification.materialCode = MaterialID(collisionDetectionSegmentNotificationPacket.materialCode);
-    Event::Raise<HostCigiEvent>(collisionSegmentArgs);
+    RaiseSessionEvent(collisionSegmentArgs);
   }
   else
   {
@@ -799,7 +778,7 @@ void CHostSessionV4::ParseCollisionDetectionSegmentNotificationPacket(uint8_t* b
     collisionSegmentArgs.collisionDetectionSegmentEntityNotification.fIntersectionDistance = collisionDetectionSegmentNotificationPacket.intersectionDistance;
     collisionSegmentArgs.collisionDetectionSegmentEntityNotification.materialCode = MaterialID(collisionDetectionSegmentNotificationPacket.materialCode);
     collisionSegmentArgs.collisionDetectionSegmentEntityNotification.contactedEntityID = EntityID(collisionDetectionSegmentNotificationPacket.contactedEntityId);
-    Event::Raise<HostCigiEvent>(collisionSegmentArgs);
+    RaiseSessionEvent(collisionSegmentArgs);
   }
 }
 
@@ -826,7 +805,7 @@ void CHostSessionV4::ParseCollisionDetectionVolumeNotificationPacket(uint8_t* bu
                          << "\n";
   }
   msgArgs.sDataMessage << "Contacted Volume ID: " << std::to_string(collisionDetectionVolumeNotificationPacket.contactedVolumeId);
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 
   // Raise the response event so that host chai scripts can use this data
   if (collisionDetectionVolumeNotificationPacket.collisionType == CIGI::V40::CollisionDetectionVolumeNotification::CollisionType::eCollisionType_NonEntity)
@@ -835,7 +814,7 @@ void CHostSessionV4::ParseCollisionDetectionVolumeNotificationPacket(uint8_t* bu
     collisionVolumeArgs.collisionDetectionVolumeNotification.entityID = EntityID(collisionDetectionVolumeNotificationPacket.entityId);
     collisionVolumeArgs.collisionDetectionVolumeNotification.volumeID = VolumeID(collisionDetectionVolumeNotificationPacket.volumeId);
     collisionVolumeArgs.collisionDetectionVolumeNotification.contactedVolumeID = VolumeID(collisionDetectionVolumeNotificationPacket.contactedVolumeId);
-    Event::Raise<HostCigiEvent>(collisionVolumeArgs);
+    RaiseSessionEvent(collisionVolumeArgs);
   }
   else
   {
@@ -844,7 +823,7 @@ void CHostSessionV4::ParseCollisionDetectionVolumeNotificationPacket(uint8_t* bu
     collisionVolumeArgs.collisionDetectionVolumeEntityNotification.volumeID = VolumeID(collisionDetectionVolumeNotificationPacket.volumeId);
     collisionVolumeArgs.collisionDetectionVolumeEntityNotification.contactedEntityID = EntityID(collisionDetectionVolumeNotificationPacket.contactedEntityId);
     collisionVolumeArgs.collisionDetectionVolumeEntityNotification.contactedVolumeID = VolumeID(collisionDetectionVolumeNotificationPacket.contactedVolumeId);
-    Event::Raise<HostCigiEvent>(collisionVolumeArgs);
+    RaiseSessionEvent(collisionVolumeArgs);
   }
 }
 
@@ -856,11 +835,11 @@ void CHostSessionV4::ParseAnimationStopNotificationPacket(uint8_t* buffer)
   args.sDataMessage << "Received: " << GetCigiOpCodeName(ECigiOpCodeV4::ANIMATION_STOP_NOTIFICATION) << "\n"
                     << "Entity ID: " << std::to_string(animationStopNotificationPacket.entityId);
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiAnimationStopNotificationEventArgs animationArgs;
   animationArgs.animationStopNotification.entityID = EntityID(animationStopNotificationPacket.entityId);
-  Event::Raise<HostCigiEvent>(animationArgs);
+  RaiseSessionEvent(animationArgs);
 }
 
 void CHostSessionV4::ParseEventNotificationPacket(uint8_t* buffer)
@@ -872,7 +851,7 @@ void CHostSessionV4::ParseEventNotificationPacket(uint8_t* buffer)
   eventArgs.eventData[0] = eventNotificationPacket.eventData1;
   eventArgs.eventData[1] = eventNotificationPacket.eventData2;
   eventArgs.eventData[2] = eventNotificationPacket.eventData3;
-  Event::Raise<HostCigiEvent>(eventArgs);
+  RaiseSessionEvent(eventArgs);
 }
 
 void CHostSessionV4::ParseImageGeneratorMessagePacket(uint8_t* buffer)
@@ -884,7 +863,7 @@ void CHostSessionV4::ParseImageGeneratorMessagePacket(uint8_t* buffer)
   args.sDataMessage << "Received: " << GetCigiOpCodeName(ECigiOpCodeV4::IMAGE_GENERATOR_MESSAGE);
   args.sDataMessage << "\nImage Generator Message ID " << imageGeneratorMessagePacket.messageId;
 
-  Event::Raise<HostCigiEvent>(args);
+  RaiseSessionEvent(args);
 
   HostCigiImageGeneratorMessageEventArgs messageArgs;
   messageArgs.messageID = imageGeneratorMessagePacket.messageId;
@@ -893,7 +872,7 @@ void CHostSessionV4::ParseImageGeneratorMessagePacket(uint8_t* buffer)
   {
     messageArgs.sMessage.assign(reinterpret_cast<const char*>(buffer) + CIGI::V40::IGMessage::kBasePacketSize, nMessageLength);
   }
-  Event::Raise<HostCigiEvent>(messageArgs);
+  RaiseSessionEvent(messageArgs);
 }
 
 int CHostSessionV4::ProcessPacket(uint8_t* buffer, int nRemainingBytes)
@@ -917,7 +896,7 @@ int CHostSessionV4::ProcessPacket(uint8_t* buffer, int nRemainingBytes)
     HostCigiMessageEventArgs args;
     args.sMessage = "Received ";
     args.sMessage += GetCigiOpCodeName(packetHeader.eOpCode);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
   else
   {
@@ -926,11 +905,12 @@ int CHostSessionV4::ProcessPacket(uint8_t* buffer, int nRemainingBytes)
     {
       HostCigiErrorEventArgs args;
       args.sError = "Received undersized " + GetCigiOpCodeName(packetHeader.eOpCode) + " packet.";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
       return packetHeader.nPacketSize;
     }
 
     auto pFunction = itFunction->second;
+    m_bValidPacketReceived = true;
     (this->*pFunction)(buffer);
   }
 
@@ -1013,14 +993,21 @@ SCigiPacketHeaderV4 CHostSessionV4::GetPacketHeaderV4(const uint8_t* buffer, boo
   return packetHeader;
 }
 
+void CHostSessionV4::Reset()
+{
+  CHostSession::Reset();
+  m_IGControl = CIGI::V40::IGCtrl();
+  m_IGControl.reserved1 = 0;
+  m_IGControl.reserved2 = 0;
+}
+
 void CHostSessionV4::SendIGControl(uint8_t*& pBuffer)
 {
   try
   {
     m_IGControl.hostFrameNumber = m_HostFrameNumber.Value();
     m_IGControl.lastIGFrameNumber = m_LastReceivedIGFrame.Value();
-    m_IGControl.timestamp = 0;
-    m_IGControl.timestampValid = true;
+    m_IGControl.timestampValid = GetHostTimestamp(m_IGControl.timestamp);
 
     if (m_eDatabaseState == EHostSessionDatabaseState::NO_DATABASE)
     {
@@ -1056,7 +1043,7 @@ void CHostSessionV4::SendIGControl(uint8_t*& pBuffer)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1118,7 +1105,7 @@ void CHostSessionV4::SendEntityControl(const SEntityControl& entityControl)
       {
         args.sDataMessage << "No Entity Types Were Found";
       }
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, entityCtrl, m_bByteSwap);
@@ -1128,7 +1115,7 @@ void CHostSessionV4::SendEntityControl(const SEntityControl& entityControl)
     std::cout << "Error sending Entity Control packet" << std::endl;
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1157,7 +1144,8 @@ void CHostSessionV4::SendArticulatedPartControl(const sbio::cigi::SCigiArticulat
     {
       HostCigiDataMessageEventArgs args;
       args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::ARTICULATED_PART_CONTROL) << "\n"
-                        << "Entity ID: " << std::to_string(articulatedPartControl.entityID.Value()) << "Articulated Part ID: " << std::to_string(articulatedPartControl.articulatedPartID.Value()) << "\n"
+                        << "Entity ID: " << std::to_string(articulatedPartControl.entityID.Value())
+                        << "Articulated Part ID: " << std::to_string(articulatedPartControl.articulatedPartID.Value()) << "\n"
                         << "Articulated Part Enable: " << EnableToString(articulatedPartControl.bEnabled) << "\n"
                         << "X Offset Enable: " << EnableToString(articulatedPartControl.bOffsetEnabled[0]) << "\n"
                         << "Y Offset Enable: " << EnableToString(articulatedPartControl.bOffsetEnabled[1]) << "\n"
@@ -1171,7 +1159,7 @@ void CHostSessionV4::SendArticulatedPartControl(const sbio::cigi::SCigiArticulat
                         << "Roll: " << std::to_string(articulatedPartControl.rotation.roll.Value()) << "\n"
                         << "Pitch: " << std::to_string(articulatedPartControl.rotation.pitch.Value()) << "\n"
                         << "Yaw: " << std::to_string(articulatedPartControl.rotation.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, artPartCtrl, m_bByteSwap);
@@ -1180,7 +1168,7 @@ void CHostSessionV4::SendArticulatedPartControl(const sbio::cigi::SCigiArticulat
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1252,7 +1240,7 @@ void CHostSessionV4::SendEntityAccelerationControl(const sbio::cigi::SCigiEntity
                         << "Roll Angular Acceleration: " << std::to_string(accelerationControl.angularAcceleration.roll.Value()) << "\n"
                         << "Pitch Angular Acceleration: " << std::to_string(accelerationControl.angularAcceleration.pitch.Value()) << "\n"
                         << "Yaw Angular Acceleration: " << std::to_string(accelerationControl.angularAcceleration.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, accelerationCtrl, m_bByteSwap);
@@ -1261,7 +1249,7 @@ void CHostSessionV4::SendEntityAccelerationControl(const sbio::cigi::SCigiEntity
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1318,7 +1306,7 @@ void CHostSessionV4::SendArticulatedPartAccelerationControl(const sbio::cigi::SC
                         << "Roll Angular Acceleration: " << std::to_string(accelerationControl.angularAcceleration.roll.Value()) << "\n"
                         << "Pitch Angular Acceleration: " << std::to_string(accelerationControl.angularAcceleration.pitch.Value()) << "\n"
                         << "Yaw Angular Acceleration: " << std::to_string(accelerationControl.angularAcceleration.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, accelerationCtrl, m_bByteSwap);
@@ -1327,17 +1315,17 @@ void CHostSessionV4::SendArticulatedPartAccelerationControl(const sbio::cigi::SC
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
 CIGI::V40::AnimationCtrl::AnimationState ConvertToAnimationState(EAnimationState animState)
 {
-  if (animState == EAnimationState::PLAY)
+  if (animState == EAnimationState::PLAY || animState == EAnimationState::CONTINUE)
   {
     return CIGI::V40::AnimationCtrl::AnimationState::eAnimationState_Play;
   }
-  else if (animState == EAnimationState::STOP)
+  else if (animState == EAnimationState::STOP || animState == EAnimationState::PAUSE)
   {
     return CIGI::V40::AnimationCtrl::AnimationState::eAnimationState_Stop;
   }
@@ -1383,9 +1371,22 @@ void CHostSessionV4::SendAnimationControl(const sbio::cigi::SCigiAnimationContro
 {
   try
   {
+    EAnimationFramePositionReset eFramePositionReset = EAnimationFramePositionReset::UNKNOWN;
+
+    // If the animation state is CONTINUE or PAUSE, set the frame position reset to CONTINUE.
+    // Otherwise use the value provided in the animation control.
+    if (animationControl.eAnimationState == EAnimationState::CONTINUE || animationControl.eAnimationState == EAnimationState::PAUSE)
+    {
+      eFramePositionReset = EAnimationFramePositionReset::CONTINUE;
+    }
+    else
+    {
+      eFramePositionReset = animationControl.eAnimationFramePositionReset;
+    }
+
     CIGI::V40::AnimationCtrl animationCtrl;
     animationCtrl.animationState = ConvertToAnimationState(animationControl.eAnimationState);
-    animationCtrl.animationFramePositionReset = ConvertToAnimationResetGroup(animationControl.eAnimationFramePositionReset);
+    animationCtrl.animationFramePositionReset = ConvertToAnimationResetGroup(eFramePositionReset);
     animationCtrl.animationLoopMode = ConvertToAnimationLoopMode(animationControl.eAnimationLoopMode);
     animationCtrl.inheritAlpha = ConvertToInheritAlpha(animationControl.bInheritAlpha);
     animationCtrl.alpha = ConvertToCigiAlpha(animationControl.alpha);
@@ -1398,14 +1399,14 @@ void CHostSessionV4::SendAnimationControl(const sbio::cigi::SCigiAnimationContro
       HostCigiDataMessageEventArgs args;
       args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::ANIMATION_CONTROL) << "\n"
                         << "Animation State: " << ConvertCigiAnimationStateToString(animationControl.eAnimationState) << "\n"
-                        << "Animation Frame Position Reset: " << ConvertCigiAnimationFramePositionResetToString(animationControl.eAnimationFramePositionReset) << "\n"
+                        << "Animation Frame Position Reset: " << ConvertCigiAnimationFramePositionResetToString(eFramePositionReset) << "\n"
                         << "Animation Loop Mode: " << ConvertCigiAnimationLoopModeToString(animationControl.eAnimationLoopMode) << "\n"
                         << "Inherit Alpha: " << ConvertInheritAlphaToString(animationControl.bInheritAlpha) << "\n"
                         << "Alpha: " << std::to_string(ConvertToCigiAlpha(animationControl.alpha)) << "\n"
                         << "Entity ID: " << std::to_string(animationControl.entityID.Value()) << "\n"
                         << "Animation ID: " << std::to_string(animationControl.animationID.Value()) << "\n"
                         << "Animation Speed: " << std::to_string(animationControl.fAnimationSpeed);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, animationCtrl, m_bByteSwap);
@@ -1415,7 +1416,7 @@ void CHostSessionV4::SendAnimationControl(const sbio::cigi::SCigiAnimationContro
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1447,7 +1448,7 @@ void CHostSessionV4::SendAtmosphereControl(const sbio::cigi::SCigiAtmosphereCont
                         << "Global Vertical Wind Speed: " << std::to_string(atmosphereControl.fGlobalVerticalWindSpeed) << "\n"
                         << "Global Wind Direction: " << std::to_string(atmosphereControl.globalWindDirection.Value()) << "\n"
                         << "Global Barometric Pressure: " << std::to_string(atmosphereControl.fGlobalHorizontalWindSpeed);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, atmosphereCtrl, m_bByteSwap);
@@ -1456,7 +1457,7 @@ void CHostSessionV4::SendAtmosphereControl(const sbio::cigi::SCigiAtmosphereCont
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1493,7 +1494,7 @@ void CHostSessionV4::SendCelestialSphereControl(const sbio::cigi::SCigiCelestial
                         << "Day: " << std::to_string(celestialSphereControl.day.Value()) << "\n"
                         << "Star Field Intensity: " << std::to_string(ConvertToCigiFloatPercentage(celestialSphereControl.starFieldIntensity).Value()) << "%"
                         << "\n";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, celestialCtrl, m_bByteSwap);
@@ -1502,7 +1503,7 @@ void CHostSessionV4::SendCelestialSphereControl(const sbio::cigi::SCigiCelestial
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1511,7 +1512,8 @@ void CHostSessionV4::SendTopLevelEntityPosition(const STopLevelEntityPosition& t
   try
   {
     CIGI::V40::EntityPosition entityPos;
-    entityPos.attachState = (topLevelEntityPosition.bAttached) ? CIGI::V40::EntityPosition::AttachState::eAttachState_Attach : CIGI::V40::EntityPosition::AttachState::eAttachState_Detach;
+    entityPos.attachState =
+      (topLevelEntityPosition.bAttached) ? CIGI::V40::EntityPosition::AttachState::eAttachState_Attach : CIGI::V40::EntityPosition::AttachState::eAttachState_Detach;
     entityPos.groundOceanClamp = ConvertToClamp(topLevelEntityPosition.eClamp);
     entityPos.entityId = topLevelEntityPosition.entityID.Value();
     entityPos.roll = static_cast<float>(topLevelEntityPosition.rotation.roll.Value());
@@ -1534,7 +1536,7 @@ void CHostSessionV4::SendTopLevelEntityPosition(const STopLevelEntityPosition& t
                         << "Latitude: " << std::to_string(topLevelEntityPosition.geodeticCoordinates.latitude.Value()) << "\n"
                         << "Longitude: " << std::to_string(topLevelEntityPosition.geodeticCoordinates.longitude.Value()) << "\n"
                         << "Altitude: " << std::to_string(topLevelEntityPosition.geodeticCoordinates.altitude.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, entityPos, m_bByteSwap);
@@ -1543,7 +1545,7 @@ void CHostSessionV4::SendTopLevelEntityPosition(const STopLevelEntityPosition& t
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1552,7 +1554,8 @@ void CHostSessionV4::SendChildEntityPosition(const SChildEntityPosition& childEn
   try
   {
     CIGI::V40::EntityPosition entityPos;
-    entityPos.attachState = (childEntityPosition.bAttached) ? CIGI::V40::EntityPosition::AttachState::eAttachState_Attach : CIGI::V40::EntityPosition::AttachState::eAttachState_Detach;
+    entityPos.attachState =
+      (childEntityPosition.bAttached) ? CIGI::V40::EntityPosition::AttachState::eAttachState_Attach : CIGI::V40::EntityPosition::AttachState::eAttachState_Detach;
     entityPos.entityId = childEntityPosition.entityID.Value();
     entityPos.parentId = childEntityPosition.parentID.Value();
     entityPos.roll = static_cast<float>(childEntityPosition.rotation.roll.Value());
@@ -1575,7 +1578,7 @@ void CHostSessionV4::SendChildEntityPosition(const SChildEntityPosition& childEn
                         << "X Offset: " << std::to_string(childEntityPosition.offset[0]) << "\n"
                         << "Y Offset: " << std::to_string(childEntityPosition.offset[1]) << "\n"
                         << "Z Offset: " << std::to_string(childEntityPosition.offset[2]);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, entityPos, m_bByteSwap);
@@ -1584,7 +1587,7 @@ void CHostSessionV4::SendChildEntityPosition(const SChildEntityPosition& childEn
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1618,7 +1621,7 @@ void CHostSessionV4::SendCollisionDetectionSegment(const sbio::cigi::SCollisionD
                         << "Y2: " << std::to_string(collDetSegment.end[1]) << "\n"
                         << "Z2: " << std::to_string(collDetSegment.end[2]) << "\n"
                         << "Material Mask: " << std::to_string(collDetSegment.nMaterialMask);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, collDetSeg, m_bByteSwap);
@@ -1627,7 +1630,7 @@ void CHostSessionV4::SendCollisionDetectionSegment(const sbio::cigi::SCollisionD
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1673,7 +1676,7 @@ void CHostSessionV4::SendCollisionDetectionCuboidVolume(const sbio::cigi::SColli
                         << "Roll: " << std::to_string(collVolCuboid.rotation.roll.Value()) << "\n"
                         << "Pitch: " << std::to_string(collVolCuboid.rotation.pitch.Value()) << "\n"
                         << "Yaw: " << std::to_string(collVolCuboid.rotation.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, collDetVol, m_bByteSwap);
@@ -1682,7 +1685,7 @@ void CHostSessionV4::SendCollisionDetectionCuboidVolume(const sbio::cigi::SColli
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1717,7 +1720,7 @@ void CHostSessionV4::SendCollisionDetectionSphereVolume(const sbio::cigi::SColli
 
       args.sDataMessage << "Height: " << std::to_string(collVolSphere.fRadius) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, collDetVol, m_bByteSwap);
@@ -1726,7 +1729,7 @@ void CHostSessionV4::SendCollisionDetectionSphereVolume(const sbio::cigi::SColli
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1819,7 +1822,10 @@ void CHostSessionV4::SendComponentControl(const sbio::cigi::SCigiComponentContro
       HostCigiDataMessageEventArgs args;
       args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::COMPONENT_CONTROL) << "\n"
                         << "Component ID: " << std::to_string(componentControl.key.componentID.Value()) << "\n"
-                        << "Component Class: " << g_pScriptRuntime->GetComponentClassString(componentControl.key.componentClassID) << "\n"
+                        << "Component Class: "
+                        << (g_pScriptRuntime ? g_pScriptRuntime->GetComponentClassString(componentControl.key.componentClassID)
+                                             : std::to_string(componentControl.key.componentClassID.Value()))
+                        << "\n"
                         << "Component State: " << std::to_string(componentControl.state.nComponentState) << "\n"
                         << "Instance ID: " << std::to_string(componentControl.key.nInstanceID) << "\n";
       for (int n = 0; n < 6; ++n)
@@ -1830,7 +1836,7 @@ void CHostSessionV4::SendComponentControl(const sbio::cigi::SCigiComponentContro
           args.sDataMessage << "\n";
         }
       }
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, componentCtrl, m_bByteSwap);
@@ -1839,7 +1845,7 @@ void CHostSessionV4::SendComponentControl(const sbio::cigi::SCigiComponentContro
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1850,8 +1856,8 @@ void CHostSessionV4::SendConformalClampedEntityPosition(const sbio::cigi::SCigiC
     CIGI::V40::ConformalClampedEntityPosition confClampEntity;
     confClampEntity.entityId = conformalClampedEntityPos.entityID.Value();
     confClampEntity.yaw = static_cast<float>(conformalClampedEntityPos.fYaw.Value());
-    confClampEntity.latitude = static_cast<float>(conformalClampedEntityPos.latitude.Value());
-    confClampEntity.longitude = static_cast<float>(conformalClampedEntityPos.longitude.Value());
+    confClampEntity.latitude = conformalClampedEntityPos.latitude.Value();
+    confClampEntity.longitude = conformalClampedEntityPos.longitude.Value();
 
     if (GetLoggingEnabled())
     {
@@ -1861,7 +1867,7 @@ void CHostSessionV4::SendConformalClampedEntityPosition(const sbio::cigi::SCigiC
                         << "Yaw: " << std::to_string(conformalClampedEntityPos.fYaw.Value()) << "\n"
                         << "Latitude: " << std::to_string(conformalClampedEntityPos.latitude.Value()) << "\n"
                         << "Longitude: " << std::to_string(conformalClampedEntityPos.longitude.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, confClampEntity, m_bByteSwap);
@@ -1870,7 +1876,7 @@ void CHostSessionV4::SendConformalClampedEntityPosition(const sbio::cigi::SCigiC
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1890,7 +1896,7 @@ void CHostSessionV4::SendEarthReferenceModelDefinition(const SCigiEarthReference
                         << "Custom ERM Enable: " << EnableToString(earthModelDef.customERMEnable) << "\n"
                         << "Equatorial Radius: " << std::to_string(earthReferenceModel.fEquatorialRadius) << "\n"
                         << "Flattening: " << std::to_string(earthReferenceModel.fFlattening);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, earthModelDef, m_bByteSwap);
@@ -1899,7 +1905,7 @@ void CHostSessionV4::SendEarthReferenceModelDefinition(const SCigiEarthReference
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1943,7 +1949,7 @@ void CHostSessionV4::SendEnvironmentalConditionsRequest(const SEnvironmentalCond
                         << "Terrestrial Surface Conditions Request: " << EnableToString(environmentalConditionsRequest.bTerrestrialSurfaceConditionsRequest) << "\n"
                         << "Weather Conditions Request: " << EnableToString(environmentalConditionsRequest.bWeatherConditionsRequest) << "\n"
                         << "Aerosol Concentrations Request: " << EnableToString(environmentalConditionsRequest.bAerosolConcentrationsRequest) << "\n";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, envCondReq, m_bByteSwap);
@@ -1952,7 +1958,7 @@ void CHostSessionV4::SendEnvironmentalConditionsRequest(const SEnvironmentalCond
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -1992,7 +1998,7 @@ void CHostSessionV4::SendEnvironmentalRegionControl(const SCigiEnvironmentalRegi
                         << "Corner Radius: " << std::to_string(environmentalRegion.fCornerRadius) << "\n"
                         << "Rotation: " << std::to_string(environmentalRegion.fRotation.Value()) << "\n"
                         << "Transition Perimeter: " << std::to_string(environmentalRegion.fTransition);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, envRegion, m_bByteSwap);
@@ -2001,7 +2007,7 @@ void CHostSessionV4::SendEnvironmentalRegionControl(const SCigiEnvironmentalRegi
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2033,7 +2039,7 @@ void CHostSessionV4::SendHatHotRequest(const SHATHOTGlobalRequest& hatHotRequest
                         << "Longitude: " << std::to_string(hatHotRequest.geodeticCoordinates.longitude.Value()) << "\n"
                         << "Altitude: " << std::to_string(hatHotRequest.geodeticCoordinates.altitude.Value()) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, request, m_bByteSwap);
@@ -2042,7 +2048,7 @@ void CHostSessionV4::SendHatHotRequest(const SHATHOTGlobalRequest& hatHotRequest
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2075,7 +2081,7 @@ void CHostSessionV4::SendHatHotRequest(const SHATHOTEntityRequest& hatHotRequest
                         << "Y Offset: " << std::to_string(hatHotRequest.offset[1]) << "\n"
                         << "Z Offset: " << std::to_string(hatHotRequest.offset[2]) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, request, m_bByteSwap);
@@ -2084,7 +2090,7 @@ void CHostSessionV4::SendHatHotRequest(const SHATHOTEntityRequest& hatHotRequest
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2157,7 +2163,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToGeodeticBasic(const 
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, losSegmentRequest, m_bByteSwap);
@@ -2166,7 +2172,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToGeodeticBasic(const 
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2241,17 +2247,19 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToGeodeticExtended(con
 
       losSegmentRequest.responseCoordinateSystem = ConvertToCoordSysGrp(losRequest.eResponseCoordinateSystem);
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    PackPacketV4(this, losSegmentRequest, m_bByteSwap);
+    if (PackPacketV4(this, losSegmentRequest, m_bByteSwap))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2326,7 +2334,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToEntityBasic(const SL
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, losSegmentRequest, m_bByteSwap);
@@ -2335,7 +2343,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToEntityBasic(const SL
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2412,17 +2420,19 @@ void CHostSessionV4::SendLineOfSightSegmentRequestGeodeticToEntityExtended(const
 
       losSegmentRequest.responseCoordinateSystem = ConvertToCoordSysGrp(losRequest.eResponseCoordinateSystem);
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    PackPacketV4(this, losSegmentRequest, m_bByteSwap);
+    if (PackPacketV4(this, losSegmentRequest, m_bByteSwap))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2496,7 +2506,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestEntityToGeodeticBasic(const SL
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, losSegmentRequest, m_bByteSwap);
@@ -2505,7 +2515,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestEntityToGeodeticBasic(const SL
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2581,17 +2591,19 @@ void CHostSessionV4::SendLineOfSightSegmentRequestEntityToGeodeticExtended(const
 
       losSegmentRequest.responseCoordinateSystem = ConvertToCoordSysGrp(losRequest.eResponseCoordinateSystem);
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    PackPacketV4(this, losSegmentRequest, m_bByteSwap);
+    if (PackPacketV4(this, losSegmentRequest, m_bByteSwap))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2672,7 +2684,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestEntityToEntityBasic(const SLin
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, losSegmentRequest, m_bByteSwap);
@@ -2681,7 +2693,7 @@ void CHostSessionV4::SendLineOfSightSegmentRequestEntityToEntityBasic(const SLin
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2763,17 +2775,19 @@ void CHostSessionV4::SendLineOfSightSegmentRequestEntityToEntityExtended(const S
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    PackPacketV4(this, losSegmentRequest, m_bByteSwap);
+    if (PackPacketV4(this, losSegmentRequest, m_bByteSwap))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2835,7 +2849,7 @@ void CHostSessionV4::SendLineOfSightVectorRequestGeodeticBasic(const SLineOfSigh
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n"
                         << "Update Period: " << std::to_string(losRequest.updatePeriod.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, losVectorRequest, m_bByteSwap);
@@ -2844,7 +2858,7 @@ void CHostSessionV4::SendLineOfSightVectorRequestGeodeticBasic(const SLineOfSigh
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2906,17 +2920,19 @@ void CHostSessionV4::SendLineOfSightVectorRequestGeodeticExtended(const SLineOfS
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n"
                         << "Update Period: " << std::to_string(losRequest.updatePeriod.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    PackPacketV4(this, losVectorRequest, m_bByteSwap);
+    if (PackPacketV4(this, losVectorRequest, m_bByteSwap))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -2978,7 +2994,7 @@ void CHostSessionV4::SendLineOfSightVectorRequestEntityBasic(const sbio::cigi::S
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n"
                         << "Update Period: " << std::to_string(losRequest.updatePeriod.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, losVectorRequest, m_bByteSwap);
@@ -2987,7 +3003,7 @@ void CHostSessionV4::SendLineOfSightVectorRequestEntityBasic(const sbio::cigi::S
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3048,17 +3064,19 @@ void CHostSessionV4::SendLineOfSightVectorRequestEntityExtended(const sbio::cigi
 
       args.sDataMessage << "Material Mask: " << std::to_string(losRequest.nMaterialMask) << "\n"
                         << "Update Period: " << std::to_string(losRequest.updatePeriod.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
-    StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
-    PackPacketV4(this, losVectorRequest, m_bByteSwap);
+    if (PackPacketV4(this, losVectorRequest, m_bByteSwap))
+    {
+      StoreLineOfSightRequestCoordinateSystem(losRequest.requestID, losRequest.eResponseCoordinateSystem);
+    }
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3068,7 +3086,7 @@ void CHostSessionV4::SendEntityMaritimeSurfaceConditionsControl(EntityID entityI
   {
     HostCigiMessageEventArgs hostCigiMessageArgs;
     hostCigiMessageArgs.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::MARITIME_SURFACE_CONDITIONS_CONTROL);
-    Event::Raise<HostCigiEvent>(hostCigiMessageArgs);
+    RaiseSessionEvent(hostCigiMessageArgs);
 
     CIGI::V40::MaritimeSurfaceConditionsCtrl maritimeSurfaceCtrl;
     maritimeSurfaceCtrl.entityRegionId = entityID.Value();
@@ -3090,7 +3108,7 @@ void CHostSessionV4::SendEntityMaritimeSurfaceConditionsControl(EntityID entityI
                         << "Sea Surface Height: " << std::to_string(maritimeSurfaceCondition.fSeaSurfaceHeight.Value()) << "\n"
                         << "Surface Water Temperature: " << std::to_string(maritimeSurfaceCondition.fSurfaceWaterTemperature.Value()) << "\n"
                         << "Surface Clarity: " << std::to_string(ConvertToCigiFloatPercentage(maritimeSurfaceCondition.surfaceClarity).Value()) << "%";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, maritimeSurfaceCtrl, m_bByteSwap);
@@ -3099,7 +3117,7 @@ void CHostSessionV4::SendEntityMaritimeSurfaceConditionsControl(EntityID entityI
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3109,7 +3127,7 @@ void CHostSessionV4::SendRegionMaritimeSurfaceConditionsControl(RegionID regionI
   {
     HostCigiMessageEventArgs hostCigiMessageArgs;
     hostCigiMessageArgs.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::MARITIME_SURFACE_CONDITIONS_CONTROL);
-    Event::Raise<HostCigiEvent>(hostCigiMessageArgs);
+    RaiseSessionEvent(hostCigiMessageArgs);
 
     CIGI::V40::MaritimeSurfaceConditionsCtrl maritimeSurfaceCtrl;
     maritimeSurfaceCtrl.entityRegionId = regionID.Value();
@@ -3131,7 +3149,7 @@ void CHostSessionV4::SendRegionMaritimeSurfaceConditionsControl(RegionID regionI
                         << "Sea Surface Height: " << std::to_string(maritimeSurfaceCondition.fSeaSurfaceHeight.Value()) << "\n"
                         << "Surface Water Temperature: " << std::to_string(maritimeSurfaceCondition.fSurfaceWaterTemperature.Value()) << "\n"
                         << "Surface Clarity: " << std::to_string(ConvertToCigiFloatPercentage(maritimeSurfaceCondition.surfaceClarity).Value()) << "%";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, maritimeSurfaceCtrl, m_bByteSwap);
@@ -3140,7 +3158,7 @@ void CHostSessionV4::SendRegionMaritimeSurfaceConditionsControl(RegionID regionI
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3167,7 +3185,7 @@ void CHostSessionV4::SendGlobalMaritimeSurfaceConditionsControl(const SCigiMarit
                         << "Sea Surface Height: " << std::to_string(maritimeSurfaceCondition.fSeaSurfaceHeight.Value()) << "\n"
                         << "Surface Water Temperature: " << std::to_string(maritimeSurfaceCondition.fSurfaceWaterTemperature.Value()) << "\n"
                         << "Surface Clarity: " << std::to_string(ConvertToCigiFloatPercentage(maritimeSurfaceCondition.surfaceClarity).Value()) << "%";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, maritimeSurfaceCtrl, m_bByteSwap);
@@ -3176,7 +3194,7 @@ void CHostSessionV4::SendGlobalMaritimeSurfaceConditionsControl(const SCigiMarit
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3215,7 +3233,7 @@ void CHostSessionV4::SendMotionTrackerViewControl(const SMotionTrackerViewContro
                         << "\n"
                         << "View/View Group ID: " << std::to_string(motionTrackerControl.viewID.Value());
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, motionTrack, m_bByteSwap);
@@ -3224,7 +3242,7 @@ void CHostSessionV4::SendMotionTrackerViewControl(const SMotionTrackerViewContro
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3237,6 +3255,7 @@ void CHostSessionV4::SendMotionTrackerViewGroupControl(const SMotionTrackerViewG
     motionTrack.trackerEnable = motionTrackerControl.bEnable;
     motionTrack.trackerId = motionTrackerControl.motionTrackerID.Value();
     motionTrack.viewViewGroupId = motionTrackerControl.viewGroupID.Value();
+    motionTrack.viewViewGroupSelect = CIGI::V40::MotionTrackerCtrl::eViewGroupSelect_ViewGroup;
     motionTrack.xEnable = motionTrackerControl.bXEnable;
     motionTrack.yEnable = motionTrackerControl.bYEnable;
     motionTrack.zEnable = motionTrackerControl.bZEnable;
@@ -3263,7 +3282,7 @@ void CHostSessionV4::SendMotionTrackerViewGroupControl(const SMotionTrackerViewG
                         << "\n"
                         << "View/View Group ID: " << std::to_string(motionTrackerControl.viewGroupID.Value());
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, motionTrack, m_bByteSwap);
@@ -3272,7 +3291,7 @@ void CHostSessionV4::SendMotionTrackerViewGroupControl(const SMotionTrackerViewG
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3283,7 +3302,8 @@ void CHostSessionV4::SendPositionRequest(const sbio::cigi::SPositionRequest& pos
     CIGI::V40::PositionRequest posRequest;
     posRequest.objectId = positionRequest.nObjectID;
     posRequest.articulatedPartId = positionRequest.articulatedPartID.Value();
-    posRequest.updateMode = positionRequest.bContinuous ? CIGI::V40::PositionRequest::UpdateMode::eUpdateMode_Continuous : CIGI::V40::PositionRequest::UpdateMode::eUpdateMode_OneShot;
+    posRequest.updateMode =
+      positionRequest.bContinuous ? CIGI::V40::PositionRequest::UpdateMode::eUpdateMode_Continuous : CIGI::V40::PositionRequest::UpdateMode::eUpdateMode_OneShot;
     posRequest.objectClass = GetCigiObjectClassGrp(positionRequest.eObjectClass);
     posRequest.coordinateSystem = ConvertToCoordSysGrp(positionRequest.eCoordinateSystem);
 
@@ -3315,7 +3335,7 @@ void CHostSessionV4::SendPositionRequest(const sbio::cigi::SPositionRequest& pos
 
       args.sDataMessage << "Object ID: " << std::to_string(positionRequest.nObjectID) << "\n";
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, posRequest, m_bByteSwap);
@@ -3324,7 +3344,7 @@ void CHostSessionV4::SendPositionRequest(const sbio::cigi::SPositionRequest& pos
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3429,7 +3449,7 @@ void CHostSessionV4::SendSensorControl(const SCigiSensorControl& sensorControl)
                         << "Level: " << std::to_string(sensorControl.level.Value()) << "\n"
                         << "AC Coupling: " << std::to_string(sensorControl.fACCoupling) << "\n"
                         << "Noise: " << std::to_string(sensorControl.noise.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, sensorCtrl, m_bByteSwap);
@@ -3438,7 +3458,7 @@ void CHostSessionV4::SendSensorControl(const SCigiSensorControl& sensorControl)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3470,7 +3490,7 @@ void CHostSessionV4::SendShortArticulatedPartControl(const sbio::cigi::SCigiShor
                         << "Articulated Part Enable 2: " << EnableToString(shortArticulatedPart.bArticulatedPart2Enabled) << "\n"
                         << "DOF 1: " << std::to_string(shortArticulatedPart.fDOF1) << "\n"
                         << "DOF 2: " << std::to_string(shortArticulatedPart.fDOF2) << "\n";
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, shortArtPartCtrl, m_bByteSwap);
@@ -3479,7 +3499,7 @@ void CHostSessionV4::SendShortArticulatedPartControl(const sbio::cigi::SCigiShor
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3500,12 +3520,15 @@ void CHostSessionV4::SendShortComponentControl(const SCigiShortComponentControl&
       HostCigiDataMessageEventArgs args;
       args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::SHORT_COMPONENT_CONTROL) << "\n"
                         << "Component ID: " << std::to_string(shortComponentControl.componentID.Value()) << "\n"
-                        << "Component Class: " << g_pScriptRuntime->GetComponentClassString(shortComponentControl.componentClassID) << "\n"
+                        << "Component Class: "
+                        << (g_pScriptRuntime ? g_pScriptRuntime->GetComponentClassString(shortComponentControl.componentClassID)
+                                             : std::to_string(shortComponentControl.componentClassID.Value()))
+                        << "\n"
                         << "Component State: " << std::to_string(shortComponentControl.nComponentState) << "\n"
                         << "Instance ID: " << std::to_string(shortComponentControl.componentID.Value()) << "\n"
                         << "Component Data 1:" << std::to_string(shortComponentControl.componentData1) << "\n"
                         << "Component Data 2:" << std::to_string(shortComponentControl.componentData2);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, shortCompCtrl, m_bByteSwap);
@@ -3514,7 +3537,7 @@ void CHostSessionV4::SendShortComponentControl(const SCigiShortComponentControl&
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3620,15 +3643,12 @@ uint32_t SetAttributeDatum(EAttributeSelect attribute, SAttributeValue value)
   }
   else if (attribute == EAttributeSelect::COLOR)
   {
-    SColor32 color;
-    color.r = ((int)value.rgba.r >> 24) & 0x0F;
-    color.g = ((int)value.rgba.g >> 16) & 0x0F;
-    color.b = ((int)value.rgba.b >> 8) & 0x0F;
-    color.a = value.rgba.a & 0x0F;
-
-    uint32_t n;
-    memcpy(&n, &color, sizeof(uint32_t));
-    return n;
+    // clang-format off
+    return (static_cast<uint32_t>(value.rgba.r) << 24) | 
+           (static_cast<uint32_t>(value.rgba.g) << 16) | 
+           (static_cast<uint32_t>(value.rgba.b) << 8) |
+           static_cast<uint32_t>(value.rgba.a);
+    // clang-format on
   }
   else if (attribute == EAttributeSelect::SCALEU)
   {
@@ -3829,7 +3849,7 @@ void CHostSessionV4::SendShortSymbolControl(const SShortSymbolControl& shortSymb
         args.sDataMessage << "None: "
                           << "\n";
       }
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, shortSymbolCtrl, m_bByteSwap);
@@ -3838,19 +3858,13 @@ void CHostSessionV4::SendShortSymbolControl(const SShortSymbolControl& shortSymb
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
 void Swap(CIGI::V40::SymbolCircleDefinition& symbolCircle, int numRecords)
 {
-  CEndian::Swap(symbolCircle.size);
-  uint16_t nPacketId = symbolCircle.id;
-  CEndian::Swap(nPacketId);
-  symbolCircle.id = nPacketId;
-  symbolCircle.doByteSwapping();
-  CEndian::Swap(symbolCircle.lineWidth);
-  CEndian::Swap(symbolCircle.stipplePatternLength);
+  ByteSwapPacketV4(symbolCircle);
   for (int i = 0; i < numRecords; ++i)
   {
     CEndian::Swap(symbolCircle.records[i].centerU);
@@ -3866,6 +3880,14 @@ void CHostSessionV4::SendSymbolCircleDefinition(const SSymbolCircle& circleDef)
 {
   try
   {
+    if (circleDef.circles.size() > CIGI::V40::SymbolCircleDefinition::kMaxRecords)
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "CIGI 4.0 symbol circle definition exceeds the maximum record count.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
     CIGI::V40::SymbolCircleDefinition symbolCircle;
     symbolCircle.symbolId = circleDef.symbolID.Value();
     symbolCircle.drawingStyle = ConvertToDrawingStyleGrp(circleDef.eDrawingStyle);
@@ -3878,8 +3900,8 @@ void CHostSessionV4::SendSymbolCircleDefinition(const SSymbolCircle& circleDef)
     for (const auto& circleProperties : circleDef.circles)
     {
       CIGI::V40::SymbolCircleDefinition::Circle circle;
-      circle.centerU = circleProperties.centerUV.U;
-      circle.centerV = circleProperties.centerUV.V;
+      circle.centerU = static_cast<float>(circleProperties.centerUV.U);
+      circle.centerV = static_cast<float>(circleProperties.centerUV.V);
       circle.radius = circleProperties.fRadius;
       circle.innerRadius = circleProperties.fInnerRadius;
       circle.startAngle = static_cast<float>(circleProperties.startAngle.Value());
@@ -3920,7 +3942,7 @@ void CHostSessionV4::SendSymbolCircleDefinition(const SSymbolCircle& circleDef)
                           << "End Angle: " << std::to_string(circleDef.endAngle.Value());*/
       }
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     int numRecords = CIGI::V40::SymbolCircleDefinition::RecordHelper::numRecords(symbolCircle);
@@ -3929,7 +3951,8 @@ void CHostSessionV4::SendSymbolCircleDefinition(const SSymbolCircle& circleDef)
       Swap(symbolCircle, numRecords);
     }
 
-    std::unique_ptr<TBuffer<char>> pPacketBuffer = std::make_unique<TBuffer<char>>(static_cast<int>(CIGI::V40::SymbolCircleDefinition::kBasePacketSize + numRecords * sizeof(CIGI::V40::SymbolCircleDefinition::Record)));
+    std::unique_ptr<TBuffer<char>> pPacketBuffer =
+      std::make_unique<TBuffer<char>>(static_cast<int>(CIGI::V40::SymbolCircleDefinition::kBasePacketSize + numRecords * sizeof(CIGI::V40::SymbolCircleDefinition::Record)));
     memcpy(pPacketBuffer->GetBuffer(), &symbolCircle, CIGI::V40::SymbolCircleDefinition::kBasePacketSize);
     memcpy(pPacketBuffer->GetBuffer() + CIGI::V40::SymbolCircleDefinition::kBasePacketSize, symbolCircle.records, numRecords * sizeof(CIGI::V40::SymbolCircleDefinition::Record));
     Pack(pPacketBuffer->GetBuffer(), pPacketBuffer->GetSize());
@@ -3938,7 +3961,7 @@ void CHostSessionV4::SendSymbolCircleDefinition(const SSymbolCircle& circleDef)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -3979,7 +4002,7 @@ void CHostSessionV4::SendSymbolClone(const SSymbolClone& symbolCloneStruct)
                           << "\n";
       }
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, symbolClone, m_bByteSwap);
@@ -3988,7 +4011,7 @@ void CHostSessionV4::SendSymbolClone(const SSymbolClone& symbolCloneStruct)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4085,7 +4108,7 @@ void CHostSessionV4::SendSymbolControl(const SSymbolControl& symbolControl)
       args.sDataMessage << "Scale U: " << std::to_string(symbolControl.fScaleU) << "\n"
                         << "Scale V: " << std::to_string(symbolControl.fScaleV);
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, symControl, m_bByteSwap);
@@ -4094,19 +4117,13 @@ void CHostSessionV4::SendSymbolControl(const SSymbolControl& symbolControl)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
 void Swap(CIGI::V40::SymbolPolygonDefinition& symbolPolygon, int numRecords)
 {
-  CEndian::Swap(symbolPolygon.size);
-  uint16_t nPacketId = symbolPolygon.id;
-  CEndian::Swap(nPacketId);
-  symbolPolygon.id = nPacketId;
-  symbolPolygon.doByteSwapping();
-  CEndian::Swap(symbolPolygon.lineWidth);
-  CEndian::Swap(symbolPolygon.stipplePatternLength);
+  ByteSwapPacketV4(symbolPolygon);
   for (int i = 0; i < numRecords; ++i)
   {
     CEndian::Swap(symbolPolygon.records[i].vertexU);
@@ -4118,6 +4135,14 @@ void CHostSessionV4::SendSymbolPolygonDefinition(const SSymbolPolygon& symbolPol
 {
   try
   {
+    if (symbolPolygon.vertices.size() > CIGI::V40::SymbolPolygonDefinition::kMaxRecords)
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "CIGI 4.0 symbol polygon definition exceeds the maximum record count.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
     CIGI::V40::SymbolPolygonDefinition symbolPolygonDef;
     symbolPolygonDef.symbolId = symbolPolygon.symbolID.Value();
 
@@ -4234,7 +4259,7 @@ void CHostSessionV4::SendSymbolPolygonDefinition(const SSymbolPolygon& symbolPol
                           << "\n";
       }
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     int numRecords = CIGI::V40::SymbolPolygonDefinition::RecordHelper::numRecords(symbolPolygonDef);
@@ -4243,13 +4268,16 @@ void CHostSessionV4::SendSymbolPolygonDefinition(const SSymbolPolygon& symbolPol
       Swap(symbolPolygonDef, numRecords);
     }
 
-    Pack(&symbolPolygonDef, CIGI::V40::SymbolPolygonDefinition::kBasePacketSize, symbolPolygonDef.records, numRecords * static_cast<int>(sizeof(CIGI::V40::SymbolPolygonDefinition::Record)));
+    Pack(&symbolPolygonDef,
+         CIGI::V40::SymbolPolygonDefinition::kBasePacketSize,
+         symbolPolygonDef.records,
+         numRecords * static_cast<int>(sizeof(CIGI::V40::SymbolPolygonDefinition::Record)));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4314,7 +4342,7 @@ void CHostSessionV4::SendEntitySymbolSurfaceDefinition(const SEntitySymbolSurfac
                         << "Max U: " << std::to_string(symbolSurfaceDefinition.uvMax[0]) << "\n"
                         << "Min V: " << std::to_string(symbolSurfaceDefinition.uvMin[1]) << "\n"
                         << "Max V: " << std::to_string(symbolSurfaceDefinition.uvMax[1]);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, symbolSurfaceDef, m_bByteSwap);
@@ -4323,7 +4351,7 @@ void CHostSessionV4::SendEntitySymbolSurfaceDefinition(const SEntitySymbolSurfac
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4384,7 +4412,7 @@ void CHostSessionV4::SendEntityBillboardSymbolSurfaceDefinition(const SEntityBil
                         << "Max U: " << std::to_string(symbolSurfaceDefinition.uvMax[0]) << "\n"
                         << "Min V: " << std::to_string(symbolSurfaceDefinition.uvMin[1]) << "\n"
                         << "Max V: " << std::to_string(symbolSurfaceDefinition.uvMax[1]);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, symbolSurfaceDef, m_bByteSwap);
@@ -4393,7 +4421,7 @@ void CHostSessionV4::SendEntityBillboardSymbolSurfaceDefinition(const SEntityBil
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4448,7 +4476,7 @@ void CHostSessionV4::SendViewSymbolSurfaceDefinition(const SViewSymbolSurfaceDef
                         << "Max U: " << std::to_string(symbolSurfaceDefinition.uvMax[0]) << "\n"
                         << "Min V: " << std::to_string(symbolSurfaceDefinition.uvMin[1]) << "\n"
                         << "Max V: " << std::to_string(symbolSurfaceDefinition.uvMax[1]);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, symbolSurfaceDef, m_bByteSwap);
@@ -4457,7 +4485,7 @@ void CHostSessionV4::SendViewSymbolSurfaceDefinition(const SViewSymbolSurfaceDef
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4516,72 +4544,54 @@ void CHostSessionV4::SendSymbolTextDefinition(const SSymbolTextDefinition& symbo
                         << "\n"
                         << symbolTextDef.sText;
 
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     int nStringLength = static_cast<int>(strnlen(symTextDef.data, CIGI::V40::SymbolTextDefinition::kMaxDataLength)) + 1;
-    int nSpare = nStringLength % 8;
-
-    if (nStringLength < 3)
+    const int nPacketSize = (CIGI::V40::SymbolTextDefinition::kBasePacketSize + nStringLength + 7) / 8 * 8;
+    const int nDataSize = nPacketSize - CIGI::V40::SymbolTextDefinition::kBasePacketSize;
+    if (nPacketSize > MAX_UDP_SIZE || nDataSize > CIGI::V40::SymbolTextDefinition::kMaxDataLength)
     {
-      nSpare = 4 - nSpare;
-    }
-    else if (nSpare != 0)
-    {
-      nSpare = 8 - nSpare;
+      HostCigiErrorEventArgs args;
+      args.sError = "Symbol text packet exceeds maximum UDP payload.";
+      RaiseSessionEvent(args);
+      return;
     }
 
-    symTextDef.size += static_cast<CIGI::ui8>(nStringLength + nSpare);
+    symTextDef.size = static_cast<CIGI::ui16>(nPacketSize);
     CIGI::V40::SymbolTextDefinition tempSymTextDef = symTextDef;
     if (m_bByteSwap)
     {
       ByteSwapPacketV4(tempSymTextDef);
-      CEndian::Swap(tempSymTextDef.fontSize);
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &tempSymTextDef, CIGI::V40::SymbolTextDefinition::kBasePacketSize);
-    m_nSendBufferLength += CIGI::V40::SymbolTextDefinition::kBasePacketSize;
-
-    memcpy(&m_sendBuffer[m_nSendBufferLength], symTextDef.data, nStringLength + nSpare);
-    m_nSendBufferLength += nStringLength + nSpare;
+    Pack(&tempSymTextDef, CIGI::V40::SymbolTextDefinition::kBasePacketSize, symTextDef.data, nDataSize);
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
 void Swap(CIGI::V40::SymbolTexturedCircleDefinition& symbolTexturedCircleDefinition, int nNumRecords)
 {
-  // swap textured circle definition
-
-  CEndian::Swap(symbolTexturedCircleDefinition.size);
-  uint16_t nPacketId = symbolTexturedCircleDefinition.id;
-  CEndian::Swap(nPacketId);
-  symbolTexturedCircleDefinition.id = nPacketId;
-  symbolTexturedCircleDefinition.doByteSwapping();
-  CEndian::Swap(symbolTexturedCircleDefinition.symbolId);
-  // CEndian::Swap(symbolTexturedCircleDefinition.textureFilterMode);//no need to swap 1-bit field
-  CEndian::Swap(symbolTexturedCircleDefinition.textureId);
-  // CEndian::Swap(symbolTexturedCircleDefinition.textureRepeatOrClamp);//no need to swap 1-bit field
-
-  for (int i = 0; i < nNumRecords; ++i)
-  {
-    CEndian::Swap(symbolTexturedCircleDefinition.records[i].centerU);
-    CEndian::Swap(symbolTexturedCircleDefinition.records[i].centerV);
-    CEndian::Swap(symbolTexturedCircleDefinition.records[i].radius);
-    CEndian::Swap(symbolTexturedCircleDefinition.records[i].innerRadius);
-    CEndian::Swap(symbolTexturedCircleDefinition.records[i].startAngle);
-    CEndian::Swap(symbolTexturedCircleDefinition.records[i].endAngle);
-  }
+  ByteSwapPacketV4(symbolTexturedCircleDefinition);
 }
 
 void CHostSessionV4::SendSymbolTexturedCircleDefinition(const SSymbolTexturedCircle& symbolTexturedCircle)
 {
   try
   {
+    if (symbolTexturedCircle.circles.size() > CIGI::V40::SymbolTexturedCircleDefinition::kMaxRecords)
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "CIGI 4.0 textured symbol circle definition exceeds the maximum record count.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
     CIGI::V40::SymbolTexturedCircleDefinition texturedCircleDef;
     texturedCircleDef.symbolId = symbolTexturedCircle.symbolID.Value();
     texturedCircleDef.textureFilterMode = ConvertToTextureFilterMode(symbolTexturedCircle.eTextureFilter);
@@ -4657,7 +4667,7 @@ void CHostSessionV4::SendSymbolTexturedCircleDefinition(const SSymbolTexturedCir
                           << "Texture-mapping Radius: " << std::to_string(c.fTextureMapRadius) << "\n"
                           << "Texture-mapping Rotation: " << std::to_string(c.fTextureMapRotation) << "\n";
       }
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     int numRecords = CIGI::V40::SymbolTexturedCircleDefinition::RecordHelper::numRecords(texturedCircleDef);
@@ -4666,16 +4676,19 @@ void CHostSessionV4::SendSymbolTexturedCircleDefinition(const SSymbolTexturedCir
       Swap(texturedCircleDef, numRecords);
     }
 
-    std::unique_ptr<TBuffer<char>> pPacketBuffer = std::make_unique<TBuffer<char>>(static_cast<int>(CIGI::V40::SymbolTexturedCircleDefinition::kBasePacketSize + numRecords * sizeof(CIGI::V40::SymbolTexturedCircleDefinition::Record)));
+    std::unique_ptr<TBuffer<char>> pPacketBuffer = std::make_unique<TBuffer<char>>(
+      static_cast<int>(CIGI::V40::SymbolTexturedCircleDefinition::kBasePacketSize + numRecords * sizeof(CIGI::V40::SymbolTexturedCircleDefinition::Record)));
     memcpy(pPacketBuffer->GetBuffer(), &texturedCircleDef, CIGI::V40::SymbolTexturedCircleDefinition::kBasePacketSize);
-    memcpy(pPacketBuffer->GetBuffer() + CIGI::V40::SymbolTexturedCircleDefinition::kBasePacketSize, texturedCircleDef.records, numRecords * sizeof(CIGI::V40::SymbolTexturedCircleDefinition::Record));
+    memcpy(pPacketBuffer->GetBuffer() + CIGI::V40::SymbolTexturedCircleDefinition::kBasePacketSize,
+           texturedCircleDef.records,
+           numRecords * sizeof(CIGI::V40::SymbolTexturedCircleDefinition::Record));
     Pack(pPacketBuffer->GetBuffer(), pPacketBuffer->GetSize());
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4683,9 +4696,17 @@ void CHostSessionV4::SendSymbolTexturedPolygonDefinition(const SSymbolTexturedPo
 {
   try
   {
+    if (symbolTexturedPolygon.vertices.size() > CIGI::V40::SymbolTexturedPolygonDefinition::kMaxRecords)
+    {
+      HostCigiErrorEventArgs args;
+      args.sError = "CIGI 4.0 textured symbol polygon definition exceeds the maximum record count.";
+      RaiseSessionEvent(args);
+      return;
+    }
+
     HostCigiMessageEventArgs eventArgs;
     eventArgs.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::SYMBOL_TEXTURED_POLYGON_DEFINITION);
-    Event::Raise<HostCigiEvent>(eventArgs);
+    RaiseSessionEvent(eventArgs);
 
     CIGI::V40::SymbolTexturedPolygonDefinition symTextPolygon;
     symTextPolygon.symbolId = symbolTexturedPolygon.symbolID.Value();
@@ -4788,7 +4809,7 @@ void CHostSessionV4::SendSymbolTexturedPolygonDefinition(const SSymbolTexturedPo
                           << "Texture Coordinate S: " << std::to_string(v.textureCoordinateST[0]) << "\n"
                           << "Texture Coordinate T: " << std::to_string(v.textureCoordinateST[1]) << "\n";
       }
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     symTextPolygon.textureFilterMode = ConvertToTextureFilter(symbolTexturedPolygon.eTextureFilterMode);
@@ -4808,16 +4829,16 @@ void CHostSessionV4::SendSymbolTexturedPolygonDefinition(const SSymbolTexturedPo
       }
     }
 
-    memcpy(&m_sendBuffer[m_nSendBufferLength], &tempSymTextPolygon, CIGI::V40::SymbolTexturedPolygonDefinition::kBasePacketSize);
-    m_nSendBufferLength += CIGI::V40::SymbolTexturedPolygonDefinition::kBasePacketSize;
-    memcpy(&m_sendBuffer[m_nSendBufferLength], tempSymTextPolygon.records, numRecords * sizeof(CIGI::V40::SymbolTexturedPolygonDefinition::Record));
-    m_nSendBufferLength += numRecords * sizeof(CIGI::V40::SymbolTexturedPolygonDefinition::Record);
+    Pack(&tempSymTextPolygon,
+         CIGI::V40::SymbolTexturedPolygonDefinition::kBasePacketSize,
+         tempSymTextPolygon.records,
+         numRecords * sizeof(CIGI::V40::SymbolTexturedPolygonDefinition::Record));
   }
   catch (const exception& ex)
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4827,7 +4848,7 @@ void CHostSessionV4::SendEntityTerrestrialSurfaceConditionsControl(EntityID enti
   {
     HostCigiMessageEventArgs args;
     args.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
 
     CIGI::V40::TerrestrialSurfaceConditionsCtrl terrestrialSurfaceCtrl;
     terrestrialSurfaceCtrl.scope = CIGI::V40::TerrestrialSurfaceConditionsCtrl::Scope::eScope_Entity;
@@ -4845,10 +4866,11 @@ void CHostSessionV4::SendEntityTerrestrialSurfaceConditionsControl(EntityID enti
                                                 << "Entity ID: " << std::to_string(entityID.Value()) << "\n"
                                                 << "Surface Conditions Enable: " << EnableToString(terrestrialSurfaceControl.bEnabled) << "\n"
                                                 << "Scope: Entity" << "\n"
-                                                << "Severity: " << std::to_string(ConvertToCigiTerrestrailSurfaceConditionsSeverity(terrestrialSurfaceControl.severity).Value()) << "\n"
+                                                << "Severity: " << std::to_string(ConvertToCigiTerrestrailSurfaceConditionsSeverity(terrestrialSurfaceControl.severity).Value())
+                                                << "\n"
                                                 << "Coverage: " << std::to_string(ConvertToCigiIntPercentage(terrestrialSurfaceControl.coverage).Value()) << "\n"
                                                 << "Surface Condition ID: " << std::to_string(terrestrialSurfaceControl.surfaceConditionID.Value());
-      Event::Raise<HostCigiEvent>(hostcigiDataMessageEventArgs);
+      RaiseSessionEvent(hostcigiDataMessageEventArgs);
     }
 
     PackPacketV4(this, terrestrialSurfaceCtrl, m_bByteSwap);
@@ -4857,7 +4879,7 @@ void CHostSessionV4::SendEntityTerrestrialSurfaceConditionsControl(EntityID enti
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4867,7 +4889,7 @@ void CHostSessionV4::SendRegionTerrestrialSurfaceConditionsControl(RegionID regi
   {
     HostCigiMessageEventArgs args;
     args.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
 
     CIGI::V40::TerrestrialSurfaceConditionsCtrl terrestrialSurfaceCtrl;
     terrestrialSurfaceCtrl.scope = CIGI::V40::TerrestrialSurfaceConditionsCtrl::Scope::eScope_Regional;
@@ -4888,7 +4910,7 @@ void CHostSessionV4::SendRegionTerrestrialSurfaceConditionsControl(RegionID regi
                          << "Severity: " << std::to_string(ConvertToCigiTerrestrailSurfaceConditionsSeverity(terrestrialSurfaceControl.severity).Value()) << "\n"
                          << "Coverage: " << std::to_string(ConvertToCigiIntPercentage(terrestrialSurfaceControl.coverage).Value()) << "\n"
                          << "Surface Condition ID: " << std::to_string(terrestrialSurfaceControl.surfaceConditionID.Value());
-      Event::Raise<HostCigiEvent>(args2);
+      RaiseSessionEvent(args2);
     }
 
     PackPacketV4(this, terrestrialSurfaceCtrl, m_bByteSwap);
@@ -4897,7 +4919,7 @@ void CHostSessionV4::SendRegionTerrestrialSurfaceConditionsControl(RegionID regi
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -4907,7 +4929,7 @@ void CHostSessionV4::SendGlobalTerrestrialSurfaceConditionsControl(const sbio::c
   {
     HostCigiMessageEventArgs eventArgs;
     eventArgs.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::TERRESTRIAL_SURFACE_CONDITIONS_CONTROL);
-    Event::Raise<HostCigiEvent>(eventArgs);
+    RaiseSessionEvent(eventArgs);
 
     CIGI::V40::TerrestrialSurfaceConditionsCtrl terrestrialSurfaceCtrl;
     terrestrialSurfaceCtrl.scope = CIGI::V40::TerrestrialSurfaceConditionsCtrl::Scope::eScope_Global;
@@ -4926,7 +4948,7 @@ void CHostSessionV4::SendGlobalTerrestrialSurfaceConditionsControl(const sbio::c
                         << "Severity: " << std::to_string(ConvertToCigiTerrestrailSurfaceConditionsSeverity(terrestrialSurfaceControl.severity).Value()) << "\n"
                         << "Coverage: " << std::to_string(ConvertToCigiIntPercentage(terrestrialSurfaceControl.coverage).Value()) << "\n"
                         << "Surface Condition ID: " << std::to_string(terrestrialSurfaceControl.surfaceConditionID.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, terrestrialSurfaceCtrl, m_bByteSwap);
@@ -4935,7 +4957,7 @@ void CHostSessionV4::SendGlobalTerrestrialSurfaceConditionsControl(const sbio::c
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5003,7 +5025,7 @@ void CHostSessionV4::SendVelocityControl(const SCigiEntityVelocityControl& entit
                         << "Roll Angular Velocity: " << std::to_string(entityVelocityControl.angularVelocity.roll.Value()) << "\n"
                         << "Pitch Angular Velocity: " << std::to_string(entityVelocityControl.angularVelocity.pitch.Value()) << "\n"
                         << "Yaw Angular Velocity: " << std::to_string(entityVelocityControl.angularVelocity.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, velocityControl, m_bByteSwap);
@@ -5012,7 +5034,7 @@ void CHostSessionV4::SendVelocityControl(const SCigiEntityVelocityControl& entit
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5048,7 +5070,7 @@ void CHostSessionV4::SendVelocityControl(const sbio::cigi::SCigiArticulatedPartV
                         << "Roll Angular Velocity: " << std::to_string(articulatedPartVelocityControl.angularVelocity.roll.Value()) << "\n"
                         << "Pitch Angular Velocity: " << std::to_string(articulatedPartVelocityControl.angularVelocity.pitch.Value()) << "\n"
                         << "Yaw Angular Velocity: " << std::to_string(articulatedPartVelocityControl.angularVelocity.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, velocityControl, m_bByteSwap);
@@ -5057,7 +5079,7 @@ void CHostSessionV4::SendVelocityControl(const sbio::cigi::SCigiArticulatedPartV
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5101,7 +5123,7 @@ void CHostSessionV4::SendViewControl(const sbio::cigi::SCigiViewControl& viewCon
                         << "Roll: " << std::to_string(viewControl.rotation.roll.Value()) << "\n"
                         << "Pitch: " << std::to_string(viewControl.rotation.pitch.Value()) << "\n"
                         << "Yaw: " << std::to_string(viewControl.rotation.yaw.Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, viewCtrl, m_bByteSwap);
@@ -5110,7 +5132,7 @@ void CHostSessionV4::SendViewControl(const sbio::cigi::SCigiViewControl& viewCon
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5161,7 +5183,10 @@ void CHostSessionV4::SendViewDefinition(const SCigiViewDefinition& viewDefinitio
                         << "Top Enable: " << EnableToString(viewDefinition.bTopEnabled) << "\n"
                         << "Bottom Enable: " << EnableToString(viewDefinition.bBottomEnabled) << "\n"
                         << "Mirror Mode: " << ConvertCigiMirrorModeToString(viewDefinition.eMirrorMode) << "\n"
-                        << "Pixel Replication Mode: " << g_pScriptRuntime->GetPixelReplicationModeString(viewDefinition.pixelReplicationMode) << "\n";
+                        << "Pixel Replication Mode: "
+                        << (g_pScriptRuntime ? g_pScriptRuntime->GetPixelReplicationModeString(viewDefinition.pixelReplicationMode)
+                                             : std::to_string(viewDefinition.pixelReplicationMode.Value()))
+                        << "\n";
 
       if (viewDefinition.eProjectionMode == EProjectionMode::ORTHOGRAPHIC)
       {
@@ -5202,7 +5227,7 @@ void CHostSessionV4::SendViewDefinition(const SCigiViewDefinition& viewDefinitio
                         << "Right: " << std::to_string(viewDefinition.fRight) << "\n"
                         << "Top: " << std::to_string(viewDefinition.fTop) << "\n"
                         << "Bottom: " << std::to_string(viewDefinition.fBottom);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, viewDef, m_bByteSwap);
@@ -5211,7 +5236,7 @@ void CHostSessionV4::SendViewDefinition(const SCigiViewDefinition& viewDefinitio
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5221,7 +5246,7 @@ void CHostSessionV4::SendEntityWaveControl(EntityID entityID, const SCigiWaveCon
   {
     HostCigiMessageEventArgs args;
     args.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::WAVE_CONTROL);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
 
     CIGI::V40::WaveCtrl waveCtrl;
 
@@ -5243,7 +5268,7 @@ void CHostSessionV4::SendEntityWaveControl(EntityID entityID, const SCigiWaveCon
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5253,7 +5278,7 @@ void CHostSessionV4::SendRegionalWaveControl(RegionID regionID, const SCigiWaveC
   {
     HostCigiMessageEventArgs args;
     args.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::WAVE_CONTROL);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
 
     CIGI::V40::WaveCtrl waveCtrl;
 
@@ -5275,7 +5300,7 @@ void CHostSessionV4::SendRegionalWaveControl(RegionID regionID, const SCigiWaveC
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5285,7 +5310,7 @@ void CHostSessionV4::SendGlobalWaveControl(const SCigiWaveCondition& waveConditi
   {
     HostCigiMessageEventArgs args;
     args.sMessage = "Sending " + GetCigiOpCodeName(ECigiOpCodeV4::WAVE_CONTROL);
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
 
     CIGI::V40::WaveCtrl waveCtrl;
 
@@ -5307,11 +5332,12 @@ void CHostSessionV4::SendGlobalWaveControl(const SCigiWaveCondition& waveConditi
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
-void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition, const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
+void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition,
+                                        const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
   try
   {
@@ -5347,14 +5373,16 @@ void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayer
     {
       HostCigiDataMessageEventArgs args;
       args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::WEATHER_CONTROL) << "\n"
-                        << "Layer ID: " << g_pScriptRuntime->GetLayerIDString(globalLayerWeatherID.Value()) << "\n"
+                        << "Layer ID: " << (g_pScriptRuntime ? g_pScriptRuntime->GetLayerIDString(globalLayerWeatherID.Value()) : std::to_string(globalLayerWeatherID.Value()))
+                        << "\n"
                         << "Humidity: " << std::to_string(ConvertToCigiIntPercentage(weatherCondition.humidity).Value()) << "%"
                         << "\n"
                         << "Weather Enable: " << EnableToString(weatherCondition.bWeatherEnabled) << "\n"
                         << "Bottom Scud Enable: " << EnableToString(weatherCondition.bBottomScudEnabled) << "\n"
                         << "Random Winds Enable: " << EnableToString(weatherCondition.bRandomWindsEnabled) << "\n"
                         << "Random Lightning Enable: " << EnableToString(weatherCondition.bRandomLightningEnabled) << "\n"
-                        << "Cloud Type: " << g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) << "\n"
+                        << "Cloud Type: "
+                        << (g_pScriptRuntime ? g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) : std::to_string(weatherCondition.cloudType.Value())) << "\n"
                         << "Scope: "
                         << "Global"
                         << "\n"
@@ -5375,7 +5403,7 @@ void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayer
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration) << "\n"
                         << "Top Scud Frequency: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.topScudFrequency).Value()) << "\n"
                         << "Top Transition Band Thickness: " << std::to_string(spatialWeatherCondition.fTopTransitionBandThickness);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, weatherCtrl, m_bByteSwap);
@@ -5384,11 +5412,12 @@ void CHostSessionV4::SendWeatherControl(sbio::GlobalLayeredWeatherID globalLayer
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
-void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayeredWeatherID regionalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition, const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
+void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayeredWeatherID regionalLayerWeatherID, const sbio::cigi::SCigiWeatherCondition& weatherCondition,
+                                        const sbio::cigi::SCigiSpatialWeatherCondition& spatialWeatherCondition)
 {
   try
   {
@@ -5424,14 +5453,16 @@ void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayered
     {
       HostCigiDataMessageEventArgs args;
       args.sDataMessage << "Sending: " << GetCigiOpCodeName(ECigiOpCodeV4::WEATHER_CONTROL) << "\n"
-                        << "Layer ID: " << g_pScriptRuntime->GetLayerIDString(regionalLayerWeatherID.Value()) << "\n"
+                        << "Layer ID: " << (g_pScriptRuntime ? g_pScriptRuntime->GetLayerIDString(regionalLayerWeatherID.Value()) : std::to_string(regionalLayerWeatherID.Value()))
+                        << "\n"
                         << "Humidity: " << std::to_string(ConvertToCigiIntPercentage(weatherCondition.humidity).Value()) << "%"
                         << "\n"
                         << "Weather Enable: " << EnableToString(weatherCondition.bWeatherEnabled) << "\n"
                         << "Bottom Scud Enable: " << EnableToString(weatherCondition.bBottomScudEnabled) << "\n"
                         << "Random Winds Enable: " << EnableToString(weatherCondition.bRandomWindsEnabled) << "\n"
                         << "Random Lightning Enable: " << EnableToString(weatherCondition.bRandomLightningEnabled) << "\n"
-                        << "Cloud Type: " << g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) << "\n"
+                        << "Cloud Type: "
+                        << (g_pScriptRuntime ? g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) : std::to_string(weatherCondition.cloudType.Value())) << "\n"
                         << "Scope: "
                         << "Regional"
                         << "\n"
@@ -5451,7 +5482,7 @@ void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayered
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration) << "\n"
                         << "Top Scud Frequency: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.topScudFrequency).Value()) << "\n"
                         << "Top Transition Band Thickness: " << std::to_string(spatialWeatherCondition.fTopTransitionBandThickness);
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, weatherCtrl, m_bByteSwap);
@@ -5460,7 +5491,7 @@ void CHostSessionV4::SendWeatherControl(RegionID regionID, sbio::RegionalLayered
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5502,7 +5533,8 @@ void CHostSessionV4::SendWeatherControl(sbio::EntityID entityID, const sbio::cig
                         << "Bottom Scud Enable: " << EnableToString(weatherCondition.bBottomScudEnabled) << "\n"
                         << "Random Winds Enable: " << EnableToString(weatherCondition.bRandomWindsEnabled) << "\n"
                         << "Random Lightning Enable: " << EnableToString(weatherCondition.bRandomLightningEnabled) << "\n"
-                        << "Cloud Type: " << g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) << "\n"
+                        << "Cloud Type: "
+                        << (g_pScriptRuntime ? g_pScriptRuntime->GetCloudTypeString(weatherCondition.cloudType) : std::to_string(weatherCondition.cloudType.Value())) << "\n"
                         << "Scope: "
                         << "Entity"
                         << "\n"
@@ -5520,7 +5552,7 @@ void CHostSessionV4::SendWeatherControl(sbio::EntityID entityID, const sbio::cig
                         << "Barometric Pressure: " << std::to_string(weatherCondition.fBarometricPressure) << "\n"
                         << "Aerosol Concentration: " << std::to_string(weatherCondition.fAerosolConcentration) << "\n"
                         << "Top Scud Frequency: " << std::to_string(ConvertToCigiFloatPercentage(weatherCondition.topScudFrequency).Value());
-      Event::Raise<HostCigiEvent>(args);
+      RaiseSessionEvent(args);
     }
 
     PackPacketV4(this, weatherCtrl, m_bByteSwap);
@@ -5529,7 +5561,7 @@ void CHostSessionV4::SendWeatherControl(sbio::EntityID entityID, const sbio::cig
   {
     HostCigiErrorEventArgs args;
     args.sError = ex.what();
-    Event::Raise<HostCigiEvent>(args);
+    RaiseSessionEvent(args);
   }
 }
 
@@ -5564,7 +5596,7 @@ void CHostSessionV4::OnHostCigiSensorResponseEvent(const HostCigiSensorResponseE
                        << "Gate Y Position: " << std::to_string(args.sensorResponse.gatePosition[1]) << "\n"
                        << "Host Frame Number: " << std::to_string(args.sensorResponse.hostFrameNumber.Value());
 
-  Event::Raise<HostCigiEvent>(msgArgs);
+  RaiseSessionEvent(msgArgs);
 }
 
 //The source code in this file is licensed under the MIT License. See the LICENSE text file for full terms.

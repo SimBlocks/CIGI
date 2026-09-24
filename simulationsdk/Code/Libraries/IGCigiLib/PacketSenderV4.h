@@ -3,7 +3,7 @@
  * @file PacketSenderV4.h
  * @brief Declares the CCigiPacketSenderV4 class for SimBlocks CIGI IG packet sending (CIGI version 4).
  *
- * Provides the CCigiPacketSenderV4 class for sending simulation packets over UDP to a host using CIGI version 4 in the SimBlocks CIGI IG library.
+ * Provides the CCigiPacketSenderV4 class for sending simulation packets over UDP to a host using CIGI version 4 in the SimBlocks IGCigiLib library.
  * Inherits from CCigiPacketSender and integrates with SimBlocks CIGI, image generator, and utility types for simulation messaging and network communication.
  * Note: A traditional CIGI networking topology only has an IG communicate with a single host. This class supports IG-to-host communication for CIGI version 4.
  *

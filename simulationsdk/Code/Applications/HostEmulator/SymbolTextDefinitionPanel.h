@@ -32,13 +32,15 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the font category selection event for updating the UI.
-   * @param event The command event.
+   * @brief Replaces font-name choices with names registered for the selected category in the script runtime.
+   * @param event Category-selection event supplying the category string. Missing host/runtime produces empty choices.
    */
   void OnFontCategory(wxCommandEvent& event);
   /**
-   * @brief Handles the send button event for sending symbol text definition packets.
-   * @param event The command event.
+   * @brief Resolves the selected runtime font and submits the text definition through the active session.
+   * @param event Unused command event; no-op without a host/runtime, otherwise requires an active session.
+   * Text of at least 235 bytes triggers an error notification and is truncated to 235 bytes before submission.
+   * Font lookup results are not validated here. Removes the active wxLog target before submitting.
    */
   void OnSend(wxCommandEvent& event);
 

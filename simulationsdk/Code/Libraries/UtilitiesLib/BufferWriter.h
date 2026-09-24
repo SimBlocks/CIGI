@@ -46,7 +46,39 @@ namespace sbio
        *
        * Buffer ownership and destruction semantics are inherited from `CBuffer`.
        */
-      ~CBufferWriter();
+      ~CBufferWriter() override;
+
+      /**
+       * @brief Clears the backing buffer and resets the write cursor.
+       *
+       * Releases owned storage, sets the buffer size to zero, and moves the cursor
+       * to the empty-buffer state.
+       *
+       * @sideeffects May release owned storage. Subsequent writes require new storage.
+       */
+      void Clear() override;
+
+      /**
+       * @brief Transfers the backing buffer and resets the write cursor.
+       * @return The previous buffer pointer, or `nullptr` when no buffer is available.
+       *
+       * Ownership of a non-null returned pointer is transferred to the caller.
+       *
+       * @sideeffects Leaves this writer empty and unable to write until storage is assigned.
+       */
+      char* StealPointer() override;
+
+      /**
+       * @brief Replaces the backing buffer and resets the cursor.
+       * @param nSize Number of bytes represented by `data`.
+       * @param data Pointer to the replacement storage, or `nullptr`.
+       *
+       * The supplied storage is not owned by this writer. Pointers into or one past
+       * storage owned by this writer are rejected without changing its state.
+       *
+       * @sideeffects May release previously owned storage and resets the write cursor.
+       */
+      void Set(int nSize, void* data) override;
 
       /**
        * @brief Returns the number of bytes written so far.
@@ -71,12 +103,18 @@ namespace sbio
        */
       bool Write(const void* data, size_t size)
       {
-        if (m_buffer == nullptr || m_pCurrentBufferPtr == nullptr || data == nullptr)
+        if (m_buffer == nullptr || m_pCurrentBufferPtr == nullptr || data == nullptr || m_nSize <= 0)
         {
           return false;
         }
 
-        if ((m_pCurrentBufferPtr - m_buffer) + size > static_cast<size_t>(m_nSize))
+        const auto offset = m_pCurrentBufferPtr - m_buffer;
+        if (offset < 0 || static_cast<size_t>(offset) > static_cast<size_t>(m_nSize))
+        {
+          return false;
+        }
+
+        if (size > static_cast<size_t>(m_nSize) - static_cast<size_t>(offset))
         {
           return false;
         }
@@ -100,18 +138,7 @@ namespace sbio
       template <typename T>
       void Write(const T& data)
       {
-        if (m_buffer == nullptr || m_pCurrentBufferPtr == nullptr || m_nSize <= 0)
-        {
-          return;
-        }
-
-        if ((m_pCurrentBufferPtr - m_buffer) + sizeof(T) > m_nSize)
-        {
-          return;
-        }
-
-        std::memcpy(m_pCurrentBufferPtr, &data, sizeof(T));
-        m_pCurrentBufferPtr += sizeof(T);
+        Write(&data, sizeof(T));
       }
 
     protected:

@@ -29,10 +29,11 @@ namespace sbio
     public:
       /**
        * @brief Creates a UDP send socket for a destination endpoint.
-       * @param sIP Destination IP address.
-       * @param nPort Destination port number.
+       * @param sIP Destination IPv4 or IPv6 address.
+       * @param nPort Destination port number in [1, 65535].
        *
        * @sideeffects Allocates and configures Poco socket objects on success.
+       * @failurecases Invalid port numbers leave the socket inactive.
        * @failurecases On construction failure, socket state is reset and later `Send()` calls become no-ops.
        */
       CUDPSendSocket(const std::string& sIP, int nPort);
@@ -41,13 +42,14 @@ namespace sbio
        * @brief Sends a datagram from a raw byte buffer.
        * @param buffer Pointer to the bytes to send.
        * @param nLength Number of bytes to send.
+       * @return `true` if the complete datagram was accepted by the socket; otherwise `false`.
        *
        * @ownership `buffer` remains owned by the caller.
        * @sideeffects Writes a datagram to the configured destination when the socket is active.
        * @failurecases If the socket is inactive, `buffer` is `nullptr`, or `nLength <= 0`, the function returns without sending.
        * @failurecases Exceptions thrown by Poco or the standard library are caught and logged through the global logger when available.
        */
-      void Send(const char* buffer, int nLength) const;
+      bool Send(const char* buffer, int nLength) const;
 
       /**
        * @brief Sends a datagram from a string.

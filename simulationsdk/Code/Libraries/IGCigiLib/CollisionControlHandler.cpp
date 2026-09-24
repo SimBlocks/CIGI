@@ -113,23 +113,14 @@ sbio::ig::physics::SSetCollisionVolumeMessage CreateCollisionVolumeMessage(const
   data.Width = collisionVolumeDefinition.fWidth;
   data.Depth = collisionVolumeDefinition.fDepth;
 
-  // rotate clockwise around z (yaw)
-  Eigen::AngleAxisd yawAngleAxis(DegreesToRadians(collisionVolumeDefinition.rotation.yaw).Value(), Vec3::UnitZ());
-
-  // rotate clockwise around y (pitch)
-  Eigen::AngleAxisd pitchAngleAxis(DegreesToRadians(collisionVolumeDefinition.rotation.pitch).Value(), Vec3::UnitY());
-
-  // rotate clockwise around x (roll)
-  Eigen::AngleAxisd rollAngleAxis(DegreesToRadians(collisionVolumeDefinition.rotation.roll).Value(), Vec3::UnitX());
-  Eigen::Quaterniond q = rollAngleAxis * pitchAngleAxis * yawAngleAxis;
-
-  Mat3 m = q.toRotationMatrix();
-  data.Rotation.Forward = BodyCoordinates(m.col(1));
-  data.Rotation.Up = BodyCoordinates(m.col(2));
+  TBodyMatrix m = ConvertCigiBodyRotationToBodyRotation(SetupCigiObjectRotation(collisionVolumeDefinition.rotation)).toRotationMatrix();
+  data.Rotation.Forward = m.getCol(1);
+  data.Rotation.Up = m.getCol(2);
   return data;
 }
 
-void sbio::cigi::ig::CCigiCollisionControlHandler::CreateNewCollisionCuboidVolume(const sbio::cigi::SCollisionDetectionCuboidDefinition& collisionVolumeDefinition, std::tuple<sbio::EntityID, sbio::VolumeID> pair)
+void sbio::cigi::ig::CCigiCollisionControlHandler::CreateNewCollisionCuboidVolume(const sbio::cigi::SCollisionDetectionCuboidDefinition& collisionVolumeDefinition,
+                                                                                  std::tuple<sbio::EntityID, sbio::VolumeID> pair)
 {
   SCreateCollisionVolumeCuboidMessage data;
   data.EntityID = collisionVolumeDefinition.entityID;
@@ -154,7 +145,8 @@ void sbio::cigi::ig::CCigiCollisionControlHandler::CreateNewCollisionCuboidVolum
   }
 }
 
-void sbio::cigi::ig::CCigiCollisionControlHandler::CreateNewCollisionSphereVolume(const sbio::cigi::SCollisionDetectionSphereDefinition& collisionVolumeDefinition, std::tuple<sbio::EntityID, sbio::VolumeID> pair)
+void sbio::cigi::ig::CCigiCollisionControlHandler::CreateNewCollisionSphereVolume(const sbio::cigi::SCollisionDetectionSphereDefinition& collisionVolumeDefinition,
+                                                                                  std::tuple<sbio::EntityID, sbio::VolumeID> pair)
 {
   SCreateCollisionVolumeSphereMessage data;
   data.EntityID = collisionVolumeDefinition.entityID;
@@ -197,14 +189,17 @@ void CCigiCollisionControlHandler::HandleCigiCollisionDetectionSegmentDefinition
   if (!bIsNewSegment)
   {
     const auto& currentCollisionSegmentDefinition = currentCollisionSegmentDefinitionKeyValue->second;
-    if (currentCollisionSegmentDefinition.bSegmentEnabled == collisionDetectionSegmentDefinition.bSegmentEnabled && currentCollisionSegmentDefinition.nMaterialMask == collisionDetectionSegmentDefinition.nMaterialMask &&
-        currentCollisionSegmentDefinition.beg.equals(collisionDetectionSegmentDefinition.beg) && currentCollisionSegmentDefinition.end.equals(collisionDetectionSegmentDefinition.end))
+    if (currentCollisionSegmentDefinition.bSegmentEnabled == collisionDetectionSegmentDefinition.bSegmentEnabled &&
+        currentCollisionSegmentDefinition.nMaterialMask == collisionDetectionSegmentDefinition.nMaterialMask &&
+        currentCollisionSegmentDefinition.beg.equals(collisionDetectionSegmentDefinition.beg) &&
+        currentCollisionSegmentDefinition.end.equals(collisionDetectionSegmentDefinition.end))
     {
       return;
     }
   }
 
-  const bool bShouldSetSegmentProperties = bIsNewSegment || currentCollisionSegmentDefinitionKeyValue->second.nMaterialMask != collisionDetectionSegmentDefinition.nMaterialMask || !currentCollisionSegmentDefinitionKeyValue->second.beg.equals(collisionDetectionSegmentDefinition.beg) ||
+  const bool bShouldSetSegmentProperties = bIsNewSegment || currentCollisionSegmentDefinitionKeyValue->second.nMaterialMask != collisionDetectionSegmentDefinition.nMaterialMask ||
+                                           !currentCollisionSegmentDefinitionKeyValue->second.beg.equals(collisionDetectionSegmentDefinition.beg) ||
                                            !currentCollisionSegmentDefinitionKeyValue->second.end.equals(collisionDetectionSegmentDefinition.end);
 
   if (bIsNewSegment)
@@ -264,6 +259,17 @@ void CCigiCollisionControlHandler::HandleCigiCollisionCuboidDefinition(const sbi
   }
 
   auto pair = std::tuple<sbio::EntityID, sbio::VolumeID>(collisionVolumeDefinition.entityID, collisionVolumeDefinition.volumeID);
+  if (m_CollisionSphereDefinitions.find(pair) != m_CollisionSphereDefinitions.end())
+  {
+    if (g_CigiLibGlobals.pLogger != nullptr)
+    {
+      stringstream ss;
+      ss << "Cannot redefine collision sphere as cuboid. Entity ID " << collisionVolumeDefinition.entityID << ", Volume ID " << collisionVolumeDefinition.volumeID << endl;
+      g_CigiLibGlobals.pLogger->LogWarning(ss.str());
+    }
+    return;
+  }
+
   const auto& currentCollisionVolumeDefinitionKeyValue = m_CollisionCuboidDefinitions.find(pair);
 
   if (currentCollisionVolumeDefinitionKeyValue == m_CollisionCuboidDefinitions.end())
@@ -290,9 +296,11 @@ void CCigiCollisionControlHandler::HandleCigiCollisionCuboidDefinition(const sbi
     currentCollisionVolume.bVolumeEnabled = collisionVolumeDefinition.bVolumeEnabled;
   }
 
-  if (currentCollisionVolume.fHeight != collisionVolumeDefinition.fHeight || currentCollisionVolume.fWidth != collisionVolumeDefinition.fWidth || currentCollisionVolume.fDepth != collisionVolumeDefinition.fDepth || currentCollisionVolume.rotation.yaw != collisionVolumeDefinition.rotation.yaw ||
-      currentCollisionVolume.rotation.pitch != collisionVolumeDefinition.rotation.pitch || currentCollisionVolume.rotation.roll != collisionVolumeDefinition.rotation.roll || currentCollisionVolume.offset[0] != collisionVolumeDefinition.offset[0] ||
-      currentCollisionVolume.offset[1] != collisionVolumeDefinition.offset[1] || currentCollisionVolume.offset[2] != collisionVolumeDefinition.offset[2])
+  if (currentCollisionVolume.fHeight != collisionVolumeDefinition.fHeight || currentCollisionVolume.fWidth != collisionVolumeDefinition.fWidth ||
+      currentCollisionVolume.fDepth != collisionVolumeDefinition.fDepth || currentCollisionVolume.rotation.yaw != collisionVolumeDefinition.rotation.yaw ||
+      currentCollisionVolume.rotation.pitch != collisionVolumeDefinition.rotation.pitch || currentCollisionVolume.rotation.roll != collisionVolumeDefinition.rotation.roll ||
+      currentCollisionVolume.offset[0] != collisionVolumeDefinition.offset[0] || currentCollisionVolume.offset[1] != collisionVolumeDefinition.offset[1] ||
+      currentCollisionVolume.offset[2] != collisionVolumeDefinition.offset[2])
   {
     if (g_CigiLibGlobals.pEventMessenger != nullptr)
     {
@@ -323,6 +331,17 @@ void CCigiCollisionControlHandler::HandleCigiCollisionSphereDefinition(const sbi
   }
 
   auto pair = std::tuple<sbio::EntityID, sbio::VolumeID>(collisionVolumeDefinition.entityID, collisionVolumeDefinition.volumeID);
+  if (m_CollisionCuboidDefinitions.find(pair) != m_CollisionCuboidDefinitions.end())
+  {
+    if (g_CigiLibGlobals.pLogger != nullptr)
+    {
+      stringstream ss;
+      ss << "Cannot redefine collision cuboid as sphere. Entity ID " << collisionVolumeDefinition.entityID << ", Volume ID " << collisionVolumeDefinition.volumeID << endl;
+      g_CigiLibGlobals.pLogger->LogWarning(ss.str());
+    }
+    return;
+  }
+
   const auto& currentCollisionVolumeDefinitionKeyValue = m_CollisionSphereDefinitions.find(pair);
 
   if (currentCollisionVolumeDefinitionKeyValue == m_CollisionSphereDefinitions.end())
@@ -350,7 +369,8 @@ void CCigiCollisionControlHandler::HandleCigiCollisionSphereDefinition(const sbi
     currentCollisionVolume.bVolumeEnabled = collisionVolumeDefinition.bVolumeEnabled;
   }
 
-  if (currentCollisionVolume.fRadius != collisionVolumeDefinition.fRadius || currentCollisionVolume.offset[0] != collisionVolumeDefinition.offset[0] || currentCollisionVolume.offset[1] != collisionVolumeDefinition.offset[1] || currentCollisionVolume.offset[2] != collisionVolumeDefinition.offset[2])
+  if (currentCollisionVolume.fRadius != collisionVolumeDefinition.fRadius || currentCollisionVolume.offset[0] != collisionVolumeDefinition.offset[0] ||
+      currentCollisionVolume.offset[1] != collisionVolumeDefinition.offset[1] || currentCollisionVolume.offset[2] != collisionVolumeDefinition.offset[2])
   {
     if (g_CigiLibGlobals.pEventMessenger != nullptr)
     {

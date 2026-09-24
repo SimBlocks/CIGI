@@ -40,6 +40,20 @@ namespace sbio
     Radians DegreesToRadians(Degrees fDegrees);
 
     /**
+     * @brief Converts signed pitch degrees to radians.
+     * @param fDegrees The angle in degrees.
+     * @return The angle in radians.
+     */
+    Radians DegreesToRadians(Degrees90 fDegrees);
+
+    /**
+     * @brief Converts signed roll degrees to radians.
+     * @param fDegrees The angle in degrees.
+     * @return The angle in radians.
+     */
+    Radians DegreesToRadians(Degrees180 fDegrees);
+
+    /**
      * @brief Converts degrees to radians.
      * @param fDegrees The angle in degrees.
      * @return The angle in radians.
@@ -54,9 +68,9 @@ namespace sbio
     double RadiansToDegrees(double fRadians);
 
     /**
-     * @brief Converts radians to degrees.
+     * @brief Converts radians to unsigned degrees, adding one turn to negative angles.
      * @param fRadians The angle in radians.
-     * @return The angle in degrees.
+     * @return The equivalent angle in [0, 360] for valid input.
      */
     Degrees RadiansToDegrees(Radians fRadians);
 

@@ -17,8 +17,7 @@ namespace sbio
 
       sbio::math::TGeocentricRotation GetProjectedWorldBasisRotation()
       {
-        // converts from the CIGI local convention into the projected world convention used when `g_CigiLibGlobals.pProjection` is active
-        // swaps the horizontal `X` and `Y` axes. flips the vertical `Z` axis.
+        // Converts local right-forward-up coordinates to the north-east-down projected world.
         sbio::math::Mat3 basis;
         basis << 0, 1, 0, 1, 0, 0, 0, 0, -1;
         return sbio::math::TGeocentricRotation(sbio::math::Quaternion4d(basis));
@@ -44,7 +43,8 @@ namespace sbio
         return sbio::math::ConvertGeocentricToGeodeticCoordinates(worldCoordinates);
       }
 
-      sbio::math::TGeocentricRotation SetupCigiTopLevelWorldRotation(const sbio::cigi::TCigiBodyEulerRotation& rotation, sbio::math::Latitude latitude, sbio::math::Longitude longitude)
+      sbio::math::TGeocentricRotation SetupCigiTopLevelWorldRotation(const sbio::cigi::TCigiBodyEulerRotation& rotation, sbio::math::Latitude latitude,
+                                                                     sbio::math::Longitude longitude)
       {
         if (HasActiveDatabaseProjection())
         {
@@ -54,7 +54,8 @@ namespace sbio
         return SetupTopLevelEntityRotation(rotation, latitude, longitude);
       }
 
-      sbio::math::TGeocentricTransform SetupCigiTopLevelWorldTransform(const sbio::math::SGeodeticCoordinates& geodeticCoordinates, const sbio::cigi::TCigiBodyEulerRotation& rotation)
+      sbio::math::TGeocentricTransform SetupCigiTopLevelWorldTransform(const sbio::math::SGeodeticCoordinates& geodeticCoordinates,
+                                                                       const sbio::cigi::TCigiBodyEulerRotation& rotation)
       {
         sbio::math::TGeocentricTransform transform;
         transform.pos = ConvertCigiGeodeticToWorldCoordinates(geodeticCoordinates);
@@ -84,14 +85,14 @@ namespace sbio
 
       sbio::math::GeocentricCoordinates RotateBodyOffsetToWorld(const TBodyToWorldRotation& bodyToWorldRotation, const sbio::math::BodyCoordinates& offset)
       {
-        return bodyToWorldRotation.Rotate(ConvertBodyCoordinatesToCigiBodyCoordinates(offset));
+        return bodyToWorldRotation.Rotate(offset);
       }
 
       sbio::math::GeocentricCoordinates ConvertCigiWorldRateOffset(const sbio::math::SGeodeticCoordinates& geodeticCoordinates, const sbio::cigi::CigiNEDCoordinates& offset)
       {
         if (HasActiveDatabaseProjection())
         {
-          return sbio::math::GeocentricCoordinates(GetProjectedWorldBasisRotation() * offset.toVec3());
+          return sbio::math::GeocentricCoordinates(offset.toVec3());
         }
 
         return sbio::math::GeocentricCoordinates(sbio::math::GetGeocentricRotation(geodeticCoordinates.latitude, geodeticCoordinates.longitude) * offset.toVec3());

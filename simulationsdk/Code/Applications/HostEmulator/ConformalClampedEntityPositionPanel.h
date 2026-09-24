@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending conformal clamped entity position packets.
-   * @param event The command event.
+   * @brief Submits a conformal-clamped entity position from the editor through the active session.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available. The panel does not perform terrain clamping or confirm delivery.
    */
   void OnSend(wxCommandEvent& event);
 

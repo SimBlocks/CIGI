@@ -3,7 +3,7 @@
  * @file CigiSymbolGeometryFactory.h
  * @brief Declares the CCigiSymbolGeometryFactory class for SimBlocks CIGI IG symbol geometry creation.
  *
- * Provides the CCigiSymbolGeometryFactory class for creating symbol geometry objects with CIGI-specific logic in the SimBlocks CIGI IG library.
+ * Provides the CCigiSymbolGeometryFactory class for creating symbol geometry objects with CIGI-specific logic in the SimBlocks IGCigiLib library.
  * Inherits from sbio::symbol::CSymbolGeometryFactory and integrates with SimBlocks symbol types for symbol geometry instantiation and management.
  * Supports creation of symbol geometry objects based on symbol ID and type for simulation symbol rendering.
  *

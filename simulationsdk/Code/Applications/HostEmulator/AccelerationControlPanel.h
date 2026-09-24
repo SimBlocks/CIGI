@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending acceleration control packets.
-   * @param event The command event.
+   * @brief Submits entity or articulated-part acceleration according to Apply to Articulated Part.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available. The callback does not report delivery or IG acceptance.
    */
   void OnSend(wxCommandEvent& event);
 

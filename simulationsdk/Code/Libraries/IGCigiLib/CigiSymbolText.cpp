@@ -51,6 +51,12 @@ void CIGCigiSymbolText::SendUpdate()
   data.SymbolID = m_SymbolText.symbolID;
   data.FontID = m_SymbolText.fontID;
   data.FontSize = m_SymbolText.fFontSize;
+
+  if (sText.size() >= sizeof(data.Text))
+  {
+    sText.resize(sizeof(data.Text) - 1);
+  }
+
   strcpy_s(data.Text, sizeof(data.Text), sText.c_str());
 
   data.Orientation = m_SymbolText.eTextOrientation;

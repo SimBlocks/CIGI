@@ -31,8 +31,9 @@ public:
 
   DECLARE_EVENT_TABLE()
   /**
-   * @brief Handles the send button event for sending environmental conditions request packets.
-   * @param event The command event.
+   * @brief Builds an environmental-conditions query from the controls and submits it to the active session.
+   * @param event Unused command event; values come from the controls.
+   * @pre An active host session is available. Does not wait for or return query results.
    */
   void OnSend(wxCommandEvent& event);
 

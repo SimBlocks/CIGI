@@ -3,7 +3,7 @@
  * @file CigiSymbolCircle.h
  * @brief Declares the CIGCigiSymbolCircle class for SimBlocks CIGI IG symbol circle management and geometry.
  *
- * Provides the CIGCigiSymbolCircle class for representing and managing circle symbols with CIGI-specific logic in the SimBlocks CIGI IG library.
+ * Provides the CIGCigiSymbolCircle class for representing and managing circle symbols with CIGI-specific logic in the SimBlocks IGCigiLib library.
  * Inherits from sbio::symbol::CSymbolCircle and integrates with SimBlocks symbol geometry types for symbol rendering and manipulation.
  * Supports symbol geometry copying, symbol creation, update, and ID management for simulation symbols.
  *

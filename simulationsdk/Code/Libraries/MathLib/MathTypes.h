@@ -21,12 +21,7 @@
 #define SIMBLOCKS_MATH_TYPES_H
 
 #include <ostream>
-
-// Silence Eigen warnings about conditional expressions being constant
-#pragma warning(push)
-#pragma warning(disable : 4127)
-#include "Eigen/Geometry"
-#pragma warning(pop)
+#include "EigenTypes.h"
 
 #include "GlobalHeaders/StrongTypes.h"
 
@@ -34,24 +29,6 @@ namespace sbio
 {
   namespace math
   {
-    /// @name Eigen-based Vector and Matrix Types
-    ///@{
-    typedef Eigen::Vector2f Vec2f;///< 2D float vector
-    typedef Eigen::Vector2i Vec2n;///< 2D integer vector
-    typedef Eigen::Vector2d Vec2d;///< 2D double vector
-    typedef Eigen::Vector3f Vec3f;///< 3D float vector
-    typedef Eigen::Vector3d Vec3;///< 3D double vector
-    typedef Eigen::Vector4f Vec4f;///< 4D float vector
-    typedef Eigen::Vector4d Vec4;///< 4D double vector
-    typedef Eigen::Matrix3f Mat3f;///< 3x3 float matrix (column-major)
-    typedef Eigen::Matrix3d Mat3;///< 3x3 double matrix (column-major)
-    typedef Eigen::Matrix4f Mat4f;///< 4x4 float matrix (column-major)
-    typedef Eigen::Matrix4d Mat4;///< 4x4 double matrix (column-major)
-    typedef Eigen::AngleAxisd AxisRotation;///< 3D axis-angle rotation (double)
-    typedef Eigen::Quaternionf Quaternion4f;///< 4D float quaternion
-    typedef Eigen::Quaterniond Quaternion4d;///< 4D double quaternion
-    ///@}
-
     /// @name Mathematical Constants
     ///@{
     const float SBIO_SINGLE_PI = 3.141592f;///< Single-precision PI
@@ -64,7 +41,7 @@ namespace sbio
     RANGED_STRONG_FLOAT(Degrees90, double, -90, 90)///< Degrees in [-90, 90]
     RANGED_STRONG_FLOAT(Degrees180, double, -180, 180)///< Degrees in [-180, 180]
     RANGED_STRONG_FLOAT(Degrees360, double, -360, 360)///< Degrees in [-360, 360]
-    RANGED_STRONG_FLOAT(Radians, double, 0, 2 * SBIO_DOUBLE_PI)///< Radians in [0, 2*PI]
+    RANGED_STRONG_FLOAT(Radians, double, -2 * SBIO_DOUBLE_PI, 2 * SBIO_DOUBLE_PI)///< Radians in [-2*PI, 2*PI]
     ///@}
   }
 }
@@ -125,6 +102,12 @@ namespace sbio
       using Quaternion4d::operator*=;
       using Quaternion4d::operator*;
       using Quaternion4d::operator=;
+
+      template <typename TOtherCoordinates>
+      SQuaternion(const SQuaternion<TOtherCoordinates>&) = delete;
+
+      template <typename TOtherCoordinates>
+      SQuaternion& operator=(const SQuaternion<TOtherCoordinates>&) = delete;
 
       /**
        * @brief Converts quaternion to a strong-typed rotation matrix.
@@ -226,7 +209,8 @@ namespace sbio
       template <typename TNewFromCoordinates>
       TRotation<TNewFromCoordinates, TToCoordinates> operator*(const TRotation<TNewFromCoordinates, TFromCoordinates>& rhs) const
       {
-        return TRotation<TNewFromCoordinates, TToCoordinates>(m_Rotation * rhs.Rotation());
+        const SQuaternion<TToCoordinates> rotation(m_Rotation * rhs.Rotation());
+        return TRotation<TNewFromCoordinates, TToCoordinates>(rotation);
       }
 
       /**
@@ -280,7 +264,8 @@ namespace sbio
     /**
      * @brief Transform with position and rotation, both strongly typed.
      * @tparam TPositionCoordinates Position coordinate type.
-     * @tparam TRotationCoordinates Rotation coordinate type.
+     * @tparam TRotationFromCoordinates Source coordinate type for the rotation.
+     * @tparam TRotationToCoordinates Target coordinate type for the rotation.
      */
     template <typename TPositionCoordinates, typename TRotationFromCoordinates, typename TRotationToCoordinates = TRotationFromCoordinates>
     struct STransform
@@ -306,14 +291,35 @@ namespace sbio
     struct SEulerRotation
     {
       Degrees yaw = Degrees(0);///< Yaw angle
-      Degrees pitch = Degrees(0);///< Pitch angle
-      Degrees roll = Degrees(0);///< Roll angle
+      Degrees90 pitch = Degrees90(0);///< Pitch angle in [-90, 90]
+      Degrees180 roll = Degrees180(0);///< Roll angle in [-180, 180]
+    };
+
+    /** @brief Finite signed angular velocity in degrees per second, without orientation-angle bounds or an unknown sentinel. */
+    RANGED_STRONG_DOUBLE(DegreesPerSecond, double, (std::numeric_limits<double>::lowest)(), (std::numeric_limits<double>::max)());
+
+    /** @brief Finite signed angular acceleration in degrees per second squared, without orientation-angle bounds or an unknown sentinel. */
+    RANGED_STRONG_DOUBLE(DegreesPerSecondSquared, double, (std::numeric_limits<double>::lowest)(), (std::numeric_limits<double>::max)());
+
+    /**
+     * @brief Signed Euler rate components, separate from orientation angles.
+     *
+     * Values are not wrapped or clamped to angle ranges.
+     * @tparam TCoordinates Coordinate system type.
+     * @tparam TRate Angular velocity or acceleration unit type.
+     */
+    template <typename TCoordinates, typename TRate>
+    struct SEulerRate
+    {
+      TRate yaw = TRate(0);///< Yaw rate component
+      TRate pitch = TRate(0);///< Pitch rate component
+      TRate roll = TRate(0);///< Roll rate component
     };
 
     /// @name Strong Geodetic Types
     ///@{
-    RANGED_STRONG_DOUBLE(Latitude, double, -90, 90)///< Latitude in degrees [-90, 90]
-    RANGED_STRONG_DOUBLE(Longitude, double, -180, 180)///< Longitude in degrees [-180, 180]
+    RANGED_STRONG_DOUBLE_WITH_UNKNOWN(Latitude, double, -90, 90)///< Latitude in degrees [-90, 90]
+    RANGED_STRONG_DOUBLE_WITH_UNKNOWN(Longitude, double, -180, 180)///< Longitude in degrees [-180, 180]
     STRONG_TYPE_WITH_CUSTOM_UNKNOWN_VALUE(HeightRelativeToWGS84Ellipsoid, double, std::numeric_limits<double>::lowest())///< Height above the WGS84 ellipsoid in meters
 
     ///@}
@@ -468,6 +474,8 @@ namespace sbio
     typedef SQuaternion<ReferencePlaneCoordinates> TReferencePlaneRotation;///< Reference plane rotation quaternion
     typedef SQuaternion<BodyCoordinates> TBodyRotation;///< Body rotation quaternion
     typedef SEulerRotation<BodyCoordinates> TBodyEulerRotation;///< Body Euler angles
+    typedef SEulerRate<BodyCoordinates, DegreesPerSecond> TBodyEulerVelocity;///< Body Euler angular velocity in degrees per second
+    typedef SEulerRate<BodyCoordinates, DegreesPerSecondSquared> TBodyEulerAcceleration;///< Body Euler angular acceleration in degrees per second squared
 
     typedef SReferencePlane<GeocentricCoordinates> TGeocentricReferencePlane;///< Geocentric reference plane axes
 

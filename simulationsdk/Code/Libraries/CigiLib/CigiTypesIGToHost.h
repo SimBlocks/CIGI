@@ -26,19 +26,15 @@ namespace sbio
      *
      * The numeric assignments are IG-specific and are typically resolved to user-facing text by
      * higher-level application code.
-     * @param ImageGeneratorMessageID Message text or payload.
-     * @param uint16_t Uint16 t value.
      */
-    STRONG_TYPE(ImageGeneratorMessageID, uint16_t);///< Strong type for Image Generator Message ID. Event ID assignments are IG-specific.
+    STRONG_TYPE(ImageGeneratorMessageID, uint16_t);
 
     /**
      * @brief Strong type for image-generator-defined event identifiers.
      *
      * The numeric assignments are IG-specific and are preserved exactly as reported by the IG.
-     * @param ImageGeneratorEventID Image generator event id value.
-     * @param uint16_t Uint16 t value.
      */
-    STRONG_TYPE(ImageGeneratorEventID, uint16_t);///< Strong type for Event ID. Event ID assignments are IG-specific.
+    STRONG_TYPE(ImageGeneratorEventID, uint16_t);
 
     // Start Of Frame
     /**
@@ -46,17 +42,17 @@ namespace sbio
      */
     struct SCigiStartOfFrame
     {
-      ECigiVersion eVersion = ECigiVersion::UNKNOWN_VERSION;
-      CigiDatabaseNumber databaseID = UnknownCigiDatabaseNumber;
-      EIGMode eIGMode = EIGMode::UNKNOWN;
-      bool bTimestampValid = false;
-      bool bEarthReferenceModel = false;
-      FrameNumber igFrameNumber = UnknownFrameNumber;
-      Microsecond microseconds = UnknownMicrosecond;
-      FrameNumber lastHostFrameNumber = UnknownFrameNumber;
-      bool bOverframing = false;
-      bool bPagingTerrain = false;
-      bool bExcessiveVariableLengthData = false;
+      ECigiVersion eVersion = ECigiVersion::UNKNOWN_VERSION;///< Reported CIGI protocol version.
+      CigiDatabaseNumber databaseID = UnknownCigiDatabaseNumber;///< Reported database number.
+      EIGMode eIGMode = EIGMode::UNKNOWN;///< Current IG operating mode.
+      bool bTimestampValid = false;///< Whether `microseconds` is valid.
+      bool bEarthReferenceModel = false;///< Earth-reference-model flag reported by the IG.
+      FrameNumber igFrameNumber = UnknownFrameNumber;///< Current IG frame number.
+      Microsecond microseconds = UnknownMicrosecond;///< IG timestamp in microseconds.
+      FrameNumber lastHostFrameNumber = UnknownFrameNumber;///< Last host frame reported by the IG.
+      bool bOverframing = false;///< Whether the IG reports overframing.
+      bool bPagingTerrain = false;///< Whether the IG reports terrain paging.
+      bool bExcessiveVariableLengthData = false;///< Whether the IG reports excessive variable-length data.
     };
 
     /**
@@ -64,9 +60,10 @@ namespace sbio
      */
     struct SBaseHATHOTResponse
     {
-      HATHOTID HATHOTID = UnknownHATHOTID;
-      bool bValid = false;
-      uint8_t hostFrameLSN = 0;
+      HATHOTID HATHOTID = UnknownHATHOTID;///< Identifier of the corresponding HAT/HOT request.
+      uint64_t requestGeneration = 0;///< RequestGeneration from the engine request; not serialized.
+      bool bValid = false;///< Whether the terrain result is valid.
+      uint8_t hostFrameLSN = 0;///< Least significant nibble of the associated host frame number.
     };
 
     /**
@@ -74,15 +71,15 @@ namespace sbio
      */
     struct SHeightAboveTerrainResponse : SBaseHATHOTResponse
     {
-      double heightAboveTerrain = 0;// This parameter indicates the height of the test point above the terrain. A negative value indicates that the test point is below the terrain.
+      double heightAboveTerrain = 0;///< Test-point height above terrain; negative when below terrain.
     };
 
     /**
-     * @brief Reports terrain height relative to the test point for a HOT request.
+     * @brief Reports terrain height relative to the WGS84 ellipsoid for a HOT request.
      */
     struct SHeightOfTerrainResponse : SBaseHATHOTResponse
     {
-      HeightRelativeToWGS84Ellipsoid heightOfTerrain = UnknownHeightRelativeToWGS84Ellipsoid;// This parameter indicates the height of terrain above or below the test point. This value is relative to the ellipsoid height.
+      HeightRelativeToWGS84Ellipsoid heightOfTerrain = UnknownHeightRelativeToWGS84Ellipsoid;///< Terrain height above the WGS84 ellipsoid, in meters.
     };
 
     /**
@@ -91,11 +88,11 @@ namespace sbio
      */
     struct SHATHOTExtendedResponse : SBaseHATHOTResponse
     {
-      double heightAboveTerrain = 0;// This parameter indicates the height of the test point above the terrain. A negative value indicates that the test point is below the terrain.
-      sbio::math::HeightRelativeToWGS84Ellipsoid heightOfTerrain = UnknownHeightRelativeToWGS84Ellipsoid;// This parameter indicates the height of terrain at the relative to the ellipsoid height.
-      sbio::MaterialID materialCode = UnknownMaterialID;
-      sbio::math::Degrees180 normalVectorAzimuth = UnknownDegrees180;// This parameter indicates the azimuth of the normal vector to the terrain surface at the test point. The value is measured in degrees clockwise from true north. The value is between 0 and 360 degrees.
-      sbio::math::Degrees90 normalVectorElevation = UnknownDegrees90;// This parameter indicates the elevation of the normal vector to the terrain surface at the test point. The value is measured in degrees from the horizontal plane. The value is between -90 and 90 degrees.
+      double heightAboveTerrain = 0;///< Test-point height above terrain; negative when below terrain.
+      sbio::math::HeightRelativeToWGS84Ellipsoid heightOfTerrain = UnknownHeightRelativeToWGS84Ellipsoid;///< Terrain height above the WGS84 ellipsoid, in meters.
+      sbio::MaterialID materialCode = UnknownMaterialID;///< Terrain material identifier.
+      sbio::math::Degrees180 normalVectorAzimuth = UnknownDegrees180;///< Surface-normal azimuth, in degrees in [-180, 180].
+      sbio::math::Degrees90 normalVectorElevation = UnknownDegrees90;///< Surface-normal elevation above the horizontal plane, in degrees in [-90, 90].
     };
 
     /**
@@ -103,11 +100,12 @@ namespace sbio
      */
     struct SLineOfSightResponse
     {
-      LineOfSightRequestID lineOfSightRequestID = UnknownLineOfSightRequestID;
-      bool bValid = false;
-      uint8_t hostFrameLSN = 0;
-      uint8_t responseCount = 0;
-      double dRange = 0;
+      LineOfSightRequestID lineOfSightRequestID = UnknownLineOfSightRequestID;///< Identifier of the corresponding LOS request.
+      uint64_t requestGeneration = 0;///< RequestGeneration from the engine request; not serialized.
+      bool bValid = false;///< Whether the LOS result is valid.
+      uint8_t hostFrameLSN = 0;///< Least significant nibble of the associated host frame number.
+      uint8_t responseCount = 0;///< Response count reported for the request.
+      double dRange = 0;///< Range reported by the LOS query.
     };
 
     /**
@@ -116,18 +114,19 @@ namespace sbio
      */
     struct SLineOfSightEntityResponse
     {
-      LineOfSightRequestID lineOfSightRequestID = UnknownLineOfSightRequestID;
-      bool bValid = false;
-      uint8_t hostFrameLSN = 0;
-      uint8_t responseCount = 0;
-      double dRange = 0;
-      EntityID entityID = UnknownEntityID;
+      LineOfSightRequestID lineOfSightRequestID = UnknownLineOfSightRequestID;///< Identifier of the corresponding LOS request.
+      uint64_t requestGeneration = 0;///< RequestGeneration from the engine request; not serialized.
+      bool bValid = false;///< Whether the LOS result is valid.
+      uint8_t hostFrameLSN = 0;///< Least significant nibble of the associated host frame number.
+      uint8_t responseCount = 0;///< Response count reported for the request.
+      double dRange = 0;///< Range reported by the LOS query.
+      EntityID entityID = UnknownEntityID;///< Entity identified by the valid result.
 
       // The IG should set the visible parameter to false if the segment intersected one or more polygons before reaching the destination point.
       // If the LOS segment destination point is within the body of a target entity model,
       // then the IG should set this parameter to false and the Entity ID parameter to the ID of that entity.
       // The IG should set the visible parameter to true if the segment did not intersect with any polygons before reaching the destination point.
-      bool bVisible = false;
+      bool bVisible = false;///< Whether the destination is visible without an intervening intersection.
     };
 
     /**
@@ -136,49 +135,47 @@ namespace sbio
      */
     struct SBaseLineOfSightExtendedResponse
     {
-      LineOfSightRequestID lineOfSightRequestID = UnknownLineOfSightRequestID;
-      bool bValid = false;
-      bool bRangeValid = false;
-      bool bVisible = false;
-      uint8_t hostFrameLSN = 0;
-      uint8_t responseCount = 0;
-      double dRange = 0;
-      SColor32 surfaceColor;
-      sbio::MaterialID materialCode = UnknownMaterialID;
-      float fNormalVectorAzimuth = {0};
-      float fNormalVectorElevation = {0};
+      LineOfSightRequestID lineOfSightRequestID = UnknownLineOfSightRequestID;///< Identifier of the corresponding LOS request.
+      uint64_t requestGeneration = 0;///< RequestGeneration from the engine request; not serialized.
+      bool bValid = false;///< Whether the intersection result is valid.
+      bool bRangeValid = false;///< Whether `dRange` is valid.
+      bool bVisible = false;///< Visibility reported by the LOS query.
+      uint8_t hostFrameLSN = 0;///< Least significant nibble of the associated host frame number.
+      uint8_t responseCount = 0;///< Response count reported for the request.
+      double dRange = 0;///< Reported range; meaningful when `bRangeValid` is true.
+      SColor32 surfaceColor;///< Color of the intersected surface.
+      sbio::MaterialID materialCode = UnknownMaterialID;///< Material identifier of the intersected surface.
+      float fNormalVectorAzimuth = {0};///< Azimuth of the surface normal.
+      float fNormalVectorElevation = {0};///< Elevation of the surface normal.
     };
 
     /**
      * @brief Extended line-of-sight response whose hit location is expressed in geodetic coordinates.
-     * SLineOfSightExtendedGeodeticCoordinatesResponse will be the response type for an extended line-of-sight request
-     if no entity entity is hit, regardless of the requested response coordinate system.
+     * Used when no entity is hit, regardless of the requested response coordinate system.
      */
     struct SLineOfSightExtendedGeodeticCoordinatesResponse : SBaseLineOfSightExtendedResponse
     {
-      sbio::math::SGeodeticCoordinates geodeticCoordinates;
+      sbio::math::SGeodeticCoordinates geodeticCoordinates;///< Geodetic hit position.
     };
 
     /**
-     * @brief Extended line-of-sight response whose hit location is expressed in geodetic coordinates.
-     * SLineOfSightExtendedEntityGeodeticCoordinatesResponse will be the response type for an extended line-of-sight request
-     if an entity is hit and the requested response coordinate system is geodetic.
+     * @brief Extended entity-hit response whose hit location is expressed in geodetic coordinates.
+     * Used when an entity is hit and geodetic response coordinates were requested.
      */
     struct SLineOfSightExtendedEntityGeodeticCoordinatesResponse : SBaseLineOfSightExtendedResponse
     {
-      EntityID entityID = UnknownEntityID;
-      sbio::math::SGeodeticCoordinates geodeticCoordinates;
+      EntityID entityID = UnknownEntityID;///< Entity intersected by the query.
+      sbio::math::SGeodeticCoordinates geodeticCoordinates;///< Geodetic hit position.
     };
 
     /**
      * @brief Extended line-of-sight response whose hit location is expressed relative to an entity.
-     * SLineOfSightExtendedEntityCoordinatesResponse will be the response type for an extended line-of-sight request
-     if an entity is hit and the requested response coordinate system is relative to an entity.
+     * Used when an entity is hit and entity-relative response coordinates were requested.
      */
     struct SLineOfSightExtendedEntityCoordinatesResponse : SBaseLineOfSightExtendedResponse
     {
-      EntityID entityID = UnknownEntityID;
-      sbio::cigi::CigiBodyCoordinates offset;
+      EntityID entityID = UnknownEntityID;///< Entity intersected by the query and defining the response frame.
+      sbio::cigi::CigiBodyCoordinates offset;///< Hit position relative to that entity, in CIGI axes.
     };
 
     /**
@@ -186,12 +183,12 @@ namespace sbio
      */
     struct SSensorResponse
     {
-      SensorID sensorID = UnknownSensorID;
-      ESensorStatus eSensorStatus = ESensorStatus::UKNOWN;
-      ViewID viewID = UnknownViewID;
-      sbio::math::Vec2f gateSize;
-      sbio::math::Vec2f gatePosition;
-      FrameNumber hostFrameNumber = UnknownFrameNumber;
+      SensorID sensorID = UnknownSensorID;///< Reporting sensor identifier.
+      ESensorStatus eSensorStatus = ESensorStatus::UKNOWN;///< Reported tracking status.
+      ViewID viewID = UnknownViewID;///< View associated with the sensor.
+      sbio::math::Vec2f gateSize;///< Tracking-gate dimensions.
+      sbio::math::Vec2f gatePosition;///< Tracking-gate position.
+      FrameNumber hostFrameNumber = UnknownFrameNumber;///< Host frame associated with the response.
     };
 
     /**
@@ -199,13 +196,13 @@ namespace sbio
      */
     struct SSensorExtendedResponse
     {
-      ViewID viewID = UnknownViewID;
-      SensorID sensorID = UnknownSensorID;
-      ESensorStatus eSensorStatus = ESensorStatus::UKNOWN;
-      sbio::math::Vec2f gateSize;
-      sbio::math::Vec2f gatePosition;
-      FrameNumber hostFrameNumber = UnknownFrameNumber;
-      sbio::math::SGeodeticCoordinates trackPoint;
+      ViewID viewID = UnknownViewID;///< View associated with the sensor.
+      SensorID sensorID = UnknownSensorID;///< Reporting sensor identifier.
+      ESensorStatus eSensorStatus = ESensorStatus::UKNOWN;///< Reported tracking status.
+      sbio::math::Vec2f gateSize;///< Tracking-gate dimensions.
+      sbio::math::Vec2f gatePosition;///< Tracking-gate position.
+      FrameNumber hostFrameNumber = UnknownFrameNumber;///< Host frame associated with the response.
+      sbio::math::SGeodeticCoordinates trackPoint;///< Geodetic location of the tracked point.
     };
 
     /**
@@ -213,14 +210,14 @@ namespace sbio
      */
     struct SSensorExtendedEntityResponse
     {
-      ViewID viewID = UnknownViewID;
-      EntityID entityID = UnknownEntityID;
-      SensorID sensorID = UnknownSensorID;
-      ESensorStatus eSensorStatus = ESensorStatus::UKNOWN;
-      sbio::math::Vec2f gateSize;
-      sbio::math::Vec2f gatePosition;
-      FrameNumber hostFrameNumber = UnknownFrameNumber;
-      sbio::math::SGeodeticCoordinates trackPoint;
+      ViewID viewID = UnknownViewID;///< View associated with the sensor.
+      EntityID entityID = UnknownEntityID;///< Entity associated with the tracked point.
+      SensorID sensorID = UnknownSensorID;///< Reporting sensor identifier.
+      ESensorStatus eSensorStatus = ESensorStatus::UKNOWN;///< Reported tracking status.
+      sbio::math::Vec2f gateSize;///< Tracking-gate dimensions.
+      sbio::math::Vec2f gatePosition;///< Tracking-gate position.
+      FrameNumber hostFrameNumber = UnknownFrameNumber;///< Host frame associated with the response.
+      sbio::math::SGeodeticCoordinates trackPoint;///< Geodetic location of the tracked point.
     };
 
     /**
@@ -239,9 +236,10 @@ namespace sbio
      */
     struct SBasePositionResponse
     {
-      EObjectClass eObjectClass = EObjectClass::UNKNOWN;
-      uint16_t objectID = 0;
-      sbio::cigi::TCigiBodyEulerRotation rotation;
+      EObjectClass eObjectClass = EObjectClass::UNKNOWN;///< Class of the reported object.
+      uint16_t objectID = 0;///< Object identifier interpreted according to `eObjectClass`.
+      ArticulatedPartID articulatedPartID = UnknownArticulatedPartID;///< Part identifier for an articulated-part response.
+      sbio::cigi::TCigiBodyEulerRotation rotation;///< Reported CIGI Euler orientation in degrees.
     };
 
     /**
@@ -249,7 +247,7 @@ namespace sbio
      */
     struct SPositionResponseGeodeticCoordinates : SBasePositionResponse
     {
-      sbio::math::SGeodeticCoordinates geodeticCoordinates;
+      sbio::math::SGeodeticCoordinates geodeticCoordinates;///< Reported world position in geodetic coordinates.
     };
 
     /**
@@ -257,7 +255,7 @@ namespace sbio
      */
     struct SPositionResponseParentEntityCoordinates : SBasePositionResponse
     {
-      CigiBodyCoordinates offset;
+      CigiBodyCoordinates offset;///< Position relative to the parent entity, in CIGI axes.
     };
 
     /**
@@ -265,8 +263,7 @@ namespace sbio
      */
     struct SPositionResponseArticulatedPartCoordinates : SBasePositionResponse
     {
-      ArticulatedPartID articulatedPartID = UnknownArticulatedPartID;
-      sbio::cigi::CigiBodyCoordinates offset;
+      sbio::cigi::CigiBodyCoordinates offset;///< Position relative to the articulated part, in CIGI axes.
     };
 
     /**
@@ -274,13 +271,13 @@ namespace sbio
      */
     struct SWeatherConditionsResponse
     {
-      uint8_t requestID = 0;
-      Percentage humidity = UnknownPercentage;
-      float fAirTemperature = 0;
-      float fVisibilityRange = 0;
-      SWindSpeed windSpeedHorVer = {0, 0};
-      float fWindDirection = 0;
-      float fBarometricPressure = 0;
+      uint8_t requestID = 0;///< Identifier of the environmental conditions request.
+      Percentage humidity = UnknownPercentage;///< Reported humidity.
+      float fAirTemperature = 0;///< Reported air temperature.
+      float fVisibilityRange = 0;///< Reported visibility range.
+      SWindSpeed windSpeedHorVer = {0, 0};///< Horizontal and vertical wind-speed components.
+      float fWindDirection = 0;///< Reported wind direction.
+      float fBarometricPressure = 0;///< Reported barometric pressure.
     };
 
     /**
@@ -288,9 +285,9 @@ namespace sbio
      */
     struct SAerosolConcentrationResponse
     {
-      uint8_t requestID = 0;
-      uint8_t layerID = 0;
-      float fAerosolConcentration = 0;
+      uint8_t requestID = 0;///< Identifier of the environmental conditions request.
+      uint8_t layerID = 0;///< Weather layer to which the concentration applies.
+      float fAerosolConcentration = 0;///< Reported aerosol concentration.
     };
 
     /**
@@ -298,10 +295,10 @@ namespace sbio
      */
     struct SMaritimeSurfaceConditionsResponse
     {
-      uint8_t requestID = 0;
-      sbio::math::HeightRelativeToWGS84Ellipsoid fSeaSurfaceHeight = sbio::math::UnknownHeightRelativeToWGS84Ellipsoid;
-      sbio::TemperatureCelsius fSurfaceWaterTemperature = sbio::UnknownTemperatureCelsius;
-      Percentage surfaceClarity = UnknownPercentage;// 0-1. A value of 100% indicates pristine water. A value of 0% indicates extremely turbid water.
+      uint8_t requestID = 0;///< Identifier of the environmental conditions request.
+      sbio::math::HeightRelativeToWGS84Ellipsoid fSeaSurfaceHeight = sbio::math::UnknownHeightRelativeToWGS84Ellipsoid;///< Sea height above the WGS84 ellipsoid, in meters.
+      sbio::TemperatureCelsius fSurfaceWaterTemperature = sbio::UnknownTemperatureCelsius;///< Surface-water temperature in degrees Celsius.
+      Percentage surfaceClarity = UnknownPercentage;///< Water clarity; 100% denotes pristine water and 0% extremely turbid water.
     };
 
     /**
@@ -309,8 +306,8 @@ namespace sbio
      */
     struct STerrestrialSurfaceConditionsResponse
     {
-      uint8_t requestID = 0;
-      uint32_t surfaceConditionID = 0;
+      uint8_t requestID = 0;///< Identifier of the environmental conditions request.
+      uint32_t surfaceConditionID = 0;///< Reported terrestrial surface condition identifier.
     };
 
     /**
@@ -318,10 +315,10 @@ namespace sbio
      */
     struct SCollisionDetectionSegmentNotification
     {
-      EntityID entityID = UnknownEntityID;
-      sbio::SegmentID segmentID = UnknownSegmentID;
-      MaterialID materialCode = UnknownMaterialID;
-      float fIntersectionDistance = 0;
+      EntityID entityID = UnknownEntityID;///< Entity containing the collision segment.
+      sbio::SegmentID segmentID = UnknownSegmentID;///< Segment that detected the collision.
+      MaterialID materialCode = UnknownMaterialID;///< Material identifier of the contacted surface.
+      float fIntersectionDistance = 0;///< Intersection distance reported along the segment.
     };
 
     /**
@@ -329,11 +326,11 @@ namespace sbio
      */
     struct SCollisionDetectionSegmentEntityNotification
     {
-      EntityID entityID = UnknownEntityID;
-      EntityID contactedEntityID = UnknownEntityID;
-      sbio::SegmentID segmentID = UnknownSegmentID;
-      MaterialID materialCode = UnknownMaterialID;
-      float fIntersectionDistance = 0;
+      EntityID entityID = UnknownEntityID;///< Entity containing the collision segment.
+      EntityID contactedEntityID = UnknownEntityID;///< Entity contacted by the segment.
+      sbio::SegmentID segmentID = UnknownSegmentID;///< Segment that detected the collision.
+      MaterialID materialCode = UnknownMaterialID;///< Material identifier of the contacted surface.
+      float fIntersectionDistance = 0;///< Intersection distance reported along the segment.
     };
 
     /**
@@ -341,9 +338,9 @@ namespace sbio
      */
     struct SCollisionDetectionVolumeNotification
     {
-      EntityID entityID = UnknownEntityID;
-      sbio::VolumeID volumeID = UnknownVolumeID;
-      sbio::VolumeID contactedVolumeID = UnknownVolumeID;
+      EntityID entityID = UnknownEntityID;///< Entity containing the collision volume.
+      sbio::VolumeID volumeID = UnknownVolumeID;///< Volume that detected the collision.
+      sbio::VolumeID contactedVolumeID = UnknownVolumeID;///< Contacted volume identifier carried by the notification.
     };
 
     /**
@@ -351,10 +348,10 @@ namespace sbio
      */
     struct SCollisionDetectionVolumeEntityNotification
     {
-      EntityID entityID = UnknownEntityID;
-      sbio::VolumeID volumeID = UnknownVolumeID;
-      sbio::VolumeID contactedVolumeID = UnknownVolumeID;
-      EntityID contactedEntityID = UnknownEntityID;
+      EntityID entityID = UnknownEntityID;///< Entity containing the collision volume.
+      sbio::VolumeID volumeID = UnknownVolumeID;///< Volume that detected the collision.
+      sbio::VolumeID contactedVolumeID = UnknownVolumeID;///< Contacted volume on the other entity.
+      EntityID contactedEntityID = UnknownEntityID;///< Entity contacted by the volume.
     };
 
     /**
@@ -362,7 +359,7 @@ namespace sbio
      */
     struct SAnimationStopNotification
     {
-      EntityID entityID = UnknownEntityID;
+      EntityID entityID = UnknownEntityID;///< Entity whose animation stopped.
     };
 
     /**
@@ -370,10 +367,10 @@ namespace sbio
      */
     struct SEventNotification
     {
-      ImageGeneratorEventID EventID = UnknownImageGeneratorEventID;
-      uint32_t EventData1 = {0};
-      uint32_t EventData2 = {0};
-      uint32_t EventData3 = {0};
+      ImageGeneratorEventID EventID = UnknownImageGeneratorEventID;///< IG-defined event identifier.
+      uint32_t EventData1 = {0};///< First IG-defined event payload word.
+      uint32_t EventData2 = {0};///< Second IG-defined event payload word.
+      uint32_t EventData3 = {0};///< Third IG-defined event payload word.
     };
 
     /**
@@ -381,8 +378,8 @@ namespace sbio
      */
     struct SImageGeneratorNotification
     {
-      ImageGeneratorMessageID MessageID = UnknownImageGeneratorMessageID;
-      std::string sData;
+      ImageGeneratorMessageID MessageID = UnknownImageGeneratorMessageID;///< IG-defined message identifier.
+      std::string sData;///< Message payload retained as a string.
     };
   }
 }

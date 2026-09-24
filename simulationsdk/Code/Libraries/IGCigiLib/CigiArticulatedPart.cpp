@@ -52,12 +52,12 @@ void CCigiArticulatedPart::ApplyDegreeOfFreedom(EDegreeOfFreedom eDofSelect, flo
   }
   case EDegreeOfFreedom::PITCH:
   {
-    rotation.pitch = Degrees(fDof);
+    rotation.pitch = Degrees90(fDof);
     break;
   }
   case EDegreeOfFreedom::ROLL:
   {
-    rotation.roll = Degrees(fDof);
+    rotation.roll = Degrees180(fDof);
     break;
   }
   }

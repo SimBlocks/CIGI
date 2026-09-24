@@ -103,8 +103,10 @@ void CSymbolTexturedCircleDefinitionPanel::OnSend(wxCommandEvent& WXUNUSED(event
 
   for (int n = 0; n < m_pGrid->GetNumberRows(); ++n)
   {
-    if (m_pGrid->GetCellValue(wxGridCellCoords(n, 0)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 1)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 2)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 3)).IsEmpty() ||
-        m_pGrid->GetCellValue(wxGridCellCoords(n, 4)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 5)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 6)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 7)).IsEmpty() ||
+    if (m_pGrid->GetCellValue(wxGridCellCoords(n, 0)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 1)).IsEmpty() ||
+        m_pGrid->GetCellValue(wxGridCellCoords(n, 2)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 3)).IsEmpty() ||
+        m_pGrid->GetCellValue(wxGridCellCoords(n, 4)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 5)).IsEmpty() ||
+        m_pGrid->GetCellValue(wxGridCellCoords(n, 6)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 7)).IsEmpty() ||
         m_pGrid->GetCellValue(wxGridCellCoords(n, 8)).IsEmpty() || m_pGrid->GetCellValue(wxGridCellCoords(n, 9)).IsEmpty())
     {
       continue;

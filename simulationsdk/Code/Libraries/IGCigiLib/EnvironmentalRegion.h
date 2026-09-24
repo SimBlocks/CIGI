@@ -3,7 +3,7 @@
  * @file EnvironmentalRegion.h
  * @brief Declares the CCigiEnvironmentalRegion class for SimBlocks CIGI IG environmental region management.
  *
- * Provides the CCigiEnvironmentalRegion class for managing environmental regions in the SimBlocks CIGI IG library, including weather, maritime, terrestrial, and wave conditions.
+ * Provides the CCigiEnvironmentalRegion class for managing environmental regions in the SimBlocks IGCigiLib library, including weather, maritime, terrestrial, and wave conditions.
  * Supports region shape, position, merging, and contribution calculations for simulation interoperability.
  * Integrates with SimBlocks CIGI, math, and engine types for simulation and environmental control.
  *
@@ -29,6 +29,8 @@
 #include "WeatherLayer.h"
 #include "EngineLib/ImageGeneratorMessages.h"
 
+#include <memory>
+#include <map>
 #include <unordered_map>
 
 namespace sbio
@@ -48,11 +50,20 @@ namespace sbio
       class CCigiEnvironmentalRegion
       {
       public:
+        /** @brief Constructs a globally scoped environmental region. */
+        CCigiEnvironmentalRegion();
+
         /**
          * @brief Constructs an environmental region.
          * @param regionID Unique region identifier.
          */
         CCigiEnvironmentalRegion(RegionID regionID);
+
+        /**
+         * @brief Constructs an entity-scoped environmental region.
+         * @param entityID Identifier used for entity-scoped condition messages.
+         */
+        CCigiEnvironmentalRegion(EntityID entityID);
 
         /**
          * @brief Sets the region active state.
@@ -205,14 +216,29 @@ namespace sbio
          * @brief Queries weather at a specific altitude.
          * @param altitude Altitude value.
          * @param out Output weather condition.
-         * @param used Whether the maritime condition is active.
+         * @param used Whether any active weather layer contributes.
+         * @return Combined altitude contribution, clamped to one.
          */
-        void QueryWeatherAtAltitude(sbio::math::HeightRelativeToWGS84Ellipsoid altitude, SCigiWeatherCondition& out, bool& used);
+        float QueryWeatherAtAltitude(sbio::math::HeightRelativeToWGS84Ellipsoid altitude, SCigiWeatherCondition& out, bool& used);
+
+        /** @brief Keeps one aerosol layer's concentration separate from its altitude contribution weight. */
+        struct SAerosolLayerContribution
+        {
+          float concentration = 0;///< Unweighted concentration from the weather layer.
+          float weight = 0;///< Altitude intersection weight for the layer.
+        };
+
+        /**
+         * @brief Queries active aerosol layers without combining different layer IDs.
+         * @param altitude Query height relative to the WGS84 ellipsoid.
+         * @return Contributions keyed by layer ID, excluding nonpositive or nonfinite altitude weights.
+         */
+        std::map<uint8_t, SAerosolLayerContribution> QueryAerosolsAtAltitude(sbio::math::HeightRelativeToWGS84Ellipsoid altitude);
 
         /**
          * @brief Sets the maritime surface condition for the region.
          * @param condition Maritime surface condition.
-         * @param used Whether the terrestrial condition is active.
+         * @param used Whether the maritime condition is active.
          */
         void SetMaritimeSurface(const SCigiMaritimeSurfaceCondition& condition, bool used);
 
@@ -225,7 +251,7 @@ namespace sbio
         /**
          * @brief Sets the terrestrial surface condition for the region.
          * @param condition Terrestrial surface condition.
-         * @param used Output flag for usage.
+         * @param used Whether the terrestrial condition is active.
          */
         void SetTerrestrialSurface(const SCigiTerrestrialSurfaceCondition& condition, bool used);
 
@@ -264,9 +290,21 @@ namespace sbio
         const CCigiWeatherLayer* GetLastWeatherLayer();
 
       private:
-        uint32_t m_regionID = 0;///< Region's unique ID.
+        /**
+         * @brief Populates a weather message with this region's scope and the supplied layer conditions.
+         * @param data Message to populate; this method does not send it.
+         * @param condition Weather values to copy.
+         * @param spatialWeatherCondition Layer elevations, thickness, and transition bands.
+         * @param layerID Identifier written to the message.
+         */
+        void SetWeatherData(sbio::ig::atmosphere::SSetWeatherMessage& data, const SCigiWeatherCondition& condition, const SCigiSpatialWeatherCondition& spatialWeatherCondition,
+                            RegionalLayeredWeatherID layerID) const;
 
-        typedef std::unordered_map<RegionalLayeredWeatherID, CCigiWeatherLayer*, StrongTypeHash<RegionalLayeredWeatherID>> TRegionalWeatherLayers;
+        ECigiScope m_Scope = ECigiScope::GLOBAL;///< Scope of this environmental region.
+        sbio::RegionID m_RegionID = sbio::UnknownRegionID;///< Regional identifier when region-scoped.
+        sbio::EntityID m_EntityID = sbio::UnknownEntityID;///< Entity identifier when entity-scoped.
+
+        typedef std::unordered_map<RegionalLayeredWeatherID, std::unique_ptr<CCigiWeatherLayer>, StrongTypeHash<RegionalLayeredWeatherID>> TRegionalWeatherLayers;
         TRegionalWeatherLayers m_WeatherLayers;///< Weather layers associated with the region.
 
         CCigiWeatherLayer* m_LastWeatherLayer = nullptr;///< Most recently added weather layer.
@@ -275,7 +313,7 @@ namespace sbio
 
         CTerrestrialSurfaceCondition m_TerrestrialSurfaceCondition;///< Terrestrial surface condition for the region.
 
-        typedef std::unordered_map<RegionalWaveID, CCigiWaveLayer*, StrongTypeHash<RegionalWaveID>> TWaveLayers;
+        typedef std::unordered_map<RegionalWaveID, std::unique_ptr<CCigiWaveLayer>, StrongTypeHash<RegionalWaveID>> TWaveLayers;
         TWaveLayers m_WaveLayers;///< Wave layers associated with the region.
 
         sbio::math::SGeodeticCoordinates m_Origin;///< Region origin in geodetic coordinates.

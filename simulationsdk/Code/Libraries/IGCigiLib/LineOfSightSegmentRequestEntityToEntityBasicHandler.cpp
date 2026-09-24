@@ -17,7 +17,9 @@ using namespace sbio::ig::terrain;
 
 extern SIGCigiLibGlobals g_CigiLibGlobals;
 
-CLineOfSightSegmentRequestEntityToEntityBasicHandler::CLineOfSightSegmentRequestEntityToEntityBasicHandler(const sbio::cigi::SLineOfSightSegmentRequestEntityToEntityBasic& request) : CLineOfSightRequestHandler(), m_Request(request)
+CLineOfSightSegmentRequestEntityToEntityBasicHandler::CLineOfSightSegmentRequestEntityToEntityBasicHandler(
+  const sbio::cigi::SLineOfSightSegmentRequestEntityToEntityBasic& request) :
+  CLineOfSightRequestHandler(0.0, request.sourceEntityID, request.destinationEntityID), m_Request(request)
 {
 }
 
@@ -34,6 +36,8 @@ bool CLineOfSightSegmentRequestEntityToEntityBasicHandler::Handle()
 
   SLineOfSightSegmentRequestBasicMessage data;
   data.LosID = m_Request.requestID;
+  data.RequestGeneration = GetRequestGeneration();
+  data.HostFrameLSN = GetHostFrameLSN();
   data.AlphaThreshold = m_Request.nAlphaThreshold / 255.f;
   data.MaterialMask = m_Request.nMaterialMask;
 

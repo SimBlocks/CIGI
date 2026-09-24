@@ -3,7 +3,7 @@
  * @file CigiEntityAnimation.h
  * @brief Declares the CCigiEntityAnimation struct for SimBlocks CIGI IG entity animation management.
  *
- * Provides the CCigiEntityAnimation struct for managing entity animation state, speed, direction, and loop mode in the SimBlocks CIGI IG library.
+ * Provides the CCigiEntityAnimation struct for managing entity animation state, speed, direction, and loop mode in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI, entity, and math types for simulation and animation control.
  *
  * @see sbio::cigi::ig::CCigiEntityAnimation
@@ -86,6 +86,23 @@ namespace sbio
          */
         void SetAnimationState(sbio::cigi::EAnimationState eAnimationState, bool bForce);
 
+        /** @brief Applies animation state with explicit frame-position reset behavior.
+         * @param eAnimationState Requested state; only Play and Stop are accepted when reset behavior is known.
+         * @param frameReset Unknown delegates to the two-argument overload; Reset with Play always restarts.
+         * @param bForce Requests publication even if the accepted state is unchanged.
+         */
+        void SetAnimationState(sbio::cigi::EAnimationState eAnimationState, sbio::cigi::EAnimationFramePositionReset frameReset, bool bForce);
+        /** @brief Configures animation alpha and refreshes its effective value.
+         * @param alpha Own alpha multiplier, stored without clamping.
+         * @param inheritAlpha Whether to multiply own alpha by the entity alpha.
+         * @param entityAlpha Entity's current effective alpha.
+         */
+        void SetAlpha(float alpha, bool inheritAlpha, float entityAlpha);
+        /** @brief Publishes changed effective alpha after alpha has been configured.
+         * @param entityAlpha Entity alpha used only when inheritance is enabled.
+         */
+        void UpdateEffectiveAlpha(float entityAlpha);
+
       private:
         sbio::EntityID m_EntityID = UnknownEntityID;///< Entity that owns this animation channel.
         sbio::AnimationID m_AnimationID = UnknownAnimationID;///< Animation channel identifier.
@@ -93,6 +110,11 @@ namespace sbio
         float m_AnimationSpeed = 0;///< Cached speed scalar.
         sbio::cigi::EAnimationState m_AnimationState = sbio::cigi::EAnimationState::UNKNOWN;///< Cached animation state.
         bool m_bAnimationDirectionForward = false;///< Cached playback direction flag.
+        float m_OwnAlpha = 1;
+        float m_EffectiveAlpha = 1;
+        bool m_bInheritAlpha = false;
+        bool m_bAlphaConfigured = false;
+        bool m_bAlphaInitialized = false;
       };
     }
   }

@@ -30,10 +30,33 @@ extern sbio::cigi::ig::SIGCigiLibGlobals g_CigiLibGlobals;
 
 CCigiViewGroup::CCigiViewGroup(sbio::ViewGroupID viewGroupID) : CViewGroup(viewGroupID)
 {
+  if (g_CigiLibGlobals.pEventDispatcher != nullptr)
+  {
+    g_CigiLibGlobals.pEventDispatcher->RegisterListener<IGCIGIEvent>(this);
+  }
 }
 
 CCigiViewGroup::~CCigiViewGroup()
 {
+  if (g_CigiLibGlobals.pEventDispatcher != nullptr)
+  {
+    g_CigiLibGlobals.pEventDispatcher->UnregisterListener<IGCIGIEvent>(this);
+  }
+}
+
+void CCigiViewGroup::OnEntityRemoved(sbio::EntityID entityID)
+{
+  if (m_AttachedEntityID == entityID)
+  {
+    SetAttachedEntityID(UnknownEntityID);
+  }
+}
+
+void CCigiViewGroup::Reset()
+{
+  CViewGroup::Reset();
+  SetAttachedEntityID(UnknownEntityID);
+  m_bTransformationDirty = false;
 }
 
 void CCigiViewGroup::AddViewID(sbio::ViewID viewID)
@@ -54,6 +77,14 @@ void CCigiViewGroup::AddViewID(sbio::ViewID viewID)
   }
 
   pCigiView->SetViewGroupID(m_ViewGroupID);
+  if (!m_bAttachmentInitialized)
+  {
+    SetAttachedEntityID(pCigiView->GetAttachedEntityID());
+  }
+  else
+  {
+    pCigiView->SetAttachedEntityID(m_AttachedEntityID);
+  }
 }
 
 void CCigiViewGroup::RemoveViewID(sbio::ViewID viewID)
@@ -78,6 +109,9 @@ void CCigiViewGroup::RemoveViewID(sbio::ViewID viewID)
 
 void CCigiViewGroup::SetAttachedEntityID(sbio::EntityID entityID)
 {
+  m_AttachedEntityID = entityID;
+  m_bAttachmentInitialized = true;
+
   // Update the attached entities for the whole group
   for (sbio::ViewID viewID : m_ViewIDs)
   {
@@ -101,14 +135,7 @@ void CCigiViewGroup::SetAttachedEntityID(sbio::EntityID entityID)
 
 sbio::EntityID CCigiViewGroup::GetAttachedEntityID()
 {
-  CCigiView* pCenterView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(m_CenterViewID));
-
-  if (!pCenterView)
-  {
-    return UnknownEntityID;
-  }
-
-  return pCenterView->GetAttachedEntityID();
+  return m_AttachedEntityID;
 }
 
 const TCigiBodyEulerRotation& CCigiViewGroup::GetRotation() const
@@ -118,14 +145,7 @@ const TCigiBodyEulerRotation& CCigiViewGroup::GetRotation() const
 
 sbio::math::TGeocentricTransform sbio::cigi::ig::CCigiViewGroup::GetWorldTransform() const
 {
-  CCigiView* pCigiView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(m_CenterViewID));
-
-  if (!pCigiView)
-  {
-    return sbio::math::TGeocentricTransform();
-  }
-
-  CCigiEntity* pEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(pCigiView->GetAttachedEntityID()));
+  CCigiEntity* pEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(m_AttachedEntityID));
   if (!pEntity)
   {
     return sbio::math::TGeocentricTransform();
@@ -141,14 +161,7 @@ sbio::math::TGeocentricTransform sbio::cigi::ig::CCigiViewGroup::GetWorldTransfo
 
 TCigiBodyTransform sbio::cigi::ig::CCigiViewGroup::GetChildTransform() const
 {
-  CCigiView* pCigiView = dynamic_cast<CCigiView*>(g_CigiLibGlobals.pViewManager->GetView(m_CenterViewID));
-
-  if (!pCigiView)
-  {
-    return TCigiBodyTransform();
-  }
-
-  CCigiEntity* pEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(pCigiView->GetAttachedEntityID()));
+  CCigiEntity* pEntity = dynamic_cast<CCigiEntity*>(g_CigiLibGlobals.pEntityManager->GetEntity(m_AttachedEntityID));
   if (!pEntity)
   {
     return TCigiBodyTransform();
@@ -174,13 +187,13 @@ void CCigiViewGroup::SetYaw(Degrees fYaw)
   m_Rotation.yaw = fYaw;
 }
 
-void CCigiViewGroup::SetPitch(Degrees fPitch)
+void CCigiViewGroup::SetPitch(Degrees90 fPitch)
 {
   m_bTransformationDirty = true;
   m_Rotation.pitch = fPitch;
 }
 
-void CCigiViewGroup::SetRoll(Degrees fRoll)
+void CCigiViewGroup::SetRoll(Degrees180 fRoll)
 {
   m_bTransformationDirty = true;
   m_Rotation.roll = fRoll;

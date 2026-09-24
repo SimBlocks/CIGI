@@ -74,7 +74,7 @@ void CView::SetRightHalfAngle(float fRightHalfAngle)
 
 void CView::SetTopHalfAngle(float fTopHalfAngle)
 {
-  if (!fequals(fTopHalfAngle, fTopHalfAngle))
+  if (!fequals(m_fTopHalfAngle, fTopHalfAngle))
   {
     m_fTopHalfAngle = fTopHalfAngle;
     m_bProjectionDirty = true;

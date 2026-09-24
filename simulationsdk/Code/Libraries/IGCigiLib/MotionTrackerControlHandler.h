@@ -1,9 +1,9 @@
 //Copyright SimBlocks LLC 2016-2026
 /**
  * @file MotionTrackerControlHandler.h
- * @brief Declares the CCigiMotionTrackerControlHandler class for handling CIGI motion tracker control messages in SimBlocks CIGI IG library.
+ * @brief Declares the CCigiMotionTrackerControlHandler class for handling CIGI motion tracker control messages in SimBlocks IGCigiLib library.
  *
- * Provides the CCigiMotionTrackerControlHandler class for processing motion tracker view and view group control messages in the SimBlocks CIGI IG library.
+ * Provides the CCigiMotionTrackerControlHandler class for processing motion tracker view and view group control messages in the SimBlocks IGCigiLib library.
  * Integrates with SimBlocks CIGI and math types for simulation and motion tracker management.
  *
  * @see sbio::cigi::ig::CCigiMotionTrackerControlHandler

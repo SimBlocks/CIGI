@@ -47,9 +47,9 @@ namespace sbio
       virtual ReferencePlaneCoordinates GetProjectedCoordinate(const SGeodeticCoordinates& geodeticCoordinates) const = 0;
 
       /**
-       * @brief Gets geodetic coordinate.
-       * @param referencePlaneCoordinates Coordinate value.
-       * @return Geodetic coordinate value.
+       * @brief Converts reference-plane coordinates to geodetic coordinates.
+       * @param referencePlaneCoordinates Coordinates in the projection's reference plane.
+       * @return Geodetic coordinates corresponding to the supplied reference-plane coordinates.
        */
       virtual SGeodeticCoordinates GetGeodeticCoordinate(const ReferencePlaneCoordinates& referencePlaneCoordinates) const = 0;
 
@@ -60,6 +60,8 @@ namespace sbio
        * This is typically used to define the origin or reference point for the projection.
        *
        * @param geodeticCoords The reference geodetic coordinates (latitude, longitude, altitude).
+       *
+       * @note The effect of initialization for invalid input is defined by the derived projection.
        */
       virtual void Init(const SGeodeticCoordinates& geodeticCoords) = 0;
     };

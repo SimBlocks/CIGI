@@ -44,9 +44,9 @@ namespace sbio
       virtual ReferencePlaneCoordinates GetProjectedCoordinate(const SGeodeticCoordinates& geodeticCoordinates) const override;
 
       /**
-       * @brief Gets geodetic coordinate.
-       * @param referencePlaneCoordinates Coordinate value.
-       * @return Geodetic coordinate value.
+       * @brief Converts flat reference-plane coordinates to geodetic coordinates.
+       * @param referencePlaneCoordinates Coordinates in the flat reference plane.
+       * @return Geodetic coordinates corresponding to the supplied reference-plane coordinates.
        */
       virtual SGeodeticCoordinates GetGeodeticCoordinate(const ReferencePlaneCoordinates& referencePlaneCoordinates) const override;
 
@@ -55,6 +55,7 @@ namespace sbio
        *
        * Sets the reference latitude and longitude for the flat Earth projection.
        * All projected coordinates will be relative to this reference point.
+       * Invalid or unknown origins are ignored without changing projection state.
        *
        * @param geodeticCoords The reference geodetic coordinates (latitude, longitude, altitude).
        */

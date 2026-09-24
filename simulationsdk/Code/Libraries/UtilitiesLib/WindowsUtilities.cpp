@@ -34,6 +34,15 @@ using namespace sbio::utils;
 using namespace std;
 using namespace std::filesystem;
 
+bool ShouldSkipFileSystemEntry(const std::filesystem::path& path)
+{
+  const DWORD attributes = GetFileAttributesW(path.c_str());
+
+  // If the attributes are INVALID_FILE_ATTRIBUTES, the file does not exist or is inaccessible.
+  // If the FILE_ATTRIBUTE_REPARSE_POINT flag is set, the file is a reparse point (e.g., a symbolic link or junction).
+  return attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+}
+
 std::wstring Utf8ToWideString(const std::string& value)
 {
   if (value.empty())

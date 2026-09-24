@@ -1,33 +1,35 @@
 //Copyright SimBlocks LLC 2016-2026
 #include "WeatherLayer.h"
+#include <algorithm>
 
 using namespace sbio::cigi;
 using namespace sbio::cigi::ig;
 
 double CCigiWeatherLayer::IntersectionTest(sbio::math::HeightRelativeToWGS84Ellipsoid altitude)
 {
-  float fTotalThickness = m_SpatialCondition.fBottomTransitionBandThickness + m_SpatialCondition.fThickness + m_SpatialCondition.fTopTransitionBandThickness;
-  double middle = m_SpatialCondition.fBaseElevation + (m_SpatialCondition.fThickness / 2.0);
+  const double base = m_SpatialCondition.fBaseElevation;
+  const double top = base + m_SpatialCondition.fThickness;
 
-  // equals m_Condition.Thickness / 2 at edges of clouds
-  double value = std::abs(altitude.Value() - middle);
-
-  // inside clouds
-  if (value <= fTotalThickness / 2.0f)
+  // Altitude is below the layer's bounds.
+  if (altitude.Value() < base)
   {
-    return 1.0;
+    const double transition = m_SpatialCondition.fBottomTransitionBandThickness;
+
+    // If the transition band thickness is greater than zero, compute the contribution factor based on the distance from the base of the layer.
+    return transition > 0 ? std::max(0.0, 1.0 - (base - altitude.Value()) / transition) : 0.0;
   }
 
-  // reset so 0 is at edge of clouds
-  value -= fTotalThickness / 2;
+  // Altitude is above the layer's bounds.
+  if (altitude.Value() > top)
+  {
+    const double transition = m_SpatialCondition.fTopTransitionBandThickness;
 
-  // set end of transistion band at 1
-  value /= (m_SpatialCondition.fBottomTransitionBandThickness + m_SpatialCondition.fTopTransitionBandThickness);
+    // If the transition band thickness is greater than zero, compute the contribution factor based on the distance from the top of the layer.
+    return transition > 0 ? std::max(0.0, 1.0 - (altitude.Value() - top) / transition) : 0.0;
+  }
 
-  // flip so edge of cloud is 1 and transition band is 0
-  value = 1 - value;
-
-  return std::max<double>(value, 0);
+  // Altitude is within the layer's bounds.
+  return 1.0;
 }
 
 CCigiWeatherLayer::CCigiWeatherLayer()
@@ -77,6 +79,7 @@ void CCigiWeatherLayer::SetRandomLightening(bool val)
 void CCigiWeatherLayer::SetWeatherCondition(const SCigiWeatherCondition& condition)
 {
   m_Condition = condition;
+  SetActive(condition.bWeatherEnabled);
 }
 
 void CCigiWeatherLayer::SetSpatialWeatherCondition(const SCigiSpatialWeatherCondition& spatialWeatherCondition)

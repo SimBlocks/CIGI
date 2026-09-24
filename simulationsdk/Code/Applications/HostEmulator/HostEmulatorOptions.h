@@ -20,13 +20,30 @@
 
 /**
  * @brief Manages loading and storage of HostEmulator configuration options.
+ *
+ * Each successfully opened configuration starts from SHostSetupOptions defaults, then applies file overrides and
+ * the application's CIGI 4.0 fallback. Missing keys do not inherit values from previous loads or direct edits.
+ * Loading options does not initialize a host.
  */
 class CHostEmulatorOptions
 {
 public:
   /**
-   * @brief Loads options from a configuration file.
-   * @param filePath Path to the configuration file.
+   * @brief Resets options to defaults after opening a POCO INI file, then applies its settings without transactional rollback.
+   * @param filePath INI path opened as supplied; missing files and POCO read/conversion failures propagate as exceptions.
+   *
+   * Accepts hostToIGPort and igToHostPort only in [0, 65535]; invalid ranges retain the default ports. Address
+   * strings are copied without validation. cigiVersion selects 3.3 only for "3.3" and otherwise defaults to 4.0,
+   * including when absent. synchronizationMode is lowercased before matching "synchronous" or "asynchronous";
+   * an absent or unrecognized value retains the default asynchronous mode. defaultDatabase is narrowed to uint8_t without range
+   * validation. bigEndianByteOrder uses POCO's boolean conversion. PathToCigiSisoConversionsFile is joined to
+   * g_globals.applicationsDataPath, not the INI directory. databaseControl recognizes exact "IG" and "Host" values.
+   *
+   * After top-level fields are read, clears sessions and reads Session0 through Session(sessionCount-1). Each entry
+   * copies top-level endpoints/database before applying its own keys; sessionID defaults to UnknownSessionID.
+   * Session port ranges are checked as above; invalid overrides retain the inherited top-level ports. Database and
+   * session IDs are narrowed without validation. Missing or nonpositive sessionCount leaves the list empty.
+   * Failure to construct the INI reader leaves existing options untouched.
    */
   void LoadOptions(const std::filesystem::path& filePath);
 
